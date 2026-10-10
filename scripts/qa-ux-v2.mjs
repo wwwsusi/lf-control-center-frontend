@@ -1,6 +1,7 @@
 // Browser QA only: synthetic DTO; no live business data, server credentials or deployment.
 import {chromium,webkit} from '@playwright/test';
 import {fixture,item} from '../tests/fixtures/ux-v2.mjs';
+import {demoProjection} from '../web/dashboard-demo.mjs';
 import {pragueToday,addDays} from '../web/ux-model.mjs';
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -73,6 +74,45 @@ try{
  await page.locator('#disconnect').click();await page.waitForTimeout(200);assert(logout===1,'Server logout called once');assert(await page.locator('#reload-data').isDisabled(),'Disconnected reload state');assert(await page.locator('#connect').innerText()==='Connect to DB','Connect label');await context.close();
  authorized=true;
  for(const mode of ['corrupt','blocked']){const {page,context}=await setup({width:820,height:1180},mode);await nav(page,'Služby');assert((await page.locator('#dashboard .report-table th').allTextContents()).includes('Owner'),'Safe storage defaults');await noOverflow(page);await context.close();}
+ // End-to-end browser regression: real file input, JSON parsing, validation, import and navigation.
+ const legacy=demoProjection(new Date().toISOString()),template=legacy.items.find(i=>i.kind==='campaign');
+ const cases=[
+  ['planned','PLANNED / scheduling',[]],['preparing','PREPARING / approval',[]],
+  ['proposed','PROPOSED; awaiting brief',[]],['executed','EXECUTED',[]],
+  ['published','PUBLISHED',[]],['running','RUNNING',[]],
+  ['conflict','PLANNED',[{field:'lifecycle',values:[{value:'PLANNED'},{value:'UNKNOWN'}]}]]
+ ];
+ for(const [id,lifecycle,conflicts]of cases)legacy.items.push({...structuredClone(template),id:'legacy:fixture:'+id,title:'Synthetic legacy '+id,fields:{...template.fields,lifecycle},conflicts});
+ const {page:importPage,context:importContext}=await setup({width:1440,height:1000});
+ await importPage.locator('#import').setInputFiles({name:'synthetic-legacy-campaigns.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
+ await importPage.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='SNAPSHOT'&&window.lfDashboardDiagnostics?.().items>=17);
+ assert((await importPage.locator('#dashboard').innerText()).includes('DEMO · Pripraviť otvorený deň'),'Imported snapshot retains legacy tasks');
+ await nav(importPage,'Kampane');
+ const browserKpi=async label=>{const panel=importPage.locator('.ux-campaign-kpis .ux-panel').filter({has:importPage.getByRole('heading',{name:label,exact:true})});assert(await panel.count()===1,'Campaign KPI exists: '+label);return (await panel.locator('dd').first().innerText()).trim();};
+ assert(await browserKpi('Beží / Published')==='1','Imported explicitly published campaign KPI is 1');
+ assert(await browserKpi('V príprave')==='2','PLANNED and PREPARING prefixes included');
+ assert(await browserKpi('Draft / Idea')==='1','PROPOSED alias counted as draft');
+ assert(await browserKpi('Dokončené')==='1','EXECUTED alias counted as completed');
+ for(const [id]of cases)assert(await importPage.getByRole('button',{name:'Synthetic legacy '+id,exact:true}).count()===1,'Imported campaign record preserved '+id);
+ assert(await importPage.locator('#dashboard .ux-item').count()===8,'All eight snapshot campaigns including conflicted and RUNNING remain visible');
+ const other=importPage.locator('#dashboard .dash-group').filter({has:importPage.getByRole('heading',{name:'Other / Unclassified',exact:true})});
+ assert(await other.count()>=1,'Ambiguous legacy stage gets Other heading');
+ await importPage.screenshot({path:path.join(out,'synthetic-legacy-json-import.png'),fullPage:true});
+ await importContext.close();
+ results.push('Real browser file-input legacy JSON import, aliases, conflict and campaign KPIs PASS');
+ // Live registry authority: disabled PUBLISHED must not inflate published KPI.
+ const livePublished=data.status_catalog.definitions.find(d=>d.domain==='campaign'&&d.code==='PUBLISHED');
+ assert(livePublished,'Synthetic PUBLISHED campaign status definition exists');
+ livePublished.is_enabled=false;
+ const {page:disabledPage,context:disabledContext}=await setup({width:1440,height:1000});
+ await nav(disabledPage,'Kampane');
+ const publishedKpi=disabledPage.locator('.ux-campaign-kpis .ux-panel').filter({has:disabledPage.getByRole('heading',{name:'Beží / Published',exact:true})});
+ assert((await publishedKpi.locator('dd').first().innerText()).trim()==='Nedostupné','Disabled campaign published KPI is unavailable');
+ const otherText=await disabledPage.locator('#dashboard').innerText();
+ assert(otherText.includes('Synthetic c1'),'Disabled PUBLISHED campaign remains visible on campaign view');
+ await disabledPage.screenshot({path:path.join(out,'synthetic-disabled-campaign-status.png'),fullPage:true});
+ await disabledContext.close();livePublished.is_enabled=true;
+ results.push('Live Supabase synthetic disabled-campaign status/KPI classification PASS');
  assert(errors.length===0,'Browser errors: '+errors.join('; '));
  results.push('Keyboard disclosure, month navigation/detail, column persistence, unknown/NULL data, empty/many campaigns, failed reload, logout and storage fallbacks PASS');
  results.push(browserName+' synthetic QA only. This is NOT direct Safari or real-device testing. Screenshots captured; human visual review remains owner review.');
