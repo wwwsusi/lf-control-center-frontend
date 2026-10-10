@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {SECTIONS,DashboardState} from '../web/dashboard-model.mjs';
-import {uxProjection,campaignBuckets,campaignTaskBucket,taskGroup,calendarEvents,pragueToday,addDays,monthGrid,moveMonth,qualitySummary,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,preferenceKey} from '../web/ux-model.mjs';
+import {uxProjection,campaignBuckets,campaignTaskBucket,taskGroup,calendarEvents,pragueToday,addDays,monthGrid,moveMonth,qualitySummary,availableColumns,normalizePreferences,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,preferenceKey} from '../web/ux-model.mjs';
 import {renderUX,renderLongText} from '../web/ux.mjs';
 import {fixture,item} from './fixtures/ux-v2.mjs';
+import {demoProjection} from '../web/dashboard-demo.mjs';
 class Node{
  constructor(tag,text){this.tagName=tag.toUpperCase();this._text=text??'';this.children=[];this.attrs={};this.dataset={};this.style={};}
  get textContent(){return String(this._text)+this.children.map(n=>n.textContent).join(' ');}
@@ -26,7 +27,7 @@ test('month grid is Monday-first, includes today and changes across year',()=>{c
 test('canonical event placement uses only task due or entity launch; no duration or fabricated dates',()=>{const events=calendarEvents(fixture());const campaign=events.filter(e=>e.item.kind==='campaign');assert.deepEqual(campaign.map(e=>[e.item.id,e.type,e.date]),[['c1','launch','2026-10-10']]);assert(!events.some(e=>e.item.id==='p1'));assert(!events.some(e=>e.date==='2026-10-20'||e.date==='2026-10-21'));assert(campaign.every(e=>!Object.hasOwn(e,'end')));});
 test('known categories project safely; unknown and blocked tasks stay visible',()=>{const data=fixture(),v=uxProjection(data,'2026-10-10');assert.equal(taskGroup(data.items[0]),'campaigns');assert.equal(taskGroup(data.items[1]),'brand');assert.equal(taskGroup(data.items[2]),'staff');assert.equal(taskGroup(data.items[4]),'other');assert.equal(v.important.flatMap(g=>g.items).length,5);assert(v.important.find(g=>g.id==='other').items.some(i=>i.id==='t5'));});
 test('campaign order and actual registry codes; missing bucket stays unavailable',()=>{const data=fixture(),groups=campaignBuckets(data).groups;assert.deepEqual(groups.map(g=>g.id),['published','review','preparing','draft','completed']);assert(!data.status_catalog.definitions.some(d=>d.code==='RUNNING'));data.status_catalog.definitions=data.status_catalog.definitions.filter(d=>d.code!=='IN_REVIEW');assert.equal(campaignBuckets(data).groups[1].available,false);const ui=harness('campaigns',data);const headings=ui.parent.querySelectorAll('h3').map(n=>n.textContent);assert.deepEqual(headings.slice(5),['Beží teraz / Published','In Review','V príprave','Draft / Idea','Dokončené']);assert(ui.parent.textContent.includes('Nedostupné'));ui.parent.querySelectorAll('button').find(n=>n.textContent==='Synthetic c1').onclick();assert.deepEqual(ui.opened,['c1']);});
-test('task table compact order, long next_step full accessible native disclosure, no source mutation',()=>{const data=fixture(),before=structuredClone(data),ui=harness('tasks',data);assert.deepEqual(ui.tables[0].columns,['Priorita','Úloha','Stav','Ďalší krok','Owner','Kategória']);assert.equal(ui.tables[0].controls,false);const details=ui.parent.querySelector('details');assert(details.querySelector('summary'));assert.equal(details.querySelector('p').textContent,'n'.repeat(200));assert.deepEqual(data,before);assert.equal(textPreview('short').long,false);});
+test('task table compact order, long next_step full accessible native disclosure, no source mutation',()=>{const data=fixture(),before=structuredClone(data),ui=harness('tasks',data);assert.deepEqual(ui.tables[0].columns,['Priorita','Kategória','Úloha','Stav','Ďalší krok','Owner']);assert.equal(ui.tables[0].controls,false);const details=ui.parent.querySelector('details');assert(details.querySelector('summary'));assert.equal(details.querySelector('p').textContent,'n'.repeat(200));assert.deepEqual(data,before);assert.equal(textPreview('short').long,false);});
 test('real severity only, unavailable OK count and issue-only coverage',()=>{assert.deepEqual(qualitySummary({issues:[{severity:'ERROR'},{severity:'WARN'}]}),[['ERROR',1],['WARN',1]]);assert.deepEqual(qualitySummary({issues:[]}),[]);assert.deepEqual(qualitySummary(undefined),[]);});
 test('shared default columns, visibility and order persistence, required title',()=>{const columns=availableColumns(fixture().items.filter(i=>i.kind==='service')),memory=new Map(),storage={getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)};let prefs=loadPreferences(storage,'offers',columns);assert.deepEqual(visibleColumns(prefs,columns).map(c=>c.id),['name','lifecycle','availability','price','owner']);prefs=toggleColumn(prefs,'owner',false,columns);prefs=reorderColumn(prefs,'price',-1);assert(savePreferences(storage,'offers',prefs));assert.deepEqual(loadPreferences(storage,'offers',columns),prefs);assert(!loadPreferences(storage,'products',columns).visible.includes('proposed'));assert(toggleColumn(prefs,'name',false,columns).visible.includes('name'));assert(memory.has(preferenceKey('offers')));});
 test('corrupt or unavailable localStorage safely falls back',()=>{const columns=availableColumns(fixture().items.filter(i=>i.kind==='product')),defaults=loadPreferences(null,'products',columns);assert.deepEqual(loadPreferences({getItem:()=>'{oops'},'products',columns),defaults);assert.deepEqual(loadPreferences({getItem(){throw Error('blocked');}},'products',columns),defaults);assert.equal(savePreferences({setItem(){throw Error('blocked');}},'products',defaults),false);assert.equal(savePreferences(null,'products',defaults),false);});
@@ -71,4 +72,47 @@ test('real canonical LF FB kampaň / FB post category stays in Campaigns & Marke
  const ui=harness('overview',data);
  assert(ui.parent.textContent.includes('Synthetic legacy-fb-task'),'legacy task visible in campaign work area');
  assert(ui.parent.textContent.includes('Bez jednoznačného stavu kampane'),'unlinked task remains lifecycle unclassified');
+});
+
+test('tasks table renders priority, category, task, status and next step in requested order',()=>{
+ const ui=harness('tasks',fixture());
+ const cells=ui.parent.querySelectorAll('tr')[0].children;
+ assert.equal(cells.length,6);
+ assert.equal(cells[0].textContent,'P0');
+ assert.equal(cells[1].textContent,'CAMPAIGN');
+ assert(cells[2].textContent.includes('Synthetic t1'));
+ assert.equal(cells[3].textContent,'IN_PROGRESS');
+ assert(cells[4].textContent.includes('n'.repeat(200)));
+ assert.equal(cells[5].textContent,'—');
+});
+
+test('synthetic demo contains a product and shows service price without inventing monetary facts',()=>{
+ const data=demoProjection('2026-10-11T10:00:00Z');
+ const services=data.items.filter(i=>i.kind==='service'),products=data.items.filter(i=>i.kind==='product');
+ assert.equal(services.length,1);
+ assert.equal(products.length,1,'Demo must include an explicitly synthetic product');
+ assert.equal(services[0].fields.current_price_eur,null,'Unknown service price must not be fabricated');
+ assert.equal(products[0].fields.current_price_eur,null,'Unknown product price must not be fabricated');
+ const serviceUi=harness('offers',data),productUi=harness('products',data);
+ assert(serviceUi.tables[0].columns.includes('Cena'),'Demo services must show price column');
+ assert(productUi.tables[0].columns.includes('Cena'),'Demo products must show price column');
+ assert(serviceUi.parent.textContent.includes('TBD — cena nepotvrdená'),'Missing service price is explicitly unverified');
+ assert(productUi.parent.textContent.includes('DEMO · Ukážkový produkt'),'Demo products view is not blank');
+ assert(productUi.parent.textContent.includes('TBD — cena nepotvrdená'));
+ assert(data.items.filter(i=>i.kind==='task').every(i=>Boolean(i.fields.category)),'Demo tasks show categories');
+});
+
+test('new price column appears for empty/missing source fields and migrates saved preferences safely',()=>{
+ const items=[item('synthetic-empty-price','service',{lifecycle:'PILOT'})];
+ const columns=availableColumns(items);
+ assert(columns.some(c=>c.id==='price'),'Price is always available to these entity tables');
+ const oldPreferences={version:1,order:['name','lifecycle','owner'],visible:['name','lifecycle']};
+ const migrated=normalizePreferences(oldPreferences,columns);
+ assert(migrated.visible.includes('price'),'New default-visible Cena must appear in existing persisted layout');
+ assert(migrated.order.includes('price'),'New Cena appended without losing user order');
+ const explicitHidden={...migrated,visible:migrated.visible.filter(x=>x!=='price')};
+ assert(!normalizePreferences(explicitHidden,columns).visible.includes('price'),'Explicitly hidden Cena stays hidden');
+ const ui=harness('offers',{...fixture(),items});
+ assert(ui.tables[0].columns.includes('Cena'));
+ assert(ui.parent.textContent.includes('TBD — cena nepotvrdená'));
 });
