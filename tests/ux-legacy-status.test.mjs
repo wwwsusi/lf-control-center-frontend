@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {campaignBuckets,taskState,taskIsOpen,uxProjection} from '../web/ux-model.mjs';
+import {campaignBuckets,campaignTaskBucket,taskState,taskIsOpen,uxProjection} from '../web/ux-model.mjs';
 import {renderUX} from '../web/ux.mjs';
 import {demoProjection} from '../web/dashboard-demo.mjs';
 import {fixture,item} from './fixtures/ux-v2.mjs';
@@ -106,4 +106,57 @@ test('known live open and terminal statuses remain unaffected by legacy adapter'
  assert.deepEqual(v.overdue.map(i=>i.id),['t3']);
  assert.equal(taskState(data.items.find(i=>i.id==='t4')),'terminal');
  assert.equal(taskState(data.items.find(i=>i.id==='t5')),'open');
+});
+
+test('legacy campaign aliases and known delimited prefixes preserve historical display grouping',()=>{
+ const data=legacy(),base=data.items.find(i=>i.kind==='campaign');
+ const scenarios=[
+  ['PLANNED','preparing'],['PLANNED / scheduling','preparing'],
+  ['PROPOSED','draft'],['PROPOSED; draft brief','draft'],
+  ['EXECUTED','completed'],['EXECUTED — reported','completed'],
+  ['PREPARING / approval','preparing'],['PUBLISHED. platform proof','published'],
+  ['IN_REVIEW / requested changes','review'],['DRAFT / artwork','draft'],
+  ['RUNNING','other'],['ACTIVE','other'],['READY','other'],
+  ['PLANNED_NOT_REAL','other'],['UNKNOWN:PLANNED','other']
+ ];
+ for(const [index,[status]] of scenarios.entries())
+  data.items.push({...structuredClone(base),id:'alias-'+index,title:'Synthetic alias '+index,fields:{...base.fields,lifecycle:status,status:undefined},conflicts:[]});
+ const result=uxProjection(data,'2026-10-10');
+ for(const [index,[status,expected]] of scenarios.entries()){
+  const id='alias-'+index,bucket=result.campaigns.groups.find(g=>g.items.some(i=>i.id===id))?.id||'other';
+  assert.equal(bucket,expected,status+' must be '+expected+' not '+bucket);
+ }
+ assert.equal(result.campaigns.groups.find(g=>g.id==='preparing').items.length,3);
+ assert.equal(result.campaigns.groups.find(g=>g.id==='draft').items.length,3);
+ assert.equal(result.campaigns.groups.find(g=>g.id==='completed').items.length,2);
+ assert.equal(result.campaigns.groups.find(g=>g.id==='published').items.length,1);
+ assert(result.campaigns.other.some(i=>i.id==='alias-10'),'RUNNING must not imply published');
+ assert(render('campaigns',data).includes('Synthetic alias 0'));
+});
+
+test('a disabled live campaign definition is not published and never increases published KPI',()=>{
+ const data=fixture(),campaign=data.items.find(i=>i.id==='c1');
+ data.status_catalog.definitions.find(d=>d.domain==='campaign'&&d.code==='PUBLISHED').is_enabled=false;
+ const result=uxProjection(data,'2026-10-10'),published=result.campaigns.groups.find(g=>g.id==='published');
+ assert.equal(published.available,false,'disabled code is not an available status');
+ assert.deepEqual(published.items,[],'disabled published bucket must be empty');
+ assert(result.campaigns.other.some(i=>i.id===campaign.id),'record remains visible in Other');
+ assert(!result.campaigns.groups.some(g=>g.items.some(i=>i.id===campaign.id)));
+ assert.equal(result.campaigns.groups.find(g=>g.id==='draft').items.length,1,'enabled IDEA unaffected');
+ const rendered=render('campaigns',data);
+ assert(rendered.includes('Other / Unclassified'),'disabled campaign remains visible');
+ assert(rendered.includes('Synthetic c1'),'disabled campaign retains record/title');
+ assert(rendered.includes('Nedostupné'),'disabled Published KPI is unavailable');
+ const linked=item('linked-task','task',{task_status:'IN_PROGRESS',category:'CAMPAIGN'});
+ linked.related_ids=[campaign.id];assert.equal(campaignTaskBucket(linked,result.campaigns.groups),'other','no phantom published task from disabled campaign');
+});
+
+test('a non-Supabase snapshot must never inherit a previously configured live campaign registry',()=>{
+ const live=fixture();live.status_catalog.definitions.find(d=>d.domain==='campaign'&&d.code==='PUBLISHED').is_enabled=false;
+ uxProjection(live,'2026-10-10');
+ const snapshot=legacy(),existing=snapshot.items.find(i=>i.kind==='campaign');
+ existing.fields.lifecycle='PUBLISHED';existing.conflicts=[];
+ const legacyResult=uxProjection(snapshot,'2026-10-10');
+ assert(legacyResult.campaigns.groups.find(g=>g.id==='published').items.some(i=>i.id===existing.id));
+ assert.equal(legacyResult.campaigns.groups.find(g=>g.id==='published').available,true);
 });
