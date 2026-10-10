@@ -113,6 +113,25 @@ try{
  await disabledPage.screenshot({path:path.join(out,'synthetic-disabled-campaign-status.png'),fullPage:true});
  await disabledContext.close();livePublished.is_enabled=true;
  results.push('Live Supabase synthetic disabled-campaign status/KPI classification PASS');
+ // Owner demo feedback: verify actual in-app synthetic demo navigation (no live Supabase).
+ const {page:demoPage,context:demoContext}=await setup({width:1180,height:820});
+ await demoPage.getByRole('button',{name:'Pozrieť syntetické demo',exact:true}).click();
+ await demoPage.waitForFunction(()=>window.lfDashboardDiagnostics?.().demo===true);
+ await nav(demoPage,'Úlohy');
+ assert(JSON.stringify(await demoPage.locator('#dashboard .report-table th').allTextContents())===JSON.stringify(['Priorita','Kategória','Úloha','Stav','Ďalší krok','Owner']),'User-requested Tasks column order in demo');
+ assert((await demoPage.locator('#dashboard').innerText()).includes('CAMPAIGN'),'Demo task category exists');
+ await nav(demoPage,'Služby');
+ const demoServiceHeaders=await demoPage.locator('#dashboard .report-table th').allTextContents();
+ assert(demoServiceHeaders.includes('Cena'),'Synthetic service price column visible');
+ assert((await demoPage.locator('#dashboard').innerText()).includes('TBD — cena nepotvrdená'),'Unknown demo service price never invented');
+ await nav(demoPage,'Produkty');
+ const demoProductText=await demoPage.locator('#dashboard').innerText();
+ assert(demoProductText.includes('DEMO · Ukážkový produkt'),'Actual demo product present in products view');
+ assert((await demoPage.locator('#dashboard .report-table th').allTextContents()).includes('Cena'),'Products price column visible');
+ assert(demoProductText.includes('TBD — cena nepotvrdená'),'Unknown demo product price marked unverified');
+ await demoPage.screenshot({path:path.join(out,'synthetic-demo-products-feedback.png'),fullPage:true});
+ await demoContext.close();
+ results.push('Owner synthetic demo: Tasks column order, Services Cena TBD, Products sample visible PASS');
  assert(errors.length===0,'Browser errors: '+errors.join('; '));
  results.push('Keyboard disclosure, month navigation/detail, column persistence, unknown/NULL data, empty/many campaigns, failed reload, logout and storage fallbacks PASS');
  results.push(browserName+' synthetic QA only. This is NOT direct Safari or real-device testing. Screenshots captured; human visual review remains owner review.');
