@@ -21,19 +21,25 @@ export function taskState(item){
  return 'uncertain';
 }
 export const taskIsOpen=item=>taskState(item)==='open';
-// Legacy snapshots represent a campaign stage through lifecycle; live Supabase always uses canonical status.
+// Legacy display aliases come from the existing reporting adapter; this does not write canonical status.
+const LEGACY_CAMPAIGN_CODES=Object.freeze({
+ PUBLISHED:'PUBLISHED',IN_REVIEW:'IN_REVIEW',PREPARING:'PREPARING',PLANNED:'PREPARING',
+ DRAFT:'DRAFT',IDEA:'IDEA',PROPOSED:'DRAFT',COMPLETED:'COMPLETED',EXECUTED:'COMPLETED'
+});
 const campaignCode=(item,origin)=>{
  if(origin==='supabase')return String(item.fields.status||'').trim().toUpperCase();
  if(item.conflicts?.some(c=>['lifecycle','identity'].includes(c.field)))return '';
- const code=String(item.fields.lifecycle||item.fields.status||'').trim().toUpperCase();
- // RUNNING/ACTIVE are not proof of publication. Keep them visibly unclassified.
- return ['PUBLISHED','IN_REVIEW','PREPARING','DRAFT','IDEA','COMPLETED'].includes(code)?code:'';
+ const raw=String(item.fields.lifecycle||item.fields.status||'').trim().toUpperCase();
+ // Only an explicitly recognized leading lifecycle token is mapped (same delimiters as reporting.mjs).
+ const prefix=raw.match(/^([A-Z_]+)(?=[. /;—]|$)/)?.[1];
+ // RUNNING/ACTIVE/READY are workflow stages, not proof of a canonical published campaign.
+ return LEGACY_CAMPAIGN_CODES[prefix]||'';
 };
 export function campaignBuckets(data){
  configureStatusCatalog(data);
  const items=data.items.filter(i=>i.kind==='campaign'),known=new Set();
  const groups=CAMPAIGN_BUCKETS.map(bucket=>{
-  const codes=bucket.codes.filter(code=>data.origin!=='supabase'||registryStatus(code,'campaign'));
+  const codes=bucket.codes.filter(code=>{if(data.origin!=='supabase')return true;const meta=registryStatus(code,'campaign');return Boolean(meta)&&meta.is_enabled!==false;});
   codes.forEach(c=>known.add(c));
   return {...bucket,available:codes.length>0,items:items.filter(i=>codes.includes(campaignCode(i,data.origin)))};
  });
