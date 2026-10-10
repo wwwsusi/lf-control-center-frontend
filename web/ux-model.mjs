@@ -72,7 +72,7 @@ export const COLUMN_DEFINITIONS=[
  {id:'category',label:'Kategória',fields:['category']},
  {id:'variant',label:'Variant / balenie',fields:['variant_package']}
 ];
-export function availableColumns(items){return COLUMN_DEFINITIONS.filter(c=>c.required||items.some(i=>c.fields.some(field=>Object.hasOwn(i.fields,field))));}
+export function availableColumns(items){return COLUMN_DEFINITIONS.filter(c=>c.required||c.id==='price'||items.some(i=>c.fields.some(field=>Object.hasOwn(i.fields,field))));}
 export function defaultPreferences(columns){return {version:1,order:columns.map(c=>c.id),visible:columns.filter(c=>c.default||c.required).map(c=>c.id)};}
 export function normalizePreferences(raw,columns){const defaults=defaultPreferences(columns);if(raw?.version!==1||!Array.isArray(raw.order)||!Array.isArray(raw.visible)||raw.order.some(id=>typeof id!=='string')||raw.visible.some(id=>typeof id!=='string'))return defaults;const valid=new Set(columns.map(c=>c.id)),order=[...new Set(raw.order.filter(id=>valid.has(id)))];for(const id of defaults.order)if(!order.includes(id))order.push(id);const visible=[...new Set(raw.visible.filter(id=>valid.has(id)))];for(const c of columns)if(c.required&&!visible.includes(c.id))visible.push(c.id);return {version:1,order,visible};}
 export const preferenceKey=view=>'lf-control-center:ux-v2:columns:'+view;
