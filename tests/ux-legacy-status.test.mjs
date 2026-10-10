@@ -43,7 +43,7 @@ test('legacy lowercase open task statuses stay in important, due and overdue vie
  assert.equal(taskState(a),'open');assert.equal(taskState(b),'open');
  assert.deepEqual(v.dueSoon.map(i=>i.id),['demo:task-a']);
  assert.deepEqual(v.overdue.map(i=>i.id),['demo:task-b']);
- assert(v.important.find(g=>g.id==='other').items.some(i=>i.id==='demo:task-a'));
+ assert(v.important.find(g=>g.id==='campaigns').items.some(i=>i.id==='demo:task-a'),'Categorized demo campaign task belongs to Campaigns & Marketing');
  assert(render('overview',data).includes('DEMO · Pripraviť otvorený deň'));
  assert(render('tasks',data).includes('DEMO · Vyhodnotiť skúšobný program'));
 });
