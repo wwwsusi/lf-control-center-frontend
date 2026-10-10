@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {campaignBuckets,taskState,taskIsOpen,uxProjection} from '../web/ux-model.mjs';
+import {campaignBuckets,campaignTaskBucket,taskState,taskIsOpen,uxProjection} from '../web/ux-model.mjs';
 import {renderUX} from '../web/ux.mjs';
 import {demoProjection} from '../web/dashboard-demo.mjs';
 import {fixture,item} from './fixtures/ux-v2.mjs';
