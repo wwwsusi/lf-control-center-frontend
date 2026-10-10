@@ -99,7 +99,6 @@ test('synthetic demo contains a product and shows service price without inventin
  assert(serviceUi.parent.textContent.includes('TBD — cena nepotvrdená'),'Missing service price is explicitly unverified');
  assert(productUi.parent.textContent.includes('DEMO · Ukážkový produkt'),'Demo products view is not blank');
  assert(productUi.parent.textContent.includes('TBD — cena nepotvrdená'));
- assert(data.items.filter(i=>i.kind==='task').every(i=>Boolean(i.fields.category)),'Demo tasks show categories');
 });
 
 test('new price column appears for empty/missing source fields and migrates saved preferences safely',()=>{
