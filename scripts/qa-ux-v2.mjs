@@ -119,7 +119,7 @@ try{
  await demoPage.waitForFunction(()=>window.lfDashboardDiagnostics?.().demo===true);
  await nav(demoPage,'Úlohy');
  assert(JSON.stringify(await demoPage.locator('#dashboard .report-table th').allTextContents())===JSON.stringify(['Priorita','Kategória','Úloha','Stav','Ďalší krok','Owner']),'User-requested Tasks column order in demo');
- assert((await demoPage.locator('#dashboard').innerText()).includes('CAMPAIGN'),'Demo task category exists');
+ assert((await demoPage.locator('#dashboard .report-table tbody tr').first().locator('td').nth(1).innerText()).trim()==='Other / Unclassified','Missing demo task category is displayed without inference');
  await nav(demoPage,'Služby');
  const demoServiceHeaders=await demoPage.locator('#dashboard .report-table th').allTextContents();
  assert(demoServiceHeaders.includes('Cena'),'Synthetic service price column visible');
