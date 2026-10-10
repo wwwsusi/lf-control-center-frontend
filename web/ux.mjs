@@ -1,4 +1,4 @@
-import {uxProjection,pragueToday,calendarEvents,monthGrid,moveMonth,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,campaignTaskBucket} from './ux-model.mjs?v=20261011-campaign-alias-registry-v5';
+import {uxProjection,pragueToday,calendarEvents,monthGrid,moveMonth,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,campaignTaskBucket} from './ux-model.mjs?v=20261011-demo-feedback-v1';
 import {statusLabel,statusDomain} from './status-model.mjs?v=20261009-status-registry';
 import {day,displayDate} from './operational.mjs?v=20261009-supabase-v2';
 export function renderLongText(value,parent,make){const text=textPreview(value);if(!text.long)return make('span',text.full||'—',parent);const box=make('details',null,parent,'ux-long-text');make('summary',text.preview+' · Zobraziť / skryť celý text',box);make('p',text.full,box,'ux-full-text');return box;}
@@ -21,8 +21,8 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
   const top=row('ux-two');summary('Summary by category',v.categories,top);summary('Task Status',v.statuses.map(([code,count])=>[statusLabel(code,'work'),count]),top);
   if(v.uncertain.length){const attention=group('Stav úloh vyžaduje kontrolu · UNCERTAIN');make('p','Neznámy alebo neaktívny pracovný status; úlohy nie sú automaticky označené ako otvorené ani dokončené.',attention,'conflict-label');for(const item of v.uncertain)itemRow(item,attention,{date:day(item.fields.due_date),next:true});}
   const timed=row('ux-two');taskList('Due Soon · do 5 dní',v.dueSoon,timed);taskList('Overdue',v.overdue,timed);
-  const {box,body}=tableShell('Úlohy',['Priorita','Úloha','Stav','Ďalší krok','Owner','Kategória'],parent,'',false);
-  for(const item of v.tasks){const tr=make('tr',null,body);statusBadge(item.fields.priority||'—',make('td',null,tr),statusDomain(item,'priority'));const name=make('td',null,tr);action(item.title,()=>detail(item),name).className='table-title';make('small',item.id,name,'table-id');statusBadge(item.fields.task_status||item.fields.status||'—',make('td',null,tr),'work');renderLongText(item.fields.next_step,make('td',null,tr),make);make('td',item.fields.owner||'—',tr);make('td',item.fields.category||'Other / Unclassified',tr);}if(!v.tasks.length)empty(box);return;
+  const {box,body}=tableShell('Úlohy',['Priorita','Kategória','Úloha','Stav','Ďalší krok','Owner'],parent,'',false);
+  for(const item of v.tasks){const tr=make('tr',null,body);statusBadge(item.fields.priority||'—',make('td',null,tr),statusDomain(item,'priority'));make('td',item.fields.category||'Other / Unclassified',tr);const name=make('td',null,tr);action(item.title,()=>detail(item),name).className='table-title';make('small',item.id,name,'table-id');statusBadge(item.fields.task_status||item.fields.status||'—',make('td',null,tr),'work');renderLongText(item.fields.next_step,make('td',null,tr),make);make('td',item.fields.owner||'—',tr);}if(!v.tasks.length)empty(box);return;
  }
  if(section==='campaigns'){
   const top=row('ux-campaign-kpis');for(const g of v.campaigns.groups)summary(g.label,[['Počet',g.available?g.items.length:null]],top);
@@ -39,7 +39,7 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
    action('Obnoviť predvolené stĺpce',()=>{commit(loadPreferences(null,section,columns));redraw();},selector);
    if(storageFailed)make('small','Nastavenie funguje v tejto relácii; browser storage nie je dostupný.',selector);
    const visible=visibleColumns(prefs,columns),{box,body}=tableShell(section==='offers'?'Služby':'Produkty',visible.map(c=>c.label),host,'',false);
-   const euro=value=>Number.isFinite(value)?new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(value):'—';
+   const euro=value=>Number.isFinite(value)?new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(value):'TBD — cena nepotvrdená';
    for(const item of items){const tr=make('tr',null,body),f=item.fields;for(const c of visible){const td=make('td',null,tr);if(c.id==='name'){action(item.title,()=>detail(item),td).className='table-title';make('small',item.id,td,'table-id');}else if(['lifecycle','availability','priority'].includes(c.id)){const field=c.id==='availability'?(kind==='service'?'availability_status':'stock_status'):c.id;statusBadge(f[field]||'—',td,statusDomain(item,field));}else if(c.id==='next')renderLongText(f.next_step,td,make);else{const value=({price:euro(f.current_price_eur),proposed:euro(f.proposed_price_eur),launch:day(f.launch_date)?displayDate(f.launch_date):'—',completion:day(f.planned_completion_date)?displayDate(f.planned_completion_date):'—',owner:f.owner,audience:f.audience,units:[f.units,f.unit].filter(v=>v!=null).join(' '),category:f.category,variant:f.variant_package})[c.id];make('span',value??'—',td);}}}if(!items.length)empty(box);
    if(focusLabel){selector.open=true;[...selector.querySelectorAll('[aria-label]')].find(n=>n.getAttribute('aria-label')===focusLabel)?.focus();}
   };redraw();return;

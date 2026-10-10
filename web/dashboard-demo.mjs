@@ -11,6 +11,7 @@ export function demoProjection(now=new Date().toISOString()){
  {...item('demo:campaign','campaign','DEMO · Otvorený deň',{lifecycle:'PREPARING',placement:'Proposed',objective:'Podporiť návštevnosť.',start:'TBD',owner:'TBD'},['demo:service']),conflicts:[{field:'lifecycle',values:[{value:'PREPARING',source_id:'demo:source'},{value:'TBD',source_id:'demo:unavailable'}]}]},
  item('demo:output','output','DEMO · Facebook pozvánka',{channel:'FACEBOOK / PNG',creative:'DRAFT',approval:'PENDING',publication:'NOT_PUBLISHED',platform_verification:'NOT_PERFORMED',publish_at:'TBD'},['demo:campaign']),
  item('demo:reported','output','DEMO · Oznámený príspevok',{channel:'FACEBOOK',creative:'READY',approval:'APPROVED',publication:'PUBLISHED',platform_verification:'USER_REPORTED',publish_at:'TBD'},['demo:campaign']),
- item('demo:service','service','DEMO · Ukážková služba',{lifecycle:'PILOT',availability:'TBD',price:'TBD',owner:'DEMO',open_questions:'Termín a kapacita TBD.'}),
+ item('demo:service','service','DEMO · Ukážková služba',{lifecycle:'PILOT',availability:'TBD',availability_status:'TBD',current_price_eur:null,owner:'DEMO',open_questions:'Termín a kapacita TBD.'}),
+ item('demo:product','product','DEMO · Ukážkový produkt',{lifecycle:'IDEA',stock_status:'TBD',current_price_eur:null,owner:'DEMO',next_step:'DEMO: typ, sklad a cena zatiaľ nepotvrdené.'}),
  item('demo:change','change','DEMO · Zaznamenaná úprava',{summary:'Syntetický doklad zmeny; nejde o živé business dáta.',evidence_status:'DEMO',date:now})]};
 }
