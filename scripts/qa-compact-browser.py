@@ -11,7 +11,7 @@ async def run():
   browser=await p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
   page=await browser.new_page(viewport={'width':1440,'height':1000},reduced_motion='reduce');errors=[];requests=[]
   page.on('pageerror',lambda e:errors.append(str(e)));page.on('request',lambda r:requests.append(r.url))
-  await page.goto('http://127.0.0.1:8879/');await page.wait_for_function('window.lfDashboardDiagnostics')
+  await page.goto('http://127.0.0.1:8879/control-center.html');await page.wait_for_function('window.lfDashboardDiagnostics')
   assert await page.locator('html').get_attribute('data-theme')=='dark'
   projection=await page.evaluate('''async()=>{const {demoProjection}=await import('./dashboard-demo.mjs');const d=demoProjection();const source=d.sources[0];source.provider='github';source.role='now';
    const item=(id,kind,title,fields={},related_ids=[],links=[])=>({id,kind,title,fields,related_ids,links,conflicts:[],source_id:source.id,provenance:{owner:'SYNTHETIC',anchor:id,identity:'synthetic'}});
@@ -77,3 +77,4 @@ async def run():
   await browser.close()
   print('PASS: stacked overview, max5 NOW/NEXT, business-only decisions, source names, NOW detail, service tables/availability, retail, lifecycle colors, FB table/evidence, light/dark persistence, desktop/mobile, map, AI export, zero runtime errors; synthetic screenshots.')
 asyncio.run(run());server.shutdown()
+

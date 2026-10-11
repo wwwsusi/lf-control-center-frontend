@@ -12,7 +12,7 @@ async def main():
    async with async_playwright() as p:
     browser=await p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);context=await browser.new_context(ignore_https_errors=True);page=await context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     api=[];page.on('request',lambda r:api.append(r) if '/api/' in r.url else None)
-    await page.goto(origin);await page.wait_for_function('window.lfDashboardDiagnostics')
+    await page.goto(origin+'/control-center.html');await page.wait_for_function('window.lfDashboardDiagnostics')
     await page.wait_for_function("document.querySelector('#connection').textContent==='Odpojené'");assert (await page.evaluate('window.lfDashboardDiagnostics().items'))==0
     assert (await page.request.get(origin+'/api/dashboard')).status==401
     await page.get_by_role('button',name='Pripojiť službu',exact=True).click();assert await page.locator('#endpoint').is_disabled()
@@ -53,3 +53,4 @@ async def main():
    print('PASS: startup anonymous, login, reload session restore, failure reload, logout reload; local HTTPS shell, relative API, real HttpOnly/Secure/Lax cookie, authenticated/anonymous dashboard, inventory/events, refresh retention, logout and expiry; no JS runtime errors. Not production Safari QA.')
   finally:server.terminate();server.wait(timeout=10)
 asyncio.run(main())
+

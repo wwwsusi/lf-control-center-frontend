@@ -28,6 +28,9 @@ jobs:
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run check
       - run: npm run build
+      - run: node scripts/qa-home.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
       - run: npm run qa:ux
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
@@ -38,3 +41,4 @@ jobs:
           path: qa-artifacts/
           if-no-files-found: ignore
           retention-days: 7
+
