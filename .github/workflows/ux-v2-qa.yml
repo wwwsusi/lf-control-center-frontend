@@ -1,5 +1,7 @@
 name: Control Center UX browser QA
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
       - 'web/**'

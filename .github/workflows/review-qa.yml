@@ -1,5 +1,7 @@
 name: Dashboard review QA
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 permissions:
