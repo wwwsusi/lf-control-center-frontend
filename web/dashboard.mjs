@@ -10,7 +10,7 @@ import {demoProjection} from './dashboard-demo.mjs?v=20261011-legends-controls';
 import {safeUrl,searchText} from './model.mjs';
 const make=(tag,text,parent,className)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(className)n.className=className;parent?.append(n);return n;};
 const action=(text,fn,parent)=>{const n=make('button',text,parent);n.type='button';n.onclick=fn;return n;};
-const labels={category:'Kategória',area:'Oblasť (historická)',type:'Typ služby',approval_evidence:'Dôkaz schválenia (zdroj / dátum / verzia)',registry_lifecycle:'Lifecycle podľa registra',registry_approval:'Schválenie podľa registra',registry_publication:'Publikovanie podľa registra',role:'Rola assetu',file_id:'Drive file ID',version:'Verzia',priority:'Priorita',task_status:'Úloha',next_step:'Ďalší krok',owner:'Zodpovednosť',due:'Termín / kontext',added_at:'Dátum pridania',lifecycle:'Lifecycle',placement:'Umiestnenie',objective:'Cieľ',start:'Začiatok',end:'Koniec',creative:'Kreatíva',approval:'Schválenie',publication:'Publikovanie',platform_verification:'Platformová evidencia',channel:'Kanál',publish_at:'Publikačný termín',availability:'Dostupnosť',audience:'Publikum / cenová skupina',creation_audience:'Publikum tvorby',value:'Hodnota pre publikum',included:'Zahrnuté',booking:'Booking / CTA',capacity:'Kapacita',units:'Počet jednotiek',unit:'Jednotka',unit_price:'Cena / jednotka',price:'Aktuálna cena',proposed_price:'Navrhovaná nová cena',price_effective:'Účinnosť ceny',evidence_status:'Stav evidencie',summary:'Stručný obsah',open_questions:'Otvorené otázky',blocking:'Blokuje ďalšiu prácu',date:'Dátum',results:'Výsledky',pending:'Lokálne pending actions'};
+const labels={category:'Kategória',area:'Oblasť (historická)',type:'Typ služby',approval_evidence:'Dôkaz schválenia (zdroj / dátum / verzia)',registry_lifecycle:'Lifecycle podľa registra',registry_approval:'Schválenie podľa registra',registry_publication:'Publikovanie podľa registra',role:'Rola assetu',file_id:'Drive file ID',version:'Verzia',priority:'Priorita',task_status:'Úloha',task_description:'Popis',next_step:'Ďalší krok',owner:'Zodpovednosť',due:'Termín / kontext',due_date:'Termín',added_at:'Dátum pridania',lifecycle:'Lifecycle',placement:'Umiestnenie',objective:'Cieľ',start:'Začiatok',end:'Koniec',creative:'Kreatíva',approval:'Schválenie',publication:'Publikovanie',platform_verification:'Platformová evidencia',channel:'Kanál',publish_at:'Publikačný termín',availability:'Dostupnosť',audience:'Publikum / cenová skupina',creation_audience:'Publikum tvorby',value:'Hodnota pre publikum',included:'Zahrnuté',booking:'Booking / CTA',capacity:'Kapacita',units:'Počet jednotiek',unit_price:'Cena / jednotka',price:'Aktuálna cena',proposed_price:'Navrhovaná nová cena',price_effective:'Účinnosť ceny',evidence_status:'Stav evidencie',summary:'Stručný obsah',open_questions:'Otvorené otázky',blocking:'Blokuje ďalšiu prácu',date:'Dátum',results:'Výsledky',pending:'Lokálne pending actions'};
 export function createDashboard({focusMap,refreshLive}){
  const state=new DashboardState(),nav=document.getElementById('dashboard-nav'),root=document.getElementById('dashboard'),map=document.getElementById('map-workspace'),panel=document.getElementById('dashboard-detail');
  let calendarMonth=pragueToday().slice(0,7);
@@ -37,13 +37,26 @@ export function createDashboard({focusMap,refreshLive}){
  function detail(item){
   panel.replaceChildren();action('Zavrieť',()=>panel.close(),panel).className='detail-close';make('p','READ-ONLY / CANONICAL EVIDENCIA',panel,'eyebrow');make('h2',item.title,panel);
   make('p',`ID: ${item.id}`,panel,'detail-id');const dl=make('dl',null,panel,'dash-fields');
-  for(const [key,value]of Object.entries(item.fields)){make('dt',labels[key]||key,dl);make('dd',state.data?.origin==='supabase'&&statusDomain(item,key)?statusLabel(value,statusDomain(item,key)):key==='task_status'?(WORK[value]||taskLabel(value)):key==='publication'?publicationLabel(item):(value&&typeof value==='object'?JSON.stringify(value,null,2):String(value??'TBD')),dl);}
+  const taskDescriptions=[];
+  for(const [key,value]of Object.entries(item.fields)){
+   if(key==='task_description'){
+    if(typeof value!=='string'||!value.trim())continue;
+    make('dt',labels[key],dl);const cell=make('dd',null,dl,'task-description-cell'),text=make('div',value,cell,'task-description-text');taskDescriptions.push({text,cell});continue;
+   }
+   make('dt',labels[key]||key,dl);make('dd',state.data?.origin==='supabase'&&statusDomain(item,key)?statusLabel(value,statusDomain(item,key)):key==='task_status'?(WORK[value]||taskLabel(value)):key==='publication'?publicationLabel(item):(value&&typeof value==='object'?JSON.stringify(value,null,2):String(value??'TBD')),dl);
+  }
   if(item.conflicts.length){make('h3','Konflikty — potrebné rozhodnutie',panel);for(const c of item.conflicts){make('p',labels[c.field]||c.field,panel);for(const v of c.values)make('p',`${v.value} · ${state.data.sources.find(s=>s.id===v.source_id)?.title||v.source_id}`,panel);}}
   make('h3','Pôvod a čerstvosť',panel);const s=sourceFor(item);make('p',`${item.provenance.owner} · ${item.provenance.identity} · ${item.provenance.anchor}`,panel);if(item.provenance.field_sources)for(const [field,id]of Object.entries(item.provenance.field_sources))make('small',`${labels[field]||field}: ${state.data.sources.find(s=>s.id===id)?.title||id}`,panel,'detail-link');make('p',freshness(s||{}).label,panel);make('p','Úprava zdroja: '+stamp(s?.modified_at),panel);canonical(item,panel);
   for(const link of item.links){const url=safeUrl(link.url);if(url){const a=make('a',(link.label||link.role)+' ↗',panel,'detail-link');a.href=url;a.target='_blank';a.rel='noopener noreferrer';}}
   make('h3','Súvisiace položky a zdroje',panel);for(const id of item.related_ids){const related=state.data.items.find(i=>i.id===id);if(related)action(related.title,()=>detail(related),panel);else make('p',id+' · MISSING / nenájdené v načítanom rozsahu',panel);}
   if(!state.demo)action('Zobraziť zdroj v mape',()=>{panel.close();navigate('map');focusMap(item.provenance.file_id,item.source_id,s?.url);},panel);
   panel.showModal();
+  for(const {text,cell} of taskDescriptions){
+   if(text.scrollHeight<=text.clientHeight)continue;
+   let expanded=false;
+   const toggle=action('Zobraziť viac',()=>{expanded=!expanded;text.classList.toggle('is-expanded',expanded);toggle.textContent=expanded?'Zobraziť menej':'Zobraziť viac';toggle.setAttribute('aria-expanded',String(expanded));},cell);
+   toggle.className='task-description-toggle';toggle.setAttribute('aria-expanded','false');
+  }
  }
  function group(title,items,parent,limit=null,note=''){
   const box=make('section',null,parent,'dash-group');box.dataset.title=title;make('h3',title,box);if(note)make('p',note,box,'section-note');

@@ -66,6 +66,28 @@ try{
  }
  await page.setViewportSize({width:1440,height:1000});await nav(page,'Úlohy');
  const long=page.locator('.ux-long-text').first();await long.locator('summary').focus();await page.keyboard.press('Enter');assert(await long.getAttribute('open')!==null,'Keyboard expands next step');assert((await long.locator('p').innerText()).length===200,'Full next_step preserved');await page.keyboard.press('Enter');assert(await long.getAttribute('open')===null,'Keyboard collapses next step');
+ const detail=page.locator('#dashboard-detail'),openTask=async id=>{await page.locator('table[aria-label="Úlohy"] .table-title').filter({hasText:'Synthetic '+id}).first().click();assert(await detail.isVisible(),'Task detail opened: '+id);};
+ await openTask('t1');let description=detail.locator('.task-description-text'),toggle=detail.locator('.task-description-toggle');
+ assert(await description.count()===1,'Task description is shown');assert((await description.innerText()).includes('Variant 1 — café 💪'),'Unicode and full task description preserved');
+ assert(await toggle.innerText()==='Zobraziť viac'&&await toggle.getAttribute('aria-expanded')==='false','Long description starts collapsed with accessible control');
+ const order=await detail.locator('.dash-fields dt').allTextContents();assert(order.indexOf('Popis')<order.indexOf('Ďalší krok'),'Description appears before Next action');
+ for(const label of ['Priorita','Úloha','Termín','Ďalší krok'])assert(order.includes(label),'Existing task detail field remains visible: '+label);
+ const nextAction=detail.locator('.dash-fields dt').filter({hasText:'Ďalší krok'}).locator('xpath=following-sibling::dd[1]');assert((await nextAction.innerText()).length===200,'Existing Next action content remains intact');
+ const lineHeight=await description.evaluate(n=>parseFloat(getComputedStyle(n).lineHeight));assert(await description.evaluate((n,height)=>n.clientHeight<=height*4+2,lineHeight),'Long description is clamped to four lines');
+ await toggle.focus();await page.keyboard.press('Enter');assert(await toggle.innerText()==='Zobraziť menej'&&await toggle.getAttribute('aria-expanded')==='true','Keyboard expands description');
+ assert((await description.innerText()).includes('Caption variants continue here.'),'Expanded description preserves final lines');
+ await toggle.click();assert(await toggle.getAttribute('aria-expanded')==='false','Description collapses again');
+ await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();
+ await openTask('t2');assert(await detail.locator('.task-description-text').innerText()==='Krátky popis úlohy.','Short description shown in full');assert(await detail.locator('.task-description-toggle').count()===0,'Short description has no redundant control');
+ await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();
+ for(const id of ['t3','t4','t5']){await openTask(id);assert(await detail.locator('.task-description-text').count()===0,'Null, empty and whitespace-only descriptions are omitted: '+id);await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();}
+ await openTask('t1');assert(await detail.locator('.task-description-toggle').getAttribute('aria-expanded')==='false','Expanded state does not carry to another task detail');
+ await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();
+ results.push('Task description null/empty/whitespace, short/long, four-line clamp, keyboard controls, task isolation and Next action ordering PASS');
+ await page.setViewportSize({width:390,height:844});await nav(page,'Úlohy');await openTask('t1');await noOverflow(page);
+ assert(await detail.locator('.task-description-toggle').isVisible(),'Mobile description control remains visible');
+ await detail.locator('.task-description-toggle').click();assert((await detail.locator('.task-description-text').innerText()).includes('Caption variants continue here.'),'Mobile can expand the complete description');
+ await noOverflow(page);await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();await page.setViewportSize({width:1440,height:1000});
  await nav(page,'Kalendár');const heading=await page.locator('.ux-calendar-toolbar h4').innerText();await page.getByRole('button',{name:'Nasledujúci mesiac →'}).click();assert(await page.locator('.ux-calendar-toolbar h4').innerText()!==heading,'Month changes');await page.getByRole('button',{name:'Dnes',exact:true}).click();const more=page.locator('.ux-calendar-more').first();await more.locator('summary').click();await more.getByRole('button').first().click();assert(await page.locator('#dashboard-detail').isVisible(),'Calendar detail reuse');await page.locator('#dashboard-detail').getByRole('button',{name:'Zavrieť',exact:true}).click();
  await nav(page,'Úlohy');
  assert(await page.locator('.status-legend').count()===1,'Exactly one task legend');
@@ -164,4 +186,3 @@ try{
  results.push(browserName+' synthetic QA only. This is NOT direct Safari or real-device testing. Screenshots captured; human visual review remains owner review.');
  await fs.writeFile(path.join(out,'results.txt'),results.join('\n')+'\n');console.log(results.join('\n'));
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
-
