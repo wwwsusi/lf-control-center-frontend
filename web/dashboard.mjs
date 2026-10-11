@@ -1,4 +1,4 @@
-import {renderUX} from './ux.mjs?v=20261011-category-groups-demo-feedback';
+import {renderUX} from './ux.mjs?v=20261011-calendar-status';
 import {pragueToday} from './ux-model.mjs?v=20261011-category-groups-demo-feedback';
 import {configureStatusCatalog,registryStatus,statusLabel,statusDomain} from './status-model.mjs?v=20261009-status-registry';
 import {renderOperational,operationalViews,WORK,displayDate} from './operational.mjs?v=20261009-supabase-v2';
