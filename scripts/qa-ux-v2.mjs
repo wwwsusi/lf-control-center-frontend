@@ -88,7 +88,15 @@ try{
  await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Úlohy');
  const taskHeaders=await page.locator('table[aria-label="Úlohy"] th').allTextContents();
  assert(!taskHeaders.includes('Owner')&&taskHeaders.indexOf('Stav')<taskHeaders.indexOf('Úloha'),'Task column visibility/order persists');
- for(const label of ['Prehľad','Úlohy','Kalendár','Služby','Produkty','Kampane','Kvalita dát','Súbory']){await nav(page,label);assert(await page.locator('.status-legend:visible').count()===1,'One visible legend in '+label);await noOverflow(page);}
+ for(const label of ['Prehľad','Úlohy','Kalendár','Služby','Produkty','Kampane','Kvalita dát','Súbory']){
+  await nav(page,label);assert(await page.locator('.status-legend:visible').count()===1,'One visible legend in '+label);
+  const placement=await page.locator('.status-legend:visible').evaluate(legend=>{
+   const target=legend.nextElementSibling;
+   return Boolean(target&&(target.matches('.table-scroll,.ux-calendar,.ux-campaign-list')||target.querySelector('.ux-important-grid,.ux-campaign-list')));
+  });
+  if(label!=='Súbory')assert(placement,'Legend immediately precedes main table or list in '+label);
+  await noOverflow(page);
+ }
  await nav(page,'Služby');await page.locator('.ux-column-selector summary').click();const owner=page.getByRole('checkbox',{name:'Zobraziť Owner',exact:true});await owner.uncheck();await page.getByRole('button',{name:'Posunúť doľava · Cena',exact:true}).click();await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Služby');const columns=await page.locator('#dashboard .report-table th').allTextContents();assert(!columns.includes('Owner'),'Hidden column persisted');assert(columns.indexOf('Cena')<columns.indexOf('Dostupnosť'),'Column order persisted');
  await nav(page,'Kampane');assert(await page.locator('.ux-campaign-kpis .ux-panel').count()===5,'Five campaign KPIs');assert((await page.locator('#dashboard').innerText()).includes('Žiadne kampane v tomto stave.'),'Empty campaign bucket');assert(await page.locator('.ux-campaign-list .ux-item').count()===20,'Many campaigns preserved');
  await nav(page,'Prehľad');assert((await page.locator('#dashboard').innerText()).includes('Synthetic t5'),'Unknown category not lost');
