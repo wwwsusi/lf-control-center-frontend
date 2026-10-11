@@ -2,9 +2,9 @@ export const item=(id,kind,fields={})=>({id,kind,title:'Synthetic '+id,source_id
 const definition=(domain,code,terminal=false)=>({domain,code,label_sk:code,color_key:'neutral',sort_order:0,is_terminal:terminal});
 export const fixture=()=>({schema_version:1,origin:'supabase',mode:'LIVE_SUPABASE',sources:[{id:'s',title:'Synthetic',status:'ok'}],items:[
  item('t1','task',{task_status:'IN_PROGRESS',priority:'P0',category:'CAMPAIGN',due_date:'2026-10-10',next_step:'n'.repeat(200),owner:null}),
- item('t2','task',{task_status:'PREPARING',category:'BRAND_ASSETS',due_date:'2026-10-15'}),
- item('t3','task',{task_status:'NOT_STARTED',category:'STAFF',due_date:'2026-10-09'}),
- item('t4','task',{task_status:'COMPLETED',category:'STAFF',due_date:'2026-10-01'}),
+ item('t2','task',{task_status:'PREPARING',category:'LF management',due_date:'2026-10-15'}),
+ item('t3','task',{task_status:'NOT_STARTED',category:'IT / Control Center',due_date:'2026-10-09'}),
+ item('t4','task',{task_status:'COMPLETED',category:'IT CRM',due_date:'2026-10-01'}),
  item('t5','task',{task_status:'BLOCKED',category:'NEW_CATEGORY',due_date:null}),
  item('t6','task',{task_status:'CANCELLED',due_date:'2026-10-10'}),
  item('t7','task',{task_status:'IN_PROGRESS',category:'MARKETING_SOCIAL',due_date:'2026-10-16'}),
