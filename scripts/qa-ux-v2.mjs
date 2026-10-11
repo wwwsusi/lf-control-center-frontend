@@ -33,7 +33,7 @@ async function setup(viewport,storageMode=null){
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/config.json',route=>route.fulfill({json:{connectionMode:'same-origin',eventServiceUrl:'',scope:'Synthetic browser QA'}}));
  await page.route('**/api/**',async route=>{const url=new URL(route.request().url());if(url.pathname==='/api/dashboard'){calls++;assert(!route.request().headers().authorization,'No browser bearer for dashboard');await route.fulfill({status:authorized?(failed?502:200):401,json:authorized&&!failed?data:{error:'Synthetic failure'}});}else if(url.pathname==='/api/logout'){assert(route.request().method()==='POST','Logout server POST');logout++;authorized=false;await route.fulfill({json:{ok:true}});}else await route.fulfill({json:{nodes:[],edges:[],ok:true}});});
- await page.goto(base);await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');
+ await page.goto(base+'/control-center.html');await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');
  return {context,page};
 }
 const nav=async(page,label)=>{await page.locator('#dashboard-nav').getByRole('button',{name:label,exact:true}).click();};
@@ -164,3 +164,4 @@ try{
  results.push(browserName+' synthetic QA only. This is NOT direct Safari or real-device testing. Screenshots captured; human visual review remains owner review.');
  await fs.writeFile(path.join(out,'results.txt'),results.join('\n')+'\n');console.log(results.join('\n'));
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
+

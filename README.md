@@ -33,3 +33,10 @@ Consolidation readback and source hash checks are documented in [migration evide
 ## Follow-up
 
 LF-TASK-024 UX NOW implementation is deferred until the baseline conflict is resolved. This consolidation includes no UX redesign, CRM, API/schema expansion, merge or deployment and creates no second task register.
+
+
+## LF-TASK-034 entry page
+
+`/` is a static branded introduction with the canonical Lady Fitness logo and local Oswald/Inter fonts. Its `Log in` link opens `/control-center.html`, which retains the existing protected Control Center and session flow. The landing does not authenticate a user or read private data; no username/password fields are added there.
+
+Builds include the entry page and dashboard separately. Synthetic landing QA: `node scripts/qa-home.mjs` after `npm run build` (Playwright Chromium required). Existing dashboard browser fixtures target `/control-center.html`.

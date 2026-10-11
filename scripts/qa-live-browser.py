@@ -8,7 +8,7 @@ async def main():
  async with async_playwright() as p:
   b=await p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=await b.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
   await page.clock.install()
-  await page.goto('http://127.0.0.1:8881/')
+  await page.goto('http://127.0.0.1:8881/control-center.html')
   data=await page.evaluate("async()=>{const {demoProjection}=await import('./dashboard-demo.mjs');const d=demoProjection();d.items=d.items.filter(i=>i.kind==='task'||i.kind==='direction');d.sources=[d.sources[0]];d.sources[0].id='github:synthetic';d.sources[0].provider='github';d.sources[0].role='now';d.sources[0].revision='synthetic';for(const i of d.items){i.source_id=d.sources[0].id;i.title='LIVE SYNTHETIC '+i.title;i.fields.category='LF management';}return d;}")
   calls=0;fail=False
   async def route(r):
@@ -34,3 +34,4 @@ async def main():
   assert not errors,errors;await b.close()
  print('PASS: connect loads live GitHub report, authenticated refresh requests, failure retains last data, disconnect clears private report, zero runtime errors')
 asyncio.run(main());server.shutdown()
+

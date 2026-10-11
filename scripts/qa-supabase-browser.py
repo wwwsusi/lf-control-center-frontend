@@ -24,7 +24,7 @@ async def main():
     body=fixture
    else: body={'ok':True}
    await r.fulfill(json=body,headers={'Access-Control-Allow-Origin':'http://127.0.0.1:8882','Access-Control-Allow-Credentials':'true'})
-  await page.route('https://service.test/api/**',route);await page.goto('http://127.0.0.1:8882/')
+  await page.route('https://service.test/api/**',route);await page.goto('http://127.0.0.1:8882/control-center.html')
   await page.get_by_role('button',name='Pripojiť službu',exact=True).click();await page.locator('#endpoint').fill('https://service.test');await page.locator('#password').fill('synthetic');await page.get_by_role('button',name='Pripojiť',exact=True).click()
   await page.wait_for_function("window.lfDashboardDiagnostics().mode==='LIVE SUPABASE'",timeout=10000)
   assert calls==1
@@ -47,3 +47,4 @@ async def main():
  print('PASS: eight-view navigation, 36 services, IDEA products, canonical output, dates/quarters, empty performance, manual refresh, failure retention, no browser runtime errors.')
 try:asyncio.run(main())
 finally:server.shutdown()
+
