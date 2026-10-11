@@ -1,4 +1,4 @@
-import {validateStatusCatalog} from './status-model.mjs?v=20261009-status-registry';
+import {validateStatusCatalog} from './status-model.mjs?v=20261011-legends-controls';
 // Business projections are separate from the graph; explicit imports persist locally.
 export const SECTIONS=[['overview','Prehľad'],['tasks','Úlohy'],['calendar','Kalendár'],['offers','Služby'],['products','Produkty'],['campaigns','Kampane'],['sources','Kvalita dát'],['map','Súbory']];
 export const TASK_STATUS=Object.freeze({'to-do':'NEZAČATÉ',preparing:'V PRÍPRAVE',running:'PREBIEHA','NEZAČATÉ':'NEZAČATÉ','V PRÍPRAVE':'V PRÍPRAVE','PREBIEHA':'PREBIEHA'});

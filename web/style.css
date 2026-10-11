@@ -91,3 +91,7 @@ dialog,#dashboard-detail{background:var(--paper);color:var(--ink);border:1px sol
  .ux-agenda-event{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere}
  .ux-agenda-day summary:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
 }
+
+.status-legend{grid-column:1/-1;width:100%;box-sizing:border-box;margin:12px 0;padding:10px 14px;border:1px solid var(--line,#cbd0dc);border-radius:8px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;background:var(--panel);}.status-legend>strong{font-size:.8rem;}.status-legend-domain{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;}.status-legend-label{font-weight:600;}.status-legend .dash-badge{font-size:.75rem;padding:2px 6px;}
+
+@media(max-width:600px){.ux-entities .report-table{min-width:760px;}}

@@ -15,7 +15,12 @@ const types={'.mjs':'text/javascript','.css':'text/css','.html':'text/html','.js
 const server=http.createServer(async(req,res)=>{try{const pathname=new URL(req.url,'http://localhost').pathname,file=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!file.startsWith(root+path.sep))throw Error('path');const bytes=await fs.readFile(file);res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(bytes);}catch{res.statusCode=404;res.end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
 const assert=(value,message)=>{if(!value)throw Error(message);};
-const data=fixture(),today=pragueToday();data.generated_at=new Date().toISOString();data.backend_read_at=data.generated_at;
+const data=fixture(),today=pragueToday();
+// Synthetic registry metadata tests colors independently of real business records.
+data.status_catalog.colors=['neutral','warning','info','danger','success','none'].map(color_key=>({color_key,label_sk:color_key,meaning:'Synthetic '+color_key}));
+for(const domain of data.status_catalog.domains)domain.label_sk=domain.domain==='work'?'Stav práce':'Stav kampane';
+for(const def of data.status_catalog.definitions){def.color_key=({IN_PROGRESS:'info',PUBLISHED:'info',PREPARING:'warning',IN_REVIEW:'warning',BLOCKED:'danger',COMPLETED:'success',CANCELLED:'neutral',NOT_STARTED:'neutral'})[def.code]||'neutral';def.sort_order=({NOT_STARTED:10,PREPARING:20,IN_PROGRESS:30,BLOCKED:40,COMPLETED:50,CANCELLED:60})[def.code]||0;}
+data.generated_at=new Date().toISOString();data.backend_read_at=data.generated_at;
 data.items.find(i=>i.id==='t1').fields.due_date=today;data.items.find(i=>i.id==='t2').fields.due_date=addDays(today,5);data.items.find(i=>i.id==='t3').fields.due_date=addDays(today,-1);data.items.find(i=>i.id==='c1').fields.launch_date=today;
 data.items.push(item('legacy-fb-task','task',{task_status:'PREPARING',priority:'P1',category:'LF FB kampaň / FB post',next_step:'Synthetic legacy FB work'}));
 for(let index=0;index<18;index++)data.items.push(item('many-'+index,'campaign',{status:'PUBLISHED',launch_date:today,owner:index%2?'Synthetic owner':null,next_step:'Synthetic next step'}));
@@ -62,6 +67,28 @@ try{
  await page.setViewportSize({width:1440,height:1000});await nav(page,'Úlohy');
  const long=page.locator('.ux-long-text').first();await long.locator('summary').focus();await page.keyboard.press('Enter');assert(await long.getAttribute('open')!==null,'Keyboard expands next step');assert((await long.locator('p').innerText()).length===200,'Full next_step preserved');await page.keyboard.press('Enter');assert(await long.getAttribute('open')===null,'Keyboard collapses next step');
  await nav(page,'Kalendár');const heading=await page.locator('.ux-calendar-toolbar h4').innerText();await page.getByRole('button',{name:'Nasledujúci mesiac →'}).click();assert(await page.locator('.ux-calendar-toolbar h4').innerText()!==heading,'Month changes');await page.getByRole('button',{name:'Dnes',exact:true}).click();const more=page.locator('.ux-calendar-more').first();await more.locator('summary').click();await more.getByRole('button').first().click();assert(await page.locator('#dashboard-detail').isVisible(),'Calendar detail reuse');await page.locator('#dashboard-detail').getByRole('button',{name:'Zavrieť',exact:true}).click();
+ await nav(page,'Úlohy');
+ assert(await page.locator('.status-legend').count()===1,'Exactly one task legend');
+ assert(!(await page.locator('.status-legend').innerText()).includes('PUBLISHED'),'Task legend excludes campaign statuses');
+ const statusSummary=page.locator('.ux-panel').filter({has:page.getByRole('heading',{name:'Task Status',exact:true})});
+ assert(await statusSummary.locator('.dash-badge').count()>0,'Task Status uses status badges');
+ for(const [code,tone]of [['IN_PROGRESS','info'],['PREPARING','warning'],['BLOCKED','danger'],['COMPLETED','success']]){assert(await statusSummary.locator('.dash-badge').filter({hasText:code}).getAttribute('data-tone')===tone,'Task summary registry color '+code);assert(await page.locator('.status-legend .dash-badge').filter({hasText:code}).getAttribute('data-tone')===tone,'Task legend registry color '+code);}
+ await page.getByRole('button',{name:'Úloha',exact:true}).click();
+ const sortedTitles=await page.locator('table[aria-label="Úlohy"] tbody .table-title').allTextContents();
+ assert(sortedTitles[0]==='Synthetic due-extra-0','Task table ascending title sort');
+ await page.getByRole('button',{name:'Úloha ↑',exact:true}).click();
+ assert((await page.locator('table[aria-label="Úlohy"] tbody .table-title').allTextContents())[0]==='Synthetic t7','Task table descending title sort');
+ const taskFilter=page.getByRole('searchbox',{name:'Filtrovať Úlohy · Úloha',exact:true});await taskFilter.fill('Synthetic t1');
+ assert(await page.locator('table[aria-label="Úlohy"] tbody tr:visible').count()===1,'Task column filter');
+ await page.getByRole('button',{name:'Zrušiť filtre a zoradenie',exact:true}).click();
+ assert(await page.locator('table[aria-label="Úlohy"] tbody tr:visible').count()===data.items.filter(i=>i.kind==='task').length,'Task reset restores all rows');
+ await page.locator('.ux-column-selector summary').click();
+ await page.getByRole('checkbox',{name:'Zobraziť Owner',exact:true}).uncheck();
+ await page.getByRole('button',{name:'Posunúť doľava · Stav',exact:true}).click();
+ await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Úlohy');
+ const taskHeaders=await page.locator('table[aria-label="Úlohy"] th').allTextContents();
+ assert(!taskHeaders.includes('Owner')&&taskHeaders.indexOf('Stav')<taskHeaders.indexOf('Úloha'),'Task column visibility/order persists');
+ for(const label of ['Prehľad','Úlohy','Kalendár','Služby','Produkty','Kampane','Kvalita dát','Súbory']){await nav(page,label);assert(await page.locator('.status-legend:visible').count()===1,'One visible legend in '+label);await noOverflow(page);}
  await nav(page,'Služby');await page.locator('.ux-column-selector summary').click();const owner=page.getByRole('checkbox',{name:'Zobraziť Owner',exact:true});await owner.uncheck();await page.getByRole('button',{name:'Posunúť doľava · Cena',exact:true}).click();await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Služby');const columns=await page.locator('#dashboard .report-table th').allTextContents();assert(!columns.includes('Owner'),'Hidden column persisted');assert(columns.indexOf('Cena')<columns.indexOf('Dostupnosť'),'Column order persisted');
  await nav(page,'Kampane');assert(await page.locator('.ux-campaign-kpis .ux-panel').count()===5,'Five campaign KPIs');assert((await page.locator('#dashboard').innerText()).includes('Žiadne kampane v tomto stave.'),'Empty campaign bucket');assert(await page.locator('.ux-campaign-list .ux-item').count()===20,'Many campaigns preserved');
  await nav(page,'Prehľad');assert((await page.locator('#dashboard').innerText()).includes('Synthetic t5'),'Unknown category not lost');

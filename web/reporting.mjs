@@ -1,5 +1,5 @@
-import {registryStatus,liveStatusCatalog} from './status-model.mjs?v=20261009-status-registry';
-import {dateValue,freshness,publicationLabel} from './dashboard-model.mjs?v=20261008-live-v6';
+import {registryStatus,liveStatusCatalog} from './status-model.mjs?v=20261011-legends-controls';
+import {dateValue,freshness,publicationLabel} from './dashboard-model.mjs?v=20261011-legends-controls';
 export const LEGACY_COVERAGE_ID='coverage:campaign-details';
 export function statusTone(value,domain){const registered=registryStatus(value,domain);if(registered)return registered.color_key;if(liveStatusCatalog())return 'neutral';const s=String(value||'').trim().toUpperCase();if(['P0','BLOCKED','BLOKOVANÉ','ERROR','UNAVAILABLE'].includes(s))return 'danger';if(['P1','PREPARING','PLANNED','READY','V PRÍPRAVE','REVIEW'].includes(s))return 'warning';if(['COMPLETED','EXECUTED','COMPLETED / EXECUTED','DOKONČENÉ','APPROVED','CONFIRMED'].includes(s))return 'success';if(['ACTIVE','RUNNING','IN_PROGRESS','PREBIEHA','PILOT','PUBLISHED','PUBLISHED_REPORTED'].includes(s))return 'info';return 'neutral';}
 export const TASK_STATUS_FLOW=Object.freeze(['NOT_STARTED','PREPARING','IN_PROGRESS','BLOCKED','COMPLETED','CANCELLED']);

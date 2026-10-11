@@ -1,5 +1,5 @@
-import {configureStatusCatalog,registryStatus,statusOptions,statusTerminal,liveStatusCatalog} from './status-model.mjs?v=20261009-status-registry';
-import {day,WORK} from './operational.mjs?v=20261009-supabase-v2';
+import {configureStatusCatalog,registryStatus,statusOptions,statusTerminal,liveStatusCatalog} from './status-model.mjs?v=20261011-legends-controls';
+import {day,WORK} from './operational.mjs?v=20261011-legends-controls';
 export const CAMPAIGN_BUCKETS=[
  {id:'published',label:'Beží / Published',heading:'Beží teraz / Published',codes:['PUBLISHED']},
  {id:'review',label:'In Review',heading:'In Review',codes:['IN_REVIEW']},
@@ -82,3 +82,14 @@ export function reorderColumn(prefs,id,delta){const order=[...prefs.order],index
 export function toggleColumn(prefs,id,enabled,columns){return normalizePreferences({...prefs,visible:enabled?[...prefs.visible,id]:prefs.visible.filter(v=>v!==id)},columns);}
 export function visibleColumns(prefs,columns){return prefs.order.filter(id=>prefs.visible.includes(id)).map(id=>columns.find(c=>c.id===id)).filter(Boolean);}
 export function textPreview(value,limit=120){const full=String(value??'');return {full,long:full.length>limit,preview:full.length>limit?full.slice(0,limit).trimEnd()+'…':full};}
+
+export const TASK_COLUMNS=[
+ {id:'priority',label:'Priorita',default:true},
+ {id:'category',label:'Kategória',default:true},
+ {id:'name',label:'Úloha',required:true,default:true},
+ {id:'status',label:'Stav',default:true},
+ {id:'next',label:'Ďalší krok',default:true},
+ {id:'owner',label:'Owner',default:true},
+ {id:'due',label:'Termín'},
+ {id:'completion',label:'Plán dokončenia'}
+];
