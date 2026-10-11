@@ -5,7 +5,7 @@ let savedTheme='dark';try{savedTheme=localStorage.getItem('lf-control-center-the
 applyTheme(savedTheme==='light'?'light':'dark');
 themeButton.onclick=()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';applyTheme(next);try{localStorage.setItem('lf-control-center-theme',next);}catch{}};
 import {parseSnapshot} from './snapshot.mjs';
-import {createDashboard} from './dashboard.mjs?v=20261011-demo-feedback-v1';
+import {createDashboard} from './dashboard.mjs?v=20261011-category-groups-demo-feedback';
 import {AREAS,normalizeGraph,ActivityStore,safeUrl,matchesSearch} from './model.mjs';
 const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg';
 $('connection').textContent='Pripájam…';

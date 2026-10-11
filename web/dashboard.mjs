@@ -1,9 +1,9 @@
-import {renderUX} from './ux.mjs?v=20261011-demo-feedback-v1';
-import {pragueToday} from './ux-model.mjs?v=20261011-demo-feedback-v1';
+import {renderUX} from './ux.mjs?v=20261011-category-groups-demo-feedback';
+import {pragueToday} from './ux-model.mjs?v=20261011-category-groups-demo-feedback';
 import {configureStatusCatalog,registryStatus,statusLabel,statusDomain} from './status-model.mjs?v=20261009-status-registry';
 import {renderOperational,operationalViews,WORK,displayDate} from './operational.mjs?v=20261009-supabase-v2';
 import {mergeLiveReport} from './live-report.mjs?v=20261009-supabase-v2';
-import {SECTIONS,DashboardState,views,freshness,publicationLabel,taskLabel,dateValue,metrics,campaignCoverage,ideaBucket} from './dashboard-model.mjs?v=20261010-ux-v2-category-alias';
+import {SECTIONS,DashboardState,views,freshness,publicationLabel,taskLabel,dateValue,metrics,campaignCoverage,ideaBucket} from './dashboard-model.mjs?v=20261011-category-groups-demo-feedback';
 import {enhanceTable,statusTone,statusRank,campaignGroup,dataStatus,evidenceFor,postDisplay,taskCategory,groupTasksByCategory,latestNowItems,nowAddedDate,itemTitle} from './reporting.mjs?v=20261009-supabase-v2';
 import {snapshotAge} from './snapshot.mjs';
 import {demoProjection} from './dashboard-demo.mjs?v=20261011-demo-feedback-v1';
@@ -118,4 +118,3 @@ export function createDashboard({focusMap,refreshLive}){
  }
  render();return {navigate,setLiveConnected(value){liveConnected=value;render();},acceptLive(raw){if(!liveConnected)return;state.demo=false;state.accept(mergeLiveReport(state.data,raw));state.error='';render();},liveError(message){state.fail(message);render();},importError(message){state.fail(message);render();},clear(){liveConnected=false;importRecord=null;savedSnapshot=null;recalculatedAt=null;state.clear();panel.close();panel.replaceChildren();render();},importSnapshot(projection,record){const checked=projection?new DashboardState():null;if(checked)checked.accept(projection);state.clear();savedSnapshot=checked?.data||null;importRecord={...record};recalculatedAt=null;if(savedSnapshot)state.accept(savedSnapshot);panel.close();render();},diagnostics:()=>({items:state.data?.items.length||0,demo:state.demo,error:state.error,section,mode:state.demo?'DEMO':state.data?.mode==='LIVE_SUPABASE'?'LIVE SUPABASE':'SNAPSHOT',importedAt:importRecord?.importedAt||null})};
 }
-
