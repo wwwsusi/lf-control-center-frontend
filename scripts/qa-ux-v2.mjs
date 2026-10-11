@@ -15,7 +15,12 @@ const types={'.mjs':'text/javascript','.css':'text/css','.html':'text/html','.js
 const server=http.createServer(async(req,res)=>{try{const pathname=new URL(req.url,'http://localhost').pathname,file=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!file.startsWith(root+path.sep))throw Error('path');const bytes=await fs.readFile(file);res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(bytes);}catch{res.statusCode=404;res.end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
 const assert=(value,message)=>{if(!value)throw Error(message);};
-const data=fixture(),today=pragueToday();data.generated_at=new Date().toISOString();data.backend_read_at=data.generated_at;
+const data=fixture(),today=pragueToday();
+// Synthetic registry metadata tests colors independently of real business records.
+data.status_catalog.colors=['neutral','warning','info','danger','success','none'].map(color_key=>({color_key,label_sk:color_key,meaning:'Synthetic '+color_key}));
+for(const domain of data.status_catalog.domains)domain.label_sk=domain.domain==='work'?'Stav práce':'Stav kampane';
+for(const def of data.status_catalog.definitions){def.color_key=({IN_PROGRESS:'info',PUBLISHED:'info',PREPARING:'warning',IN_REVIEW:'warning',BLOCKED:'danger',COMPLETED:'success',CANCELLED:'neutral',NOT_STARTED:'neutral'})[def.code]||'neutral';def.sort_order=({NOT_STARTED:10,PREPARING:20,IN_PROGRESS:30,BLOCKED:40,COMPLETED:50,CANCELLED:60})[def.code]||0;}
+data.generated_at=new Date().toISOString();data.backend_read_at=data.generated_at;
 data.items.find(i=>i.id==='t1').fields.due_date=today;data.items.find(i=>i.id==='t2').fields.due_date=addDays(today,5);data.items.find(i=>i.id==='t3').fields.due_date=addDays(today,-1);data.items.find(i=>i.id==='c1').fields.launch_date=today;
 data.items.push(item('legacy-fb-task','task',{task_status:'PREPARING',priority:'P1',category:'LF FB kampaň / FB post',next_step:'Synthetic legacy FB work'}));
 for(let index=0;index<18;index++)data.items.push(item('many-'+index,'campaign',{status:'PUBLISHED',launch_date:today,owner:index%2?'Synthetic owner':null,next_step:'Synthetic next step'}));
@@ -67,6 +72,7 @@ try{
  assert(!(await page.locator('.status-legend').innerText()).includes('PUBLISHED'),'Task legend excludes campaign statuses');
  const statusSummary=page.locator('.ux-panel').filter({has:page.getByRole('heading',{name:'Task Status',exact:true})});
  assert(await statusSummary.locator('.dash-badge').count()>0,'Task Status uses status badges');
+ for(const [code,tone]of [['IN_PROGRESS','info'],['PREPARING','warning'],['BLOCKED','danger'],['COMPLETED','success']]){assert(await statusSummary.locator('.dash-badge').filter({hasText:code}).getAttribute('data-tone')===tone,'Task summary registry color '+code);assert(await page.locator('.status-legend .dash-badge').filter({hasText:code}).getAttribute('data-tone')===tone,'Task legend registry color '+code);}
  await page.getByRole('button',{name:'Úloha',exact:true}).click();
  const sortedTitles=await page.locator('table[aria-label="Úlohy"] tbody .table-title').allTextContents();
  assert(sortedTitles[0]==='Synthetic due-extra-0','Task table ascending title sort');
