@@ -90,6 +90,6 @@ export const TASK_COLUMNS=[
  {id:'status',label:'Stav',default:true},
  {id:'next',label:'Ďalší krok',default:true},
  {id:'owner',label:'Owner',default:true},
- {id:'due',label:'Termín'},
+ {id:'due',label:'Do kedy'},
  {id:'completion',label:'Plán dokončenia'}
 ];
