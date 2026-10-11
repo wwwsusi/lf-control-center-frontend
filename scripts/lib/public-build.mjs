@@ -1,5 +1,5 @@
 import fs from 'node:fs';import path from 'node:path';
-export const PUBLIC_FILES=['index.html','app.mjs','connection.mjs','model.mjs','dashboard.mjs','status-model.mjs','operational.mjs','dashboard-model.mjs','dashboard-demo.mjs','reporting.mjs','live-report.mjs','snapshot.mjs','style.css','README.html','config.json'];
+export const PUBLIC_FILES=['index.html','app.mjs','connection.mjs','model.mjs','dashboard.mjs','ux-model.mjs','ux.mjs','status-model.mjs','operational.mjs','dashboard-model.mjs','dashboard-demo.mjs','reporting.mjs','live-report.mjs','snapshot.mjs','style.css','README.html','config.json'];
 export const FONT_FILES=['Inter.woff','Oswald.woff','OFL.txt'];
 export function buildPublic({root,out=path.join(root,'dist'),profile='pages'}){
  if(!['pages','same-origin'].includes(profile))throw Error('Unsupported build profile');

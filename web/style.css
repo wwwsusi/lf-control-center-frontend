@@ -34,3 +34,56 @@ dialog,#dashboard-detail{background:var(--paper);color:var(--ink);border:1px sol
 [data-tone=none]{--tone:var(--ink);--tone-bg:transparent}
 .dash-badge[data-tone=none]{background:transparent;padding:0;font-weight:inherit}
 .dash-card[data-tone=none],.task-row[data-tone=none]{border-left-color:var(--line)}
+
+/* LF-TASK-024: presentation only; existing theme tokens remain authoritative. */
+.status-box{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:.5rem;max-width:34rem}
+.status-box #last-sync{flex-basis:100%;text-align:right}
+.ux-summary-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1rem 0}
+.ux-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ux-summary-row .dash-group{margin:0;min-width:0}
+.ux-counts{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem 1rem;margin:0}
+.ux-counts dt{overflow-wrap:anywhere}.ux-counts dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.ux-important-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.ux-important-grid>.dash-group{min-width:0;margin:0}
+.ux-panel{min-width:0}.ux-item{padding:.7rem 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.ux-item-meta{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin:.4rem 0}
+.ux-item small.table-id{display:block}.ux-campaign-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+.ux-campaign-kpis .ux-counts dd{font-size:1.5rem}.ux-campaign-kpis h3{font-size:1rem}
+.ux-campaign-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.ux-long-text{max-width:32rem;overflow-wrap:anywhere}.ux-long-text summary{cursor:pointer;white-space:normal}
+.ux-full-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:none;overflow:visible}
+.ux-column-selector{border:1px solid var(--line);padding:.75rem;border-radius:.5rem;margin:1rem 0}
+.ux-column-selector summary{cursor:pointer}.ux-column-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin:.75rem 0}
+.ux-column-row{display:flex;gap:.5rem;align-items:center;min-width:0}.ux-column-row label{flex:1;display:flex;gap:.5rem;align-items:center}
+.ux-column-row button{min-width:2.5rem}.ux-entities .report-table{min-width:0;width:100%}
+.ux-entities th,.ux-entities td{overflow-wrap:anywhere}
+.ux-calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.ux-calendar-toolbar h4{font-size:1.2rem;margin:.5rem 0}
+.ux-calendar{width:100%;table-layout:fixed;border-collapse:collapse}
+.ux-calendar th,.ux-calendar td{border:1px solid var(--line);padding:.4rem}
+.ux-calendar td{height:116px;vertical-align:top;overflow-wrap:anywhere}
+.ux-calendar time{display:block;margin-bottom:.4rem;font-weight:700}
+.ux-calendar .ux-outside{color:var(--muted);background:var(--subtle)}
+.ux-calendar .ux-today{box-shadow:inset 0 0 0 2px var(--pink)}
+.ux-calendar .ux-today time{color:var(--pink)}
+.ux-calendar-event{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere;font-size:.78rem;padding:.35rem;margin:.3rem 0;line-height:1.3}
+.ux-calendar-more summary{font-size:.8rem;cursor:pointer}.ux-calendar-more>div{max-height:220px;overflow:auto}
+.ux-long-text summary:focus-visible,.ux-column-selector summary:focus-visible,.ux-calendar-more summary:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+@media(max-width:1100px){.ux-summary-row,.ux-important-grid,.ux-campaign-list{grid-template-columns:repeat(2,minmax(0,1fr))}.ux-campaign-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.ux-calendar td{height:104px}header{flex-wrap:wrap}.status-box{max-width:none;width:100%}}
+@media(max-width:700px){.ux-summary-row,.ux-important-grid,.ux-campaign-list,.ux-column-controls{grid-template-columns:1fr}.ux-campaign-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ux-calendar td,.ux-calendar th{padding:.2rem}.ux-calendar-event{font-size:.68rem;padding:.2rem}.ux-calendar-toolbar h4{order:-1;width:100%}.status-box{justify-content:flex-start}.status-box #last-sync{text-align:left}}
+
+/* Small screens keep a readable month grid and expose complete events in an accessible agenda. */
+.ux-mobile-agenda,.ux-mobile-day-count{display:none}
+@media(max-width:700px){
+ .ux-calendar td{height:60px;overflow-wrap:normal}
+ .ux-calendar time{margin-bottom:.15rem}
+ .ux-calendar .ux-calendar-event,.ux-calendar .ux-calendar-more{display:none}
+ .ux-mobile-day-count{display:inline-block;min-width:1.45rem;padding:.15rem .32rem;border-radius:1rem;background:var(--subtle);color:var(--ink);font-size:.72rem;font-weight:700;line-height:1.3;text-align:center}
+ .ux-mobile-agenda{display:block;margin-top:1rem}
+ .ux-mobile-agenda h4{margin:.25rem 0 .75rem;font-size:1rem}
+ .ux-agenda-day{border:1px solid var(--line);padding:.6rem .75rem;border-radius:.5rem;margin:.4rem 0}
+ .ux-agenda-day summary{cursor:pointer;font-weight:700}
+ .ux-agenda-events{display:grid;gap:.45rem;margin-top:.6rem}
+ .ux-agenda-event{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere}
+ .ux-agenda-day summary:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+}
