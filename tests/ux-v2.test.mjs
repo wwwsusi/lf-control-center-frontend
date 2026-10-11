@@ -24,7 +24,7 @@ test('open canonical tasks only; inclusive five calendar days; NULL and terminal
 test('Prague business today and date-only arithmetic survive UTC/DST boundaries',()=>{assert.equal(pragueToday(new Date('2026-10-09T22:30:00Z')),'2026-10-10');assert.equal(pragueToday(new Date('2026-12-31T23:30:00Z')),'2027-01-01');assert.equal(addDays('2026-10-24',5),'2026-10-29');assert.equal(addDays('2026-02-30',1),null);});
 test('month grid is Monday-first, includes today and changes across year',()=>{const cells=monthGrid('2026-10','2026-10-10');assert.equal(cells.length,42);assert.equal(cells[0].date,'2026-09-28');assert.equal(cells.filter(c=>c.today).length,1);assert.equal(moveMonth('2026-12',1),'2027-01');assert.equal(moveMonth('2026-01',-1),'2025-12');});
 test('canonical event placement uses only task due or entity launch; no duration or fabricated dates',()=>{const events=calendarEvents(fixture());const campaign=events.filter(e=>e.item.kind==='campaign');assert.deepEqual(campaign.map(e=>[e.item.id,e.type,e.date]),[['c1','launch','2026-10-10']]);assert(!events.some(e=>e.item.id==='p1'));assert(!events.some(e=>e.date==='2026-10-20'||e.date==='2026-10-21'));assert(campaign.every(e=>!Object.hasOwn(e,'end')));});
-test('known categories project safely; unknown and blocked tasks stay visible',()=>{const data=fixture(),v=uxProjection(data,'2026-10-10');assert.equal(taskGroup(data.items[0]),'campaigns');assert.equal(taskGroup(data.items[1]),'brand');assert.equal(taskGroup(data.items[2]),'staff');assert.equal(taskGroup(data.items[4]),'other');assert.equal(v.important.flatMap(g=>g.items).length,5);assert(v.important.find(g=>g.id==='other').items.some(i=>i.id==='t5'));});
+test('current category groups project safely; unknown and blocked tasks stay visible',()=>{const data=fixture(),v=uxProjection(data,'2026-10-10');assert.equal(taskGroup(data.items[0]),'campaigns');assert.equal(taskGroup(data.items[1]),'management');assert.equal(taskGroup(data.items[2]),'it');assert.equal(taskGroup(data.items[4]),'other');assert.equal(v.important.flatMap(g=>g.items).length,5);assert(v.important.find(g=>g.id==='other').items.some(i=>i.id==='t5'));});
 test('campaign order and actual registry codes; missing bucket stays unavailable',()=>{const data=fixture(),groups=campaignBuckets(data).groups;assert.deepEqual(groups.map(g=>g.id),['published','review','preparing','draft','completed']);assert(!data.status_catalog.definitions.some(d=>d.code==='RUNNING'));data.status_catalog.definitions=data.status_catalog.definitions.filter(d=>d.code!=='IN_REVIEW');assert.equal(campaignBuckets(data).groups[1].available,false);const ui=harness('campaigns',data);const headings=ui.parent.querySelectorAll('h3').map(n=>n.textContent);assert.deepEqual(headings.slice(5),['Beží teraz / Published','In Review','V príprave','Draft / Idea','Dokončené']);assert(ui.parent.textContent.includes('Nedostupné'));ui.parent.querySelectorAll('button').find(n=>n.textContent==='Synthetic c1').onclick();assert.deepEqual(ui.opened,['c1']);});
 test('task table compact order, long next_step full accessible native disclosure, no source mutation',()=>{const data=fixture(),before=structuredClone(data),ui=harness('tasks',data);assert.deepEqual(ui.tables[0].columns,['Priorita','Úloha','Stav','Ďalší krok','Owner','Kategória']);assert.equal(ui.tables[0].controls,false);const details=ui.parent.querySelector('details');assert(details.querySelector('summary'));assert.equal(details.querySelector('p').textContent,'n'.repeat(200));assert.deepEqual(data,before);assert.equal(textPreview('short').long,false);});
 test('real severity only, unavailable OK count and issue-only coverage',()=>{assert.deepEqual(qualitySummary({issues:[{severity:'ERROR'},{severity:'WARN'}]}),[['ERROR',1],['WARN',1]]);assert.deepEqual(qualitySummary({issues:[]}),[]);assert.deepEqual(qualitySummary(undefined),[]);});
@@ -63,7 +63,7 @@ test('real canonical LF FB kampaň / FB post category stays in Campaigns & Marke
  data.items.push(legacy);
  assert.equal(taskGroup(legacy),'campaigns');
  assert.equal(taskGroup(item('aliased','task',{category:'  LF FB kampaň / FB post  '})),'campaigns');
- assert.equal(taskGroup(item('other','task',{category:'IT / Control Center'})),'other');
+ assert.equal(taskGroup(item('other','task',{category:'NEW_CATEGORY'})),'other');
  const v=uxProjection(data,'2026-10-10');
  assert(v.important.find(g=>g.id==='campaigns').items.some(i=>i.id===legacy.id));
  assert(!v.important.find(g=>g.id==='other').items.some(i=>i.id===legacy.id));
@@ -71,4 +71,21 @@ test('real canonical LF FB kampaň / FB post category stays in Campaigns & Marke
  const ui=harness('overview',data);
  assert(ui.parent.textContent.includes('Synthetic legacy-fb-task'),'legacy task visible in campaign work area');
  assert(ui.parent.textContent.includes('Bez jednoznačného stavu kampane'),'unlinked task remains lifecycle unclassified');
+});
+
+test('current Supabase categories map into the three requested overview boxes',()=>{
+ const categories=['LF FB kampaň / FB post','LF management','IT CRM','IT / AI Agents','IT / Control Center','IT CRM','IT General / Audit'];
+ const data=fixture();
+ for(const [index,category] of categories.entries())data.items.push(item('category-'+index,'task',{task_status:'IN_PROGRESS',category:' '+category+' '}));
+ const v=uxProjection(data,'2026-10-10');
+ assert.deepEqual(categories.map(category=>taskGroup(item('category','task',{category}))),['campaigns','management','it','it','it','it','it']);
+ assert.deepEqual(['BRAND_ASSETS','STAFF'].map(category=>taskGroup(item('legacy-'+category,'task',{category}))),['other','other']);
+ assert.deepEqual(v.important.slice(0,3).map(group=>group.id),['campaigns','management','it']);
+ assert.equal(v.important.find(group=>group.id==='campaigns').items.filter(i=>i.id.startsWith('category-')).length,1);
+ assert.equal(v.important.find(group=>group.id==='management').items.filter(i=>i.id.startsWith('category-')).length,1);
+ assert.equal(v.important.find(group=>group.id==='it').items.filter(i=>i.id.startsWith('category-')).length,5);
+ const ui=harness('overview',data);
+ for(const label of ['Campaigns & Marketing','Products / Services / Management','IT'])assert(ui.parent.textContent.includes(label));
+ assert(!ui.parent.textContent.includes('Brand Assets'));
+ assert(!ui.parent.textContent.includes('Staff'));
 });
