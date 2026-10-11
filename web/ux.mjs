@@ -3,7 +3,7 @@ import {statusLabel,statusDomain} from './status-model.mjs?v=20261011-legends-co
 import {statusTone} from './reporting.mjs?v=20261011-legends-controls';
 import {day,displayDate} from './operational.mjs?v=20261011-legends-controls';
 export function renderLongText(value,parent,make){const text=textPreview(value);if(!text.long)return make('span',text.full||'—',parent);const box=make('details',null,parent,'ux-long-text');make('summary',text.preview+' · Zobraziť / skryť celý text',box);make('p',text.full,box,'ux-full-text');return box;}
-export function renderUX({data,section,parent,make,action,detail,statusBadge,tableShell,calendarMonth=pragueToday().slice(0,7),onCalendarMonth=()=>{},storage}){
+export function renderUX({data,section,parent,make,action,detail,statusBadge,tableShell,renderLegend=()=>{},calendarMonth=pragueToday().slice(0,7),onCalendarMonth=()=>{},storage}){
  const v=uxProjection(data),group=(title,target=parent)=>{const box=make('section',null,target,'dash-group ux-panel');make('h3',title,box);return box;};
  const summary=(title,counts,target)=>{const box=group(title,target),dl=make('dl',null,box,'ux-counts');for(const [label,count]of counts){make('dt',label,dl);make('dd',count==null?'Nedostupné':String(count),dl);}return box;};
  const row=(className='')=>make('div',null,parent,'ux-summary-row '+className);
@@ -14,6 +14,7 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
   const first=row();summary('Summary',v.counts,first);summary('Campaign Summary',v.campaigns.groups.map(g=>[g.label,g.available?g.items.length:null]),first);const quality=summary('Kvalita dát',v.quality,first);make('small',v.quality.length?'Dostupné severity z validácie. Počet OK záznamov sa neodvodzuje.':'Severity summary nie je dostupné; počet OK záznamov nie je známy.',quality);
   if(v.uncertain.length){const attention=group('Stav úloh vyžaduje kontrolu · UNCERTAIN');make('p','Niektoré úlohy majú neznámy alebo neaktívny pracovný status. Nezaraďujeme ich medzi otvorené ani dokončené; over ich v kanonickom zdroji.',attention,'conflict-label');for(const item of v.uncertain)itemRow(item,attention,{date:day(item.fields.due_date),next:true});}
   const timed=row();taskList('Due Soon · do 5 dní',v.dueSoon,timed);const launches=group('Upcoming Launches',timed);for(const e of v.launches)itemRow(e.item,launches,{date:e.date});if(!v.launches.length)empty(launches);taskList('Overdue',v.overdue,timed);
+  renderLegend(parent);
   const important=group('Dôležité teraz'),columns=make('div',null,important,'ux-important-grid'),labels={campaigns:'Campaigns & Marketing',management:'Products / Services / Management',it:'IT',other:'Other / Unclassified'};
   for(const bucket of v.important){if(bucket.id==='other'&&!bucket.items.length)continue;const box=group(labels[bucket.id],columns);if(bucket.id==='campaigns'){const classify=item=>campaignTaskBucket(item,v.campaigns.groups);for(const g of v.campaigns.groups.filter(g=>g.id!=='completed').concat([{id:'other',label:'Bez jednoznačného stavu kampane'}])){const selected=bucket.items.filter(i=>classify(i)===g.id);if(g.id==='other'&&!selected.length)continue;const sub=group(g.label,box);for(const item of selected)itemRow(item,sub,{next:true});if(!selected.length)empty(sub);}}else{for(const item of bucket.items)itemRow(item,box,{next:true});if(!bucket.items.length)empty(box);}}
   return;
@@ -26,6 +27,7 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
  }
  if(section==='campaigns'){
   const top=row('ux-campaign-kpis');for(const g of v.campaigns.groups)summary(g.label,[['Počet',g.available?g.items.length:null]],top);
+  renderLegend(parent);
   for(const g of v.campaigns.groups){const box=group(g.heading),cards=make('div',null,box,'ux-campaign-list');for(const item of g.items)itemRow(item,cards,{date:day(item.fields.launch_date),next:true});if(!g.items.length)make('p',g.available?'Žiadne kampane v tomto stave.':'Corresponding canonical status nie je dostupný.',box,'empty-row');}
   if(v.campaigns.other.length){const box=group('Other / Unclassified');for(const item of v.campaigns.other)itemRow(item,box,{date:day(item.fields.launch_date),next:true});}return;
  }
@@ -48,6 +50,7 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
 
  if(section==='calendar'){
   const box=group('Kalendár'),toolbar=make('div',null,box,'ux-calendar-toolbar');action('← Predchádzajúci mesiac',()=>onCalendarMonth(moveMonth(calendarMonth,-1)),toolbar);make('h4',new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric',timeZone:'Europe/Prague'}).format(new Date(calendarMonth+'-15T12:00:00Z')),toolbar);action('Nasledujúci mesiac →',()=>onCalendarMonth(moveMonth(calendarMonth,1)),toolbar);action('Dnes',()=>onCalendarMonth(v.today.slice(0,7)),toolbar);
+  renderLegend(box);
   const table=make('table',null,box,'ux-calendar');table.setAttribute('aria-label','Mesačný kalendár '+calendarMonth);const thead=make('thead',null,table),head=make('tr',null,thead);for(const name of ['Po','Ut','St','Št','Pi','So','Ne'])make('th',name,head).scope='col';
   const body=make('tbody',null,table),events=calendarEvents(data),monthEvents=events.filter(e=>e.date.startsWith(calendarMonth));
   const event=(e,target,className='ux-calendar-event')=>{const b=action((e.type==='launch'?'Spustenie · ':'Termín · ')+e.item.title,()=>detail(e.item),target),item=e.item,fields=item.fields,code=fields.task_status||fields.status||fields.lifecycle||fields.evidence_status,field=item.kind==='task'?'task_status':item.kind==='campaign'?'status':'lifecycle',domain=statusDomain(item,field)||({task:'work',campaign:'campaign',service:'lifecycle',product:'lifecycle'})[item.kind]||'lifecycle',label=statusLabel(code,domain);b.textContent='';b.className=className;b.title=item.id+' · '+e.date;b.setAttribute('aria-label',(e.type==='launch'?'Spustenie · ':'Termín · ')+item.title+' · '+label);make('span',(e.type==='launch'?'Spustenie · ':'Termín · ')+item.title,b,'ux-calendar-event-title');const status=make('span',null,b,'ux-calendar-status');status.dataset.tone=statusTone(code,domain);const dot=make('span',null,status,'ux-calendar-status-dot');dot.setAttribute('aria-hidden','true');make('span',label,status,'ux-calendar-status-label');};
