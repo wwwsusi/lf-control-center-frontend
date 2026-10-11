@@ -67,6 +67,10 @@ dialog,#dashboard-detail{background:var(--paper);color:var(--ink);border:1px sol
 .ux-calendar .ux-today{box-shadow:inset 0 0 0 2px var(--pink)}
 .ux-calendar .ux-today time{color:var(--pink)}
 .ux-calendar-event{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere;font-size:.78rem;padding:.35rem;margin:.3rem 0;line-height:1.3}
+.ux-calendar-status{display:flex;flex-direction:column;align-items:flex-start;gap:.08rem;margin-top:.2rem;font-size:.67rem;font-weight:700;line-height:1.15;color:var(--tone,var(--neutral))}
+.ux-calendar-status[data-tone]{color:var(--tone)}
+.ux-calendar-status-dot{display:block;width:.48rem;height:.48rem;flex:none;border-radius:50%;background:var(--tone,var(--neutral))}
+.ux-calendar-status-label{color:var(--tone,var(--neutral));overflow-wrap:anywhere}
 .ux-calendar-more summary{font-size:.8rem;cursor:pointer}.ux-calendar-more>div{max-height:220px;overflow:auto}
 .ux-long-text summary:focus-visible,.ux-column-selector summary:focus-visible,.ux-calendar-more summary:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
 @media(max-width:1100px){.ux-summary-row,.ux-important-grid,.ux-campaign-list{grid-template-columns:repeat(2,minmax(0,1fr))}.ux-campaign-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.ux-calendar td{height:104px}header{flex-wrap:wrap}.status-box{max-width:none;width:100%}}
