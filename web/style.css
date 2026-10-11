@@ -95,3 +95,6 @@ dialog,#dashboard-detail{background:var(--paper);color:var(--ink);border:1px sol
 .status-legend{grid-column:1/-1;width:100%;box-sizing:border-box;margin:12px 0;padding:10px 14px;border:1px solid var(--line,#cbd0dc);border-radius:8px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;background:var(--panel);}.status-legend>strong{font-size:.8rem;}.status-legend-domain{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;}.status-legend-label{font-weight:600;}.status-legend .dash-badge{font-size:.75rem;padding:2px 6px;}
 
 @media(max-width:600px){.ux-entities .report-table{min-width:760px;}}
+
+/* Home navigation shares header control styling in both themes. */
+.home-link{display:inline-flex;align-items:center;justify-content:center;font:inherit;border:1px solid var(--line);border-radius:7px;background:var(--paper);padding:9px 11px;color:var(--ink);text-decoration:none}.home-link:hover{border-color:var(--pink);background:var(--subtle)}.home-link:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
