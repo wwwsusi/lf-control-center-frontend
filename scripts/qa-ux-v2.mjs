@@ -62,6 +62,27 @@ try{
  await page.setViewportSize({width:1440,height:1000});await nav(page,'Úlohy');
  const long=page.locator('.ux-long-text').first();await long.locator('summary').focus();await page.keyboard.press('Enter');assert(await long.getAttribute('open')!==null,'Keyboard expands next step');assert((await long.locator('p').innerText()).length===200,'Full next_step preserved');await page.keyboard.press('Enter');assert(await long.getAttribute('open')===null,'Keyboard collapses next step');
  await nav(page,'Kalendár');const heading=await page.locator('.ux-calendar-toolbar h4').innerText();await page.getByRole('button',{name:'Nasledujúci mesiac →'}).click();assert(await page.locator('.ux-calendar-toolbar h4').innerText()!==heading,'Month changes');await page.getByRole('button',{name:'Dnes',exact:true}).click();const more=page.locator('.ux-calendar-more').first();await more.locator('summary').click();await more.getByRole('button').first().click();assert(await page.locator('#dashboard-detail').isVisible(),'Calendar detail reuse');await page.locator('#dashboard-detail').getByRole('button',{name:'Zavrieť',exact:true}).click();
+ await nav(page,'Úlohy');
+ assert(await page.locator('.status-legend').count()===1,'Exactly one task legend');
+ assert(!(await page.locator('.status-legend').innerText()).includes('PUBLISHED'),'Task legend excludes campaign statuses');
+ const statusSummary=page.locator('.ux-panel').filter({has:page.getByRole('heading',{name:'Task Status',exact:true})});
+ assert(await statusSummary.locator('.dash-badge').count()>0,'Task Status uses status badges');
+ await page.getByRole('button',{name:'Úloha',exact:true}).click();
+ const sortedTitles=await page.locator('table[aria-label="Úlohy"] tbody .table-title').allTextContents();
+ assert(sortedTitles[0]==='Synthetic due-extra-0','Task table ascending title sort');
+ await page.getByRole('button',{name:'Úloha ↑',exact:true}).click();
+ assert((await page.locator('table[aria-label="Úlohy"] tbody .table-title').allTextContents())[0]==='Synthetic t7','Task table descending title sort');
+ const taskFilter=page.getByRole('searchbox',{name:'Filtrovať Úlohy · Úloha',exact:true});await taskFilter.fill('Synthetic t1');
+ assert(await page.locator('table[aria-label="Úlohy"] tbody tr:visible').count()===1,'Task column filter');
+ await page.getByRole('button',{name:'Zrušiť filtre a zoradenie',exact:true}).click();
+ assert(await page.locator('table[aria-label="Úlohy"] tbody tr:visible').count()===data.items.filter(i=>i.kind==='task').length,'Task reset restores all rows');
+ await page.locator('.ux-column-selector summary').click();
+ await page.getByRole('checkbox',{name:'Zobraziť Owner',exact:true}).uncheck();
+ await page.getByRole('button',{name:'Posunúť doľava · Stav',exact:true}).click();
+ await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Úlohy');
+ const taskHeaders=await page.locator('table[aria-label="Úlohy"] th').allTextContents();
+ assert(!taskHeaders.includes('Owner')&&taskHeaders.indexOf('Stav')<taskHeaders.indexOf('Úloha'),'Task column visibility/order persists');
+ for(const label of ['Prehľad','Úlohy','Kalendár','Služby','Produkty','Kampane','Kvalita dát','Súbory']){await nav(page,label);assert(await page.locator('.status-legend:visible').count()===1,'One visible legend in '+label);await noOverflow(page);}
  await nav(page,'Služby');await page.locator('.ux-column-selector summary').click();const owner=page.getByRole('checkbox',{name:'Zobraziť Owner',exact:true});await owner.uncheck();await page.getByRole('button',{name:'Posunúť doľava · Cena',exact:true}).click();await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Služby');const columns=await page.locator('#dashboard .report-table th').allTextContents();assert(!columns.includes('Owner'),'Hidden column persisted');assert(columns.indexOf('Cena')<columns.indexOf('Dostupnosť'),'Column order persisted');
  await nav(page,'Kampane');assert(await page.locator('.ux-campaign-kpis .ux-panel').count()===5,'Five campaign KPIs');assert((await page.locator('#dashboard').innerText()).includes('Žiadne kampane v tomto stave.'),'Empty campaign bucket');assert(await page.locator('.ux-campaign-list .ux-item').count()===20,'Many campaigns preserved');
  await nav(page,'Prehľad');assert((await page.locator('#dashboard').innerText()).includes('Synthetic t5'),'Unknown category not lost');

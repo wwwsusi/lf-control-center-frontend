@@ -1,7 +1,7 @@
-import {uxProjection,pragueToday,calendarEvents,monthGrid,moveMonth,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,campaignTaskBucket} from './ux-model.mjs?v=20261011-calendar-status';
-import {statusLabel,statusDomain} from './status-model.mjs?v=20261009-status-registry';
-import {statusTone} from './reporting.mjs?v=20261009-supabase-v2';
-import {day,displayDate} from './operational.mjs?v=20261009-supabase-v2';
+import {uxProjection,pragueToday,calendarEvents,monthGrid,moveMonth,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,campaignTaskBucket,TASK_COLUMNS} from './ux-model.mjs?v=20261011-legends-controls';
+import {statusLabel,statusDomain} from './status-model.mjs?v=20261011-legends-controls';
+import {statusTone} from './reporting.mjs?v=20261011-legends-controls';
+import {day,displayDate} from './operational.mjs?v=20261011-legends-controls';
 export function renderLongText(value,parent,make){const text=textPreview(value);if(!text.long)return make('span',text.full||'—',parent);const box=make('details',null,parent,'ux-long-text');make('summary',text.preview+' · Zobraziť / skryť celý text',box);make('p',text.full,box,'ux-full-text');return box;}
 export function renderUX({data,section,parent,make,action,detail,statusBadge,tableShell,calendarMonth=pragueToday().slice(0,7),onCalendarMonth=()=>{},storage}){
  const v=uxProjection(data),group=(title,target=parent)=>{const box=make('section',null,target,'dash-group ux-panel');make('h3',title,box);return box;};
@@ -19,19 +19,18 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
   return;
  }
  if(section==='tasks'){
-  const top=row('ux-two');summary('Summary by category',v.categories,top);summary('Task Status',v.statuses.map(([code,count])=>[statusLabel(code,'work'),count]),top);
+  const top=row('ux-two');summary('Summary by category',v.categories,top);const statusBox=group('Task Status',top),statusCounts=make('dl',null,statusBox,'ux-counts');for(const [code,count]of v.statuses){statusBadge(code,make('dt',null,statusCounts),'work');make('dd',String(count),statusCounts);}
   if(v.uncertain.length){const attention=group('Stav úloh vyžaduje kontrolu · UNCERTAIN');make('p','Neznámy alebo neaktívny pracovný status; úlohy nie sú automaticky označené ako otvorené ani dokončené.',attention,'conflict-label');for(const item of v.uncertain)itemRow(item,attention,{date:day(item.fields.due_date),next:true});}
   const timed=row('ux-two');taskList('Due Soon · do 5 dní',v.dueSoon,timed);taskList('Overdue',v.overdue,timed);
-  const {box,body}=tableShell('Úlohy',['Priorita','Kategória','Úloha','Stav','Ďalší krok','Owner'],parent,'',false);
-  for(const item of v.tasks){const tr=make('tr',null,body);statusBadge(item.fields.priority||'—',make('td',null,tr),statusDomain(item,'priority'));make('td',item.fields.category||'Other / Unclassified',tr);const name=make('td',null,tr);action(item.title,()=>detail(item),name).className='table-title';make('small',item.id,name,'table-id');statusBadge(item.fields.task_status||item.fields.status||'—',make('td',null,tr),'work');renderLongText(item.fields.next_step,make('td',null,tr),make);make('td',item.fields.owner||'—',tr);}if(!v.tasks.length)empty(box);return;
+  renderEntities(v.tasks,'task');return;
  }
  if(section==='campaigns'){
   const top=row('ux-campaign-kpis');for(const g of v.campaigns.groups)summary(g.label,[['Počet',g.available?g.items.length:null]],top);
   for(const g of v.campaigns.groups){const box=group(g.heading),cards=make('div',null,box,'ux-campaign-list');for(const item of g.items)itemRow(item,cards,{date:day(item.fields.launch_date),next:true});if(!g.items.length)make('p',g.available?'Žiadne kampane v tomto stave.':'Corresponding canonical status nie je dostupný.',box,'empty-row');}
   if(v.campaigns.other.length){const box=group('Other / Unclassified');for(const item of v.campaigns.other)itemRow(item,box,{date:day(item.fields.launch_date),next:true});}return;
  }
- if(section==='offers'||section==='products'){
-  const kind=section==='offers'?'service':'product',items=data.items.filter(i=>i.kind===kind),columns=availableColumns(items),host=make('div',null,parent,'ux-entities');let browserStorage=storage;
+ function renderEntities(items,kind){
+  const columns=kind==='task'?TASK_COLUMNS:availableColumns(items),host=make('div',null,parent,'ux-entities');let browserStorage=storage;
   if(browserStorage===undefined)try{browserStorage=globalThis.localStorage;}catch{browserStorage=null;}
   let prefs=loadPreferences(browserStorage,section,columns),storageFailed=!browserStorage;
   const commit=next=>{prefs=next;storageFailed=!savePreferences(browserStorage,section,prefs);};
@@ -39,12 +38,14 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
    for(const [index,id]of prefs.order.entries()){const c=columns.find(c=>c.id===id),line=make('div',null,controls,'ux-column-row'),label=make('label',null,line),input=make('input',null,label);input.type='checkbox';input.checked=prefs.visible.includes(id);input.disabled=Boolean(c.required);input.setAttribute('aria-label','Zobraziť '+c.label);make('span',c.label,label);input.onchange=()=>{commit(toggleColumn(prefs,id,input.checked,columns));redraw('Zobraziť '+c.label);};for(const [delta,title]of [[-1,'Posunúť doľava'],[1,'Posunúť doprava']]){const aria=title+' · '+c.label,b=action(delta<0?'←':'→',()=>{commit(reorderColumn(prefs,id,delta));redraw(aria);},line);b.setAttribute('aria-label',aria);b.disabled=delta<0?index===0:index===prefs.order.length-1;}}
    action('Obnoviť predvolené stĺpce',()=>{commit(loadPreferences(null,section,columns));redraw();},selector);
    if(storageFailed)make('small','Nastavenie funguje v tejto relácii; browser storage nie je dostupný.',selector);
-   const visible=visibleColumns(prefs,columns),{box,body}=tableShell(section==='offers'?'Služby':'Produkty',visible.map(c=>c.label),host,'',false);
+   const visible=visibleColumns(prefs,columns),{box,body}=tableShell(kind==='task'?'Úlohy':section==='offers'?'Služby':'Produkty',visible.map(c=>c.label),host,'',true);
    const euro=value=>Number.isFinite(value)?new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(value):'TBD — cena nepotvrdená';
-   for(const item of items){const tr=make('tr',null,body),f=item.fields;for(const c of visible){const td=make('td',null,tr);if(c.id==='name'){action(item.title,()=>detail(item),td).className='table-title';make('small',item.id,td,'table-id');}else if(['lifecycle','availability','priority'].includes(c.id)){const field=c.id==='availability'?(kind==='service'?'availability_status':'stock_status'):c.id;statusBadge(f[field]||'—',td,statusDomain(item,field));}else if(c.id==='next')renderLongText(f.next_step,td,make);else{const value=({price:euro(f.current_price_eur),proposed:euro(f.proposed_price_eur),launch:day(f.launch_date)?displayDate(f.launch_date):'—',completion:day(f.planned_completion_date)?displayDate(f.planned_completion_date):'—',owner:f.owner,audience:f.audience,units:[f.units,f.unit].filter(v=>v!=null).join(' '),category:f.category,variant:f.variant_package})[c.id];make('span',value??'—',td);}}}if(!items.length)empty(box);
+   for(const item of items){const tr=make('tr',null,body),f=item.fields;for(const c of visible){const td=make('td',null,tr);if(c.id==='name'){action(item.title,()=>detail(item),td).className='table-title';make('small',item.id,td,'table-id');}else if(['lifecycle','availability','priority','status'].includes(c.id)){const field=c.id==='status'?'task_status':c.id==='availability'?(kind==='service'?'availability_status':'stock_status'):c.id;statusBadge(f[field]||(c.id==='status'?f.status:null)||'—',td,c.id==='status'?'work':statusDomain(item,field));}else if(c.id==='next')renderLongText(f.next_step,td,make);else{const value=({price:euro(f.current_price_eur),proposed:euro(f.proposed_price_eur),launch:day(f.launch_date)?displayDate(f.launch_date):'—',due:day(f.due_date)?displayDate(f.due_date):'—',completion:day(f.planned_completion_date)?displayDate(f.planned_completion_date):'—',owner:f.owner,audience:f.audience,units:[f.units,f.unit].filter(v=>v!=null).join(' '),category:f.category||(kind==='task'?'Other / Unclassified':'—'),variant:f.variant_package})[c.id];make('span',value??'—',td);}}}if(!items.length)empty(box);
    if(focusLabel){selector.open=true;[...selector.querySelectorAll('[aria-label]')].find(n=>n.getAttribute('aria-label')===focusLabel)?.focus();}
-  };redraw();return;
+  };redraw();
  }
+ if(section==='offers'||section==='products'){const kind=section==='offers'?'service':'product';renderEntities(data.items.filter(i=>i.kind===kind),kind);return;}
+
  if(section==='calendar'){
   const box=group('Kalendár'),toolbar=make('div',null,box,'ux-calendar-toolbar');action('← Predchádzajúci mesiac',()=>onCalendarMonth(moveMonth(calendarMonth,-1)),toolbar);make('h4',new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric',timeZone:'Europe/Prague'}).format(new Date(calendarMonth+'-15T12:00:00Z')),toolbar);action('Nasledujúci mesiac →',()=>onCalendarMonth(moveMonth(calendarMonth,1)),toolbar);action('Dnes',()=>onCalendarMonth(v.today.slice(0,7)),toolbar);
   const table=make('table',null,box,'ux-calendar');table.setAttribute('aria-label','Mesačný kalendár '+calendarMonth);const thead=make('thead',null,table),head=make('tr',null,thead);for(const name of ['Po','Ut','St','Št','Pi','So','Ne'])make('th',name,head).scope='col';

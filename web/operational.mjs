@@ -1,5 +1,5 @@
-import {statusTerminal,statusLabel,statusOptions,statusDomain,configureStatusCatalog} from './status-model.mjs?v=20261009-status-registry';
-import {statusRank} from './reporting.mjs?v=20261009-supabase-v2';
+import {statusTerminal,statusLabel,statusOptions,statusDomain,configureStatusCatalog} from './status-model.mjs?v=20261011-legends-controls';
+import {statusRank} from './reporting.mjs?v=20261011-legends-controls';
 export const WORK=Object.freeze({NOT_STARTED:'Nezačaté',PREPARING:'V príprave',IN_PROGRESS:'Prebieha',BLOCKED:'Blokované',COMPLETED:'Dokončené',CANCELLED:'Zrušené'});
 export const day=value=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return null;const d=new Date(value+'T00:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value?value:null;};
 export const displayDate=value=>{if(!value)return 'TBD';const d=day(String(value).slice(0,10));return d?d.split('-').reverse().join('-'):'TBD';};

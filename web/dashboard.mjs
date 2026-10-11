@@ -1,12 +1,12 @@
-import {renderUX} from './ux.mjs?v=20261011-calendar-status';
-import {pragueToday} from './ux-model.mjs?v=20261011-category-groups-demo-feedback';
-import {configureStatusCatalog,registryStatus,statusLabel,statusDomain} from './status-model.mjs?v=20261009-status-registry';
-import {renderOperational,operationalViews,WORK,displayDate} from './operational.mjs?v=20261009-supabase-v2';
-import {mergeLiveReport} from './live-report.mjs?v=20261009-supabase-v2';
-import {SECTIONS,DashboardState,views,freshness,publicationLabel,taskLabel,dateValue,metrics,campaignCoverage,ideaBucket} from './dashboard-model.mjs?v=20261011-category-groups-demo-feedback';
-import {enhanceTable,statusTone,statusRank,campaignGroup,dataStatus,evidenceFor,postDisplay,taskCategory,groupTasksByCategory,latestNowItems,nowAddedDate,itemTitle} from './reporting.mjs?v=20261009-supabase-v2';
+import {renderUX} from './ux.mjs?v=20261011-legends-controls';
+import {pragueToday} from './ux-model.mjs?v=20261011-legends-controls';
+import {configureStatusCatalog,registryStatus,statusLabel,statusDomain,renderStatusLegend} from './status-model.mjs?v=20261011-legends-controls';
+import {renderOperational,operationalViews,WORK,displayDate} from './operational.mjs?v=20261011-legends-controls';
+import {mergeLiveReport} from './live-report.mjs?v=20261011-legends-controls';
+import {SECTIONS,DashboardState,views,freshness,publicationLabel,taskLabel,dateValue,metrics,campaignCoverage,ideaBucket} from './dashboard-model.mjs?v=20261011-legends-controls';
+import {enhanceTable,statusTone,statusRank,campaignGroup,dataStatus,evidenceFor,postDisplay,taskCategory,groupTasksByCategory,latestNowItems,nowAddedDate,itemTitle} from './reporting.mjs?v=20261011-legends-controls';
 import {snapshotAge} from './snapshot.mjs';
-import {demoProjection} from './dashboard-demo.mjs?v=20261011-demo-feedback-v1';
+import {demoProjection} from './dashboard-demo.mjs?v=20261011-legends-controls';
 import {safeUrl,searchText} from './model.mjs';
 const make=(tag,text,parent,className)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(className)n.className=className;parent?.append(n);return n;};
 const action=(text,fn,parent)=>{const n=make('button',text,parent);n.type='button';n.onclick=fn;return n;};
@@ -86,7 +86,7 @@ export function createDashboard({focusMap,refreshLive}){
  }
  function render(){
   configureStatusCatalog(state.data);
-  root.hidden=section==='map';map.hidden=section!=='map';for(const b of nav.querySelectorAll('button'))b.setAttribute('aria-current',b.dataset.section===section?'page':'false');if(section==='map'){window.dispatchEvent(new Event('resize'));return;}
+  root.hidden=section==='map';map.hidden=section!=='map';for(const b of nav.querySelectorAll('button'))b.setAttribute('aria-current',b.dataset.section===section?'page':'false');map.querySelector('.status-legend')?.remove();if(section==='map'){const legend=renderStatusLegend({data:state.data,section,parent:map,make,statusBadge});map.prepend(legend);window.dispatchEvent(new Event('resize'));return;}
   root.replaceChildren();const heading=make('div',null,root,'dash-heading');make('div',null,heading,'dash-heading-copy');make('p','LADY FITNESS / CEO CONTROL CENTER',heading.firstChild,'eyebrow');make('h2',SECTIONS.find(s=>s[0]===section)?.[1]||section,heading.firstChild);
   const reload=document.getElementById('reload-data');if(reload){reload.onclick=async()=>{if(liveConnected){try{await refreshLive();}catch(e){state.fail(e.message);render();}return;}if(state.demo)state.accept(demoProjection());else if(savedSnapshot)state.accept(savedSnapshot);recalculatedAt=new Date().toISOString();render();};reload.disabled=!state.data&&!liveConnected;reload.title=liveConnected?'Načíta čerstvú projekciu cez prihlásený backend.':'Prepočíta načítaný snapshot.';}
   action('Importovať snapshot',()=>document.getElementById('import').click(),heading);
@@ -98,6 +98,7 @@ export function createDashboard({focusMap,refreshLive}){
   if(state.data)make('p',`Zdrojový snapshot: ${stamp(state.data.generated_at)} · vek: ${snapshotAge(state.data.generated_at)}${recalculatedAt?' · Report prepočítaný: '+stamp(recalculatedAt):''}`,meta);
   if(state.demo)make('p','DEMO · Všetky položky sú syntetické. Nejde o aktuálny stav Lady Fitness.',root,'dash-alert demo-alert');
   if(state.error)make('p',state.error+(state.data?' STALE / ERROR · posledné úspešné dáta zostávajú zachované.':''),root,'dash-alert');
+  renderStatusLegend({data:state.data,section,parent:root,make,statusBadge});
   if(!state.data){make('h3',importRecord?.graphOnly?'Graf je načítaný; business údaje v ňom nie sú.':'Importuj dashboard snapshot.',root);make('p',importRecord?.graphOnly?'Inventár súborov neobsahuje potvrdené ceny, priority ani stavy kampaní. Pre tieto údaje importuj dashboard projekciu alebo spoločný snapshot. Pôvodná mapa zostáva dostupná.':'Importuj JSON dashboard projekcie alebo spoločný snapshot s grafom. Dáta sa vedomým importom uložia iba v tomto prehliadači, nikam sa neodosielajú. Zabezpečená služba zostáva voliteľná pre mapu a históriu operácií.',root);if(importRecord?.graphOnly)action('Otvoriť mapu',()=>navigate('map'),root);return;}
   sourceStatus();
   if(['overview','tasks','calendar','offers','products','campaigns'].includes(section)){renderUX({data:state.data,section,parent:root,make,action,detail,statusBadge,tableShell,calendarMonth,onCalendarMonth(next){calendarMonth=next;render();}});return;}
