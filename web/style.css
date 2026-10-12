@@ -98,3 +98,8 @@ dialog,#dashboard-detail{background:var(--paper);color:var(--ink);border:1px sol
 
 /* Home navigation shares header control styling in both themes. */
 .home-link{display:inline-flex;align-items:center;justify-content:center;font:inherit;border:1px solid var(--line);border-radius:7px;background:var(--paper);padding:9px 11px;color:var(--ink);text-decoration:none}.home-link:hover{border-color:var(--pink);background:var(--subtle)}.home-link:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+
+.task-description-cell{min-width:0}
+.task-description-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.55}
+.task-description-text.is-expanded{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+.task-description-toggle{width:auto;max-width:100%;margin-top:8px}

@@ -16,6 +16,9 @@ const server=http.createServer(async(req,res)=>{try{const pathname=new URL(req.u
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
 const assert=(value,message)=>{if(!value)throw Error(message);};
 const data=fixture(),today=pragueToday();
+data.items.find(i=>i.id==='t1').fields={task_description:('Long description text with preserved line breaks.\n').repeat(30),...data.items.find(i=>i.id==='t1').fields};
+data.items.find(i=>i.id==='t2').fields.task_description='  ';
+data.items.find(i=>i.id==='t3').fields.task_description='Short description';
 // Synthetic registry metadata tests colors independently of real business records.
 data.status_catalog.colors=['neutral','warning','info','danger','success','none'].map(color_key=>({color_key,label_sk:color_key,meaning:'Synthetic '+color_key}));
 for(const domain of data.status_catalog.domains)domain.label_sk=domain.domain==='work'?'Stav práce':'Stav kampane';
@@ -68,6 +71,25 @@ try{
  const long=page.locator('.ux-long-text').first();await long.locator('summary').focus();await page.keyboard.press('Enter');assert(await long.getAttribute('open')!==null,'Keyboard expands next step');assert((await long.locator('p').innerText()).length===200,'Full next_step preserved');await page.keyboard.press('Enter');assert(await long.getAttribute('open')===null,'Keyboard collapses next step');
  await nav(page,'Kalendár');const heading=await page.locator('.ux-calendar-toolbar h4').innerText();await page.getByRole('button',{name:'Nasledujúci mesiac →'}).click();assert(await page.locator('.ux-calendar-toolbar h4').innerText()!==heading,'Month changes');await page.getByRole('button',{name:'Dnes',exact:true}).click();const more=page.locator('.ux-calendar-more').first();await more.locator('summary').click();await more.getByRole('button').first().click();assert(await page.locator('#dashboard-detail').isVisible(),'Calendar detail reuse');await page.locator('#dashboard-detail').getByRole('button',{name:'Zavrieť',exact:true}).click();
  await nav(page,'Úlohy');
+
+ for(const id of ['t1','t2','t3']){
+  await page.locator('table[aria-label="Úlohy"]').getByRole('button',{name:'Synthetic '+id,exact:true}).click();
+  const detail=page.locator('#dashboard-detail'),text=detail.locator('.task-description-text');
+  if(id==='t2'){assert(await text.count()===0,'Blank description omitted');}
+  else {assert(await text.count()===1,'Description present');}
+  if(id==='t1'){
+   const toggle=detail.getByRole('button',{name:'Zobraziť viac',exact:true});
+   assert(await toggle.getAttribute('aria-expanded')==='false','Initially collapsed');
+   assert(await text.evaluate(n=>getComputedStyle(n).webkitLineClamp)==='4','Four line clamp');
+   await toggle.focus();await page.keyboard.press('Enter');
+   const less=detail.getByRole('button',{name:'Zobraziť menej',exact:true});assert(await less.isVisible(),'Collapse control remains visible');assert(await less.getAttribute('aria-expanded')==='true','Expanded aria');
+   await less.click();assert(await toggle.getAttribute('aria-expanded')==='false','Collapse restored');
+   assert(await text.evaluate(n=>getComputedStyle(n).webkitLineClamp)==='4','Clamp restored');
+   const labels=await detail.locator('dt').allTextContents();assert(labels.indexOf('Popis')<labels.indexOf('Ďalší krok'),'Description before next step');
+  }
+  if(id==='t3')assert(await detail.locator('.task-description-toggle').count()===0,'Short description has no toggle');
+  await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();
+ }
  assert(await page.locator('.status-legend').count()===1,'Exactly one task legend');
  assert(!(await page.locator('.status-legend').innerText()).includes('PUBLISHED'),'Task legend excludes campaign statuses');
  const statusSummary=page.locator('.ux-panel').filter({has:page.getByRole('heading',{name:'Task Status',exact:true})});
