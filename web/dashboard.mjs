@@ -52,10 +52,12 @@ export function createDashboard({focusMap,refreshLive}){
   if(!state.demo)action('Zobraziť zdroj v mape',()=>{panel.close();navigate('map');focusMap(item.provenance.file_id,item.source_id,s?.url);},panel);
   panel.showModal();
   for(const {text,cell} of taskDescriptions){
-   if(text.scrollHeight<=text.clientHeight)continue;
+   const hasOverflow=text.scrollHeight>text.clientHeight;
+   if(!hasOverflow)continue;
    let expanded=false;
    const toggle=action('Zobraziť viac',()=>{expanded=!expanded;text.classList.toggle('is-expanded',expanded);toggle.textContent=expanded?'Zobraziť menej':'Zobraziť viac';toggle.setAttribute('aria-expanded',String(expanded));},cell);
    toggle.className='task-description-toggle';toggle.setAttribute('aria-expanded','false');
+   cell.insertBefore(toggle,text);
   }
  }
  function group(title,items,parent,limit=null,note=''){

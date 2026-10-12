@@ -75,8 +75,8 @@ try{
  const nextAction=detail.locator('.dash-fields dt').filter({hasText:'Ďalší krok'}).locator('xpath=following-sibling::dd[1]');assert((await nextAction.innerText()).length===200,'Existing Next action content remains intact');
  const lineHeight=await description.evaluate(n=>parseFloat(getComputedStyle(n).lineHeight));assert(await description.evaluate((n,height)=>n.clientHeight<=height*4+2,lineHeight),'Long description is clamped to four lines');
  await toggle.focus();await page.keyboard.press('Enter');assert(await toggle.innerText()==='Zobraziť menej'&&await toggle.getAttribute('aria-expanded')==='true','Keyboard expands description');
- assert((await description.innerText()).includes('Caption variants continue here.'),'Expanded description preserves final lines');
- await toggle.click();assert(await toggle.getAttribute('aria-expanded')==='false','Description collapses again');
+ assert((await description.innerText()).includes('Caption variants continue here.'),'Expanded description preserves final lines');assert(await toggle.isVisible(),'Show less remains visible after expansion');assert(await toggle.evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Show less stays in viewport while expanded');
+ await toggle.click();assert(await toggle.innerText()==='Zobraziť viac'&&await toggle.getAttribute('aria-expanded')==='false','Second activation collapses description');assert(await description.evaluate((n,height)=>n.clientHeight<=height*4+2,lineHeight),'Description returns to four-line clamp');
  await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();
  await openTask('t2');assert(await detail.locator('.task-description-text').innerText()==='Krátky popis úlohy.','Short description shown in full');assert(await detail.locator('.task-description-toggle').count()===0,'Short description has no redundant control');
  await detail.getByRole('button',{name:'Zavrieť',exact:true}).click();
