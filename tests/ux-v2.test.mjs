@@ -140,7 +140,7 @@ test('board columns counts cards empty states and no mutation',()=>{
  const data=fixture();for(const status of ['IN_REVIEW','PREPARING','COMPLETED'])data.items.push(item(status,'campaign',{status,priority:'P1'}));
  const before=structuredClone(data),ui=harness('campaigns',data),nodes=descendants(ui.parent),columns=nodes.filter(n=>n.className==='campaign-board-column');
  assert.equal(columns.length,5);assert.deepEqual(columns.map(c=>c.children[0].children[1].textContent),['1','1','1','1','1']);
- for(const [index,id]of ['c1','IN_REVIEW','PREPARING','c2','COMPLETED'].entries())assert(descendants(columns[index]).some(n=>n.getAttribute('data-campaign-id')===id));
+ for(const [index,id]of ['c2','PREPARING','IN_REVIEW','c1','COMPLETED'].entries())assert(descendants(columns[index]).some(n=>n.getAttribute('data-campaign-id')===id));
  assert.deepEqual(data,before);const empty=harness('campaigns',{...data,items:[]});assert.equal(descendants(empty.parent).filter(n=>n.tagName==='P'&&n.textContent==='Žiadne kampane').length,5);
 });
 test('board explicit tasks files dedupe bounded lists no unrelated links and accessible expansion',()=>{
