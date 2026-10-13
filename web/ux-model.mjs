@@ -93,3 +93,14 @@ export const TASK_COLUMNS=[
  {id:'due',label:'Do kedy'},
  {id:'completion',label:'Plán dokončenia'}
 ];
+
+// Relations are explicit IDs projected from management_task_links / drive_file_links.
+export function campaignRelations(data,campaign){
+ const tasks=data.items.filter(i=>i.kind==='task'&&(i.related_ids||[]).includes(campaign.id)).sort((a,b)=>a.id.localeCompare(b.id));
+ const ids=new Set([campaign.id,...tasks.map(i=>i.id)]);
+ const files=data.items.filter(i=>i.kind==='asset'&&(i.related_ids||[]).some(id=>ids.has(id))).map(asset=>{
+  const link=(asset.links||[]).find(l=>{try{const u=new URL(l.url);return u.protocol==='https:'&&u.hostname==='drive.google.com'&&/^\/(file\/d\/|open)/.test(u.pathname);}catch{return false;}});
+  return {asset,url:link?.url||null};
+ }).sort((a,b)=>Number(Boolean(b.asset.fields.is_final))-Number(Boolean(a.asset.fields.is_final))||a.asset.title.localeCompare(b.asset.title));
+ return {tasks,files};
+}

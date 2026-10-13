@@ -1,4 +1,4 @@
-import {uxProjection,pragueToday,calendarEvents,monthGrid,moveMonth,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,campaignTaskBucket,TASK_COLUMNS} from './ux-model.mjs?v=20261011-legends-controls';
+import {campaignRelations,uxProjection,pragueToday,calendarEvents,monthGrid,moveMonth,availableColumns,loadPreferences,savePreferences,reorderColumn,toggleColumn,visibleColumns,textPreview,campaignTaskBucket,TASK_COLUMNS} from './ux-model.mjs?v=20261011-legends-controls';
 import {statusLabel,statusDomain} from './status-model.mjs?v=20261011-legends-controls';
 import {statusTone} from './reporting.mjs?v=20261011-legends-controls';
 import {day,displayDate} from './operational.mjs?v=20261011-legends-controls';
@@ -26,10 +26,27 @@ export function renderUX({data,section,parent,make,action,detail,statusBadge,tab
   renderEntities(v.tasks,'task');return;
  }
  if(section==='campaigns'){
-  const top=row('ux-campaign-kpis');for(const g of v.campaigns.groups)summary(g.label,[['Počet',g.available?g.items.length:null]],top);
   renderLegend(parent);
-  for(const g of v.campaigns.groups){const box=group(g.heading),cards=make('div',null,box,'ux-campaign-list');for(const item of g.items)itemRow(item,cards,{date:day(item.fields.launch_date),next:true});if(!g.items.length)make('p',g.available?'Žiadne kampane v tomto stave.':'Corresponding canonical status nie je dostupný.',box,'empty-row');}
-  if(v.campaigns.other.length){const box=group('Other / Unclassified');for(const item of v.campaigns.other)itemRow(item,box,{date:day(item.fields.launch_date),next:true});}return;
+  const scroll=make('div',null,parent,'campaign-board-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Board kampaní · posuňte vodorovne pre ďalšie stĺpce');
+  const board=make('div',null,scroll,'campaign-board');
+  const boundedList=(title,entries,target,draw)=>{
+   const box=make('section',null,target,'campaign-related');make('h5',title,box);
+   if(!entries.length){make('p',title==='Related tasks'?'Žiadne pripojené úlohy':'Žiadne pripojené súbory',box,'empty-row');return;}
+   const list=make('ul',null,box);for(const entry of entries.slice(0,3))draw(entry,make('li',null,list));
+   if(entries.length>3){const more=make('details',null,box,'campaign-more'),summary=make('summary','+ ďalších '+(entries.length-3),more);summary.setAttribute('aria-expanded','false');more.ontoggle=()=>summary.setAttribute('aria-expanded',String(Boolean(more.open)));const rest=make('ul',null,more);for(const entry of entries.slice(3))draw(entry,make('li',null,rest));}
+  };
+  const campaignCard=(item,target)=>{
+   const card=make('article',null,target,'campaign-board-card');card.setAttribute('data-campaign-id',item.id);card.setAttribute('aria-label',item.id+' · '+item.title);
+   const heading=make('h4',null,card);action(item.title,()=>detail(item),heading).className='campaign-title';make('small',item.id,card,'table-id');
+   const meta=make('div',null,card,'ux-item-meta');statusBadge(item.fields.priority||'—',meta,statusDomain(item,'priority'));
+   const date=day(item.fields.launch_date)||day(item.fields.due_date)||day(item.fields.planned_completion_date);if(date)make('small',(day(item.fields.launch_date)?'Spustenie: ':day(item.fields.due_date)?'Termín: ':'Dokončenie: ')+displayDate(date),meta);
+   const next=make('p',item.fields.next_step||'Ďalší krok neuvedený',card,'campaign-next');next.title=item.fields.next_step||'';
+   const {tasks,files}=campaignRelations(data,item);
+   boundedList('Related tasks',tasks,card,(task,li)=>{const button=action(task.id+' · '+task.title,()=>detail(task),li);button.className='campaign-related-task';button.title=task.title;});
+   boundedList('Links / files',files,card,({asset,url},li)=>{if(url){const a=make('a',asset.title,li,'campaign-file');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('aria-label',asset.title+' · Google Drive (nová karta)');}else make('span',asset.title+' · Odkaz nedostupný',li,'campaign-file-missing');});
+  };
+  for(const g of v.campaigns.groups){const column=make('section',null,board,'campaign-board-column');column.setAttribute('data-column',g.id);column.setAttribute('aria-label',g.label);const header=make('div',null,column,'campaign-column-header');make('h3',g.label,header);make('span',g.available?String(g.items.length):'Nedostupné',header,'campaign-count');const cards=make('div',null,column,'campaign-column-cards');for(const item of g.items)campaignCard(item,cards);if(!g.items.length)make('p',g.available?'Žiadne kampane':'Stav nie je dostupný v registri',cards,'empty-row');}
+  if(v.campaigns.other.length){const box=group('Other / Unclassified');make('p','Kampane s iným alebo neznámym stavom — vyžadujú kontrolu.',box);for(const item of v.campaigns.other)campaignCard(item,box);}return;
  }
  function renderEntities(items,kind){
   const columns=kind==='task'?TASK_COLUMNS:availableColumns(items),host=make('div',null,parent,'ux-entities');let browserStorage=storage;
