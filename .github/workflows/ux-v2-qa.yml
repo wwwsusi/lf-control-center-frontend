@@ -36,7 +36,7 @@ jobs:
       - run: node scripts/qa-home.mjs
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
-      - run: npm run qa:ux && node scripts/qa-crm.mjs && node scripts/qa-crm-reception.mjs
+      - run: npm run qa:ux && node scripts/qa-crm.mjs && node scripts/qa-crm-reception.mjs && node scripts/qa-crm-session-races.mjs
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
