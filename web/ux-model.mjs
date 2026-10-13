@@ -1,10 +1,10 @@
 import {configureStatusCatalog,registryStatus,statusOptions,statusTerminal,liveStatusCatalog} from './status-model.mjs?v=20261011-legends-controls';
 import {day,WORK} from './operational.mjs?v=20261011-legends-controls';
 export const CAMPAIGN_BUCKETS=[
- {id:'published',label:'Beží / Published',heading:'Beží teraz / Published',codes:['PUBLISHED']},
- {id:'review',label:'In Review',heading:'In Review',codes:['IN_REVIEW']},
- {id:'preparing',label:'V príprave',heading:'V príprave',codes:['PREPARING']},
  {id:'draft',label:'Draft / Idea',heading:'Draft / Idea',codes:['DRAFT','IDEA']},
+ {id:'preparing',label:'V príprave',heading:'V príprave',codes:['PREPARING']},
+ {id:'review',label:'In Review',heading:'In Review',codes:['IN_REVIEW']},
+ {id:'published',label:'Beží / Published',heading:'Beží teraz / Published',codes:['PUBLISHED']},
  {id:'completed',label:'Dokončené',heading:'Dokončené',codes:['COMPLETED']}
 ];
 export function pragueToday(now=new Date()){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);const get=t=>parts.find(p=>p.type===t).value;return get('year')+'-'+get('month')+'-'+get('day');}
