@@ -28,6 +28,8 @@ data.items.find(i=>i.id==='t1').fields.due_date=today;data.items.find(i=>i.id===
 data.items.push(item('legacy-fb-task','task',{task_status:'PREPARING',priority:'P1',category:'LF FB kampaň / FB post',next_step:'Synthetic legacy FB work'}));
 for(let index=0;index<18;index++)data.items.push(item('many-'+index,'campaign',{status:'PUBLISHED',launch_date:today,owner:index%2?'Synthetic owner':null,next_step:'Synthetic next step'}));
 for(let index=0;index<4;index++)data.items.push(item('due-extra-'+index,'task',{task_status:'IN_PROGRESS',category:'STAFF',due_date:today}));
+for(const id of ['t2','t3','t4','t6'])data.items.find(i=>i.id===id).related_ids=['c1'];
+for(let index=0;index<5;index++){const asset=item('board-file-'+index,'asset',{is_final:index===0});asset.title='Synthetic board file '+index;asset.related_ids=[index%2?'t2':'c1'];asset.links=index===4?[]:[{url:'https://drive.google.com/file/d/synthetic-'+index+'/view'}];data.items.push(asset);}
 const browser=await browserType.launch();const errors=[],results=[];let calls=0,logout=0,failed=false,authorized=true;
 async function setup(viewport,storageMode=null){
  const context=await browser.newContext({viewport});
@@ -60,6 +62,16 @@ try{
       const day=page.locator('.ux-mobile-agenda .ux-agenda-day').first();if(!(await day.evaluate(n=>n.open)))await day.locator('summary').click();
       const link=day.locator('.ux-agenda-event').first();assert(await link.isVisible(),'Agenda has complete readable event titles');await link.click();assert(await page.locator('#dashboard-detail').isVisible(),'Agenda preserves canonical detail action');await page.locator('#dashboard-detail').getByRole('button',{name:'Zavrieť',exact:true}).click();
      }
+    }
+    if(view==='Kampane'){
+     assert(await page.locator('.campaign-board-column').count()===5,'Five board columns');
+     const geometry=await page.locator('.campaign-board-column').evaluateAll(cols=>cols.map(c=>({x:c.getBoundingClientRect().x,width:c.getBoundingClientRect().width})));
+     assert(geometry.every(c=>c.width>=249),'Cards never narrower than 250px columns');assert(geometry.every((c,i)=>!i||c.x>geometry[i-1].x),'Columns stay horizontal');
+     if(name==='narrow')assert(await page.locator('.campaign-board-scroll').evaluate(n=>n.scrollWidth>n.clientWidth),'Internal horizontal scroll');
+     const card=page.locator('[data-campaign-id="c1"]');assert(!(await card.innerText()).includes('Synthetic t1'),'No unrelated task');
+     assert(await card.locator('a.campaign-file').count()===4,'Real provided asset links only');assert((await card.textContent()).includes('Odkaz nedostupný'),'Missing URL visible');
+     const disclosure=card.locator('.campaign-more').first(),toggle=disclosure.locator('summary');await toggle.focus();await page.keyboard.press('Enter');
+     await page.waitForFunction(n=>n.getAttribute('aria-expanded')==='true',await toggle.elementHandle());await page.keyboard.press('Enter');await page.waitForFunction(n=>n.getAttribute('aria-expanded')==='false',await toggle.elementHandle());
     }
     if(name==='desktop'&&view==='Prehľad'){const count=await page.locator('.ux-summary-row').first().evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);assert(count===3,'Desktop summary 3 columns');}
     await page.screenshot({path:path.join(out,name+'-'+theme+'-'+view+'.png'),fullPage:true});
@@ -114,13 +126,13 @@ try{
   await nav(page,label);assert(await page.locator('.status-legend:visible').count()===1,'One visible legend in '+label);
   const placement=await page.locator('.status-legend:visible').evaluate(legend=>{
    const target=legend.nextElementSibling;
-   return Boolean(target&&(target.matches('.table-scroll,.ux-calendar,.ux-campaign-list')||target.querySelector('.ux-important-grid,.ux-campaign-list')));
+   return Boolean(target&&(target.matches('.table-scroll,.ux-calendar,.ux-campaign-list,.campaign-board-scroll')||target.querySelector('.ux-important-grid,.ux-campaign-list')));
   });
   if(label!=='Súbory')assert(placement,'Legend immediately precedes main table or list in '+label);
   await noOverflow(page);
  }
  await nav(page,'Služby');await page.locator('.ux-column-selector summary').click();const owner=page.getByRole('checkbox',{name:'Zobraziť Owner',exact:true});await owner.uncheck();await page.getByRole('button',{name:'Posunúť doľava · Cena',exact:true}).click();await page.reload();await page.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='LIVE SUPABASE');await nav(page,'Služby');const columns=await page.locator('#dashboard .report-table th').allTextContents();assert(!columns.includes('Owner'),'Hidden column persisted');assert(columns.indexOf('Cena')<columns.indexOf('Dostupnosť'),'Column order persisted');
- await nav(page,'Kampane');assert(await page.locator('.ux-campaign-kpis .ux-panel').count()===5,'Five campaign KPIs');assert((await page.locator('#dashboard').innerText()).includes('Žiadne kampane v tomto stave.'),'Empty campaign bucket');assert(await page.locator('.ux-campaign-list .ux-item').count()===20,'Many campaigns preserved');
+ await nav(page,'Kampane');assert(await page.locator('.campaign-board-column').count()===5,'Five campaign KPIs');assert((await page.locator('#dashboard').innerText()).includes('Žiadne kampane'),'Empty campaign bucket');assert(await page.locator('.campaign-board-card').count()===20,'Many campaigns preserved');
  await nav(page,'Prehľad');assert((await page.locator('#dashboard').innerText()).includes('Synthetic t5'),'Unknown category not lost');
  const campaignColumn=page.locator('.ux-important-grid > .dash-group').first();
  assert((await campaignColumn.innerText()).includes('Synthetic legacy-fb-task'),'Existing canonical LF FB category retained in Campaigns & Marketing');
@@ -145,13 +157,13 @@ try{
  await importPage.waitForFunction(()=>window.lfDashboardDiagnostics?.().mode==='SNAPSHOT'&&window.lfDashboardDiagnostics?.().items>=17);
  assert((await importPage.locator('#dashboard').innerText()).includes('DEMO · Pripraviť otvorený deň'),'Imported snapshot retains legacy tasks');
  await nav(importPage,'Kampane');
- const browserKpi=async label=>{const panel=importPage.locator('.ux-campaign-kpis .ux-panel').filter({has:importPage.getByRole('heading',{name:label,exact:true})});assert(await panel.count()===1,'Campaign KPI exists: '+label);return (await panel.locator('dd').first().innerText()).trim();};
+ const browserKpi=async label=>{const panel=importPage.locator('.campaign-board-column').filter({has:importPage.getByRole('heading',{name:label,exact:true})});assert(await panel.count()===1,'Campaign KPI exists: '+label);return (await panel.locator('.campaign-count').first().innerText()).trim();};
  assert(await browserKpi('Beží / Published')==='1','Imported explicitly published campaign KPI is 1');
  assert(await browserKpi('V príprave')==='2','PLANNED and PREPARING prefixes included');
  assert(await browserKpi('Draft / Idea')==='1','PROPOSED alias counted as draft');
  assert(await browserKpi('Dokončené')==='1','EXECUTED alias counted as completed');
  for(const [id]of cases)assert(await importPage.getByRole('button',{name:'Synthetic legacy '+id,exact:true}).count()===1,'Imported campaign record preserved '+id);
- assert(await importPage.locator('#dashboard .ux-item').count()===8,'All eight snapshot campaigns including conflicted and RUNNING remain visible');
+ assert(await importPage.locator('#dashboard .campaign-board-card').count()===8,'All eight snapshot campaigns including conflicted and RUNNING remain visible');
  const other=importPage.locator('#dashboard .dash-group').filter({has:importPage.getByRole('heading',{name:'Other / Unclassified',exact:true})});
  assert(await other.count()>=1,'Ambiguous legacy stage gets Other heading');
  await importPage.screenshot({path:path.join(out,'synthetic-legacy-json-import.png'),fullPage:true});
@@ -163,8 +175,8 @@ try{
  livePublished.is_enabled=false;
  const {page:disabledPage,context:disabledContext}=await setup({width:1440,height:1000});
  await nav(disabledPage,'Kampane');
- const publishedKpi=disabledPage.locator('.ux-campaign-kpis .ux-panel').filter({has:disabledPage.getByRole('heading',{name:'Beží / Published',exact:true})});
- assert((await publishedKpi.locator('dd').first().innerText()).trim()==='Nedostupné','Disabled campaign published KPI is unavailable');
+ const publishedKpi=disabledPage.locator('.campaign-board-column').filter({has:disabledPage.getByRole('heading',{name:'Beží / Published',exact:true})});
+ assert((await publishedKpi.locator('.campaign-count').first().innerText()).trim()==='Nedostupné','Disabled campaign published KPI is unavailable');
  const otherText=await disabledPage.locator('#dashboard').innerText();
  assert(otherText.includes('Synthetic c1'),'Disabled PUBLISHED campaign remains visible on campaign view');
  await disabledPage.screenshot({path:path.join(out,'synthetic-disabled-campaign-status.png'),fullPage:true});
