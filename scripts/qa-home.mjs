@@ -13,8 +13,8 @@ try{for(const [name,viewport] of [['desktop',{width:1440,height:1000}],['mobile'
  assert.equal(await page.locator('img').evaluate(e=>e.complete&&e.naturalWidth>0),true);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  assert.equal(await page.locator('h1').evaluate(e=>getComputedStyle(e).fontFamily.includes('Oswald')),true);
- assert.equal(await page.locator('.login').evaluate(e=>getComputedStyle(e).transitionDuration),'0s');
- await page.keyboard.press('Tab');await page.keyboard.press('Tab');assert.equal(await page.locator('.login').evaluate(e=>e===document.activeElement),true);
+ assert.equal(await page.locator('.login').first().evaluate(e=>getComputedStyle(e).transitionDuration),'0s');
+ await page.keyboard.press('Tab');await page.keyboard.press('Tab');assert.equal(await page.locator('.login').first().evaluate(e=>e===document.activeElement),true);
  assert(!requests.some(u=>/\/api\/|app\.mjs/.test(u)));assert.deepEqual(errors,[]);
  await page.screenshot({path:path.join(out,name+'.png'),fullPage:true});
  await page.keyboard.press('Enter');await page.waitForURL('**/control-center.html');assert.equal(await page.locator('#connection-dialog').count(),1);await page.waitForFunction(()=>typeof window.lfDashboardDiagnostics==='function');assert.deepEqual(errors,[]);await page.close();
