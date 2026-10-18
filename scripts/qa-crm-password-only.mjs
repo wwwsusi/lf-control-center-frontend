@@ -26,6 +26,8 @@ try{for(const width of [1280,768]){
   await page.getByRole('button',{name:'Prihlásiť sa',exact:true}).click();await page.locator('#crm-workspace').waitFor({state:'visible'});
   assert.equal(submitted.email,'synthetic@example.test');assert.equal(await page.locator('#crm-password').inputValue(),'');
   assert.equal(await page.locator('[data-view="staff"]').isVisible(),role==='OWNER_ADMIN');
+  assert.equal(await page.getByRole('heading',{name:'Kontrola draftov',exact:true}).count(),role==='OWNER_ADMIN'?1:0);
+  assert.equal(await page.getByRole('heading',{name:'Moje dnešné storná draftov',exact:true}).count(),role==='OWNER_ADMIN'?1:0);
   await page.getByRole('button',{name:'Odhlásiť sa',exact:true}).click();await page.getByRole('status').filter({hasText:'Bola si odhlásená.'}).waitFor();assert.ok(logout);
   assert.equal(await page.locator('#crm-content').textContent(),'');assert.equal(await page.locator('#crm-workspace').isVisible(),false);
  }
