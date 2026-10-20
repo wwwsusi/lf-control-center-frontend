@@ -6,6 +6,9 @@ export function buildPublic({root,out=path.join(root,'dist'),profile='pages'}){
  root=path.resolve(root);out=path.resolve(out);if(root===out||root.startsWith(out+path.sep)||out.startsWith(path.join(root,'web')+path.sep)||out===path.join(root,'web'))throw Error('Unsafe build destination');
  fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(path.join(out,'data'),{recursive:true});fs.mkdirSync(path.join(out,'assets'),{recursive:true});
  for(const f of PUBLIC_FILES)fs.copyFileSync(path.join(root,'web',f),path.join(out,f));
+ const landing=path.join(out,'index.html');
+ const crmEntry=profile==='same-origin'?'<a class="crm-entry" href="./crm"><strong>CRM recepcia</strong><span>Prihlásenie zamestnancov</span></a>':'';
+ fs.writeFileSync(landing,fs.readFileSync(landing,'utf8').replace('<!-- LF_PRIVATE_CRM_ENTRY -->',crmEntry));
  fs.mkdirSync(path.join(out,'fonts'),{recursive:true});for(const f of FONT_FILES)fs.copyFileSync(path.join(root,'web/fonts',f),path.join(out,'fonts',f));
  if(profile==='same-origin')fs.writeFileSync(path.join(out,'config.json'),JSON.stringify({connectionMode:'same-origin',eventServiceUrl:'',scope:'Same-origin · prihlásená read-only služba; bez globálneho sledovania Codex.'}));
  fs.writeFileSync(path.join(out,'data/graph.json'),JSON.stringify({schema_version:1,nodes:[],edges:[],coverage:{original_imported:false,scope:'Verejný shell bez interných dát.'}}));

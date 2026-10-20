@@ -12,6 +12,8 @@ test('same-origin public build removes remote API configuration, includes no sna
   assert.deepEqual(fs.readdirSync(own),fs.readdirSync(pages));const config=JSON.parse(fs.readFileSync(path.join(own,'config.json')));assert.equal(config.connectionMode,'same-origin');assert.equal(config.eventServiceUrl,'');
   const graph=JSON.parse(fs.readFileSync(path.join(own,'data/graph.json')));assert.deepEqual(graph.nodes,[]);assert.deepEqual(graph.edges,[]);
   for(const file of fs.readdirSync(own).filter(f=>/\.(mjs|json|html|css)$/.test(f)))assert.doesNotMatch(fs.readFileSync(path.join(own,file),'utf8'),/lf-interactive-file-map-service\.vercel\.app|SUPABASE_SERVICE_ROLE_KEY|SYNTHETIC_PRIVATE_SENTINEL/);
+  assert.match(fs.readFileSync(path.join(own,'index.html'),'utf8'),/href="\.\/crm"><strong>CRM recepcia/);
+  assert.doesNotMatch(fs.readFileSync(path.join(pages,'index.html'),'utf8'),/CRM recepcia|LF_PRIVATE_CRM_ENTRY/);
   assert.equal(JSON.parse(fs.readFileSync(path.join(pages,'config.json'))).eventServiceUrl,'https://lf-interactive-file-map-service.vercel.app');
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
