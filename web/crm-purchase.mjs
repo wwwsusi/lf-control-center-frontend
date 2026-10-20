@@ -65,7 +65,7 @@ export function mountPurchase({root,api,onAuthFailure,saved=false}){
   try{const data=await read({view:'PRODUCT_CATALOGUE',...(after?{after}:{})});if(!live||version!==generation)return;items=after?[...items,...data.items]:data.items;next=data.next;notice='';}catch(error){fail(error);}finally{if(live&&version===generation){busy=false;render();}}
  }
  async function savedSales(after){
-  if(!live||busy)return;busy=true;const version=++generation;root.replaceChildren(text('h2','Moje uložené predaje'));
+  if(!live||busy)return;busy=true;const version=++generation;root.replaceChildren(text('h2','Rozpracované predaje'));
   try{const data=await read({view:'OWN_CHECKOUTS',...(after?{after}:{})});if(!live||version!==generation)return;busy=false;
    if(!data.items.length)root.append(text('p','V tomto pohľade nie sú uložené predaje.'));
    for(const sale of data.items){const row=document.createElement('article');row.className='crm-card';row.append(text('p',`${sale.business_date} · ${{DRAFT:'Rozpracované',CONFIRMED:'Potvrdené',CANCELLED:'Stornované'}[sale.status]||'Na kontrolu'} · ${eur(sale.total)}`),button('Otvoriť uložený predaj',()=>loadSale(sale.id)));root.append(row);}
@@ -75,3 +75,4 @@ export function mountPurchase({root,api,onAuthFailure,saved=false}){
  if(saved)savedSales();else loadCatalogue();
  return {dispose(){live=false;generation++;controller.abort();cart.clear();items=[];pending=current=null;saleId=null;}};
 }
+
