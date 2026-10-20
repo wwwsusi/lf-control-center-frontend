@@ -1,5 +1,5 @@
 import fs from 'node:fs';import path from 'node:path';
-export const PUBLIC_FILES=['index.html','crm.html','crm.css','crm.mjs','crm-purchase.mjs','crm-owner.mjs','control-center.html','home.css','assets/lady-fitness-logo.png','app.mjs','connection.mjs','model.mjs','dashboard.mjs','ux-model.mjs','ux.mjs','status-model.mjs','operational.mjs','dashboard-model.mjs','dashboard-demo.mjs','reporting.mjs','live-report.mjs','snapshot.mjs','style.css','README.html','config.json'];
+export const PUBLIC_FILES=['index.html','crm.html','crm.css','crm.mjs','crm-purchase.mjs','crm-owner.mjs','crm-customer.mjs','control-center.html','home.css','assets/lady-fitness-logo.png','app.mjs','connection.mjs','model.mjs','dashboard.mjs','ux-model.mjs','ux.mjs','status-model.mjs','operational.mjs','dashboard-model.mjs','dashboard-demo.mjs','reporting.mjs','live-report.mjs','snapshot.mjs','style.css','README.html','config.json'];
 export const FONT_FILES=['Inter.woff','Oswald.woff','OFL.txt'];
 export function buildPublic({root,out=path.join(root,'dist'),profile='pages'}){
  if(!['pages','same-origin'].includes(profile))throw Error('Unsupported build profile');
@@ -15,4 +15,5 @@ export function buildPublic({root,out=path.join(root,'dist'),profile='pages'}){
  fs.mkdirSync(path.join(out,'crm'),{recursive:true});fs.copyFileSync(path.join(root,'web/crm.html'),path.join(out,'crm/index.html'));
  fs.writeFileSync(path.join(out,'.nojekyll'),'');return out;
 }
+
 

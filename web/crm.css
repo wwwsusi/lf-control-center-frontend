@@ -1,1 +1,22 @@
 [hidden]{display:none!important}.crm-main{max-width:none;width:100%}.crm-login{display:grid;gap:16px;max-width:440px;margin:24px 0}.crm-login label{display:grid;gap:8px}.crm-login button{width:100%}.crm-main h1{font-size:clamp(36px,5vw,60px)}.crm-session,nav,.crm-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:24px 0}nav button[aria-current=page]{background:var(--pink);border-color:var(--pink)}.crm-main button,.crm-main input,.crm-main select{font:inherit;min-height:48px;border-radius:8px;border:1px solid #607087;background:#192a40;color:var(--text);padding:12px 16px}.crm-main button{cursor:pointer}.crm-main button:disabled{opacity:.5;cursor:default}.crm-main :is(button,input,select):focus-visible{outline:3px solid white;outline-offset:3px}.crm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px}.crm-card{border:1px solid #607087;border-radius:12px;padding:20px;background:#15243a}.crm-card h2,.crm-card h3{font:600 25px Oswald;margin-top:0}.crm-card p{line-height:1.6;overflow-wrap:anywhere}.crm-card button{width:100%}.crm-search{display:flex;flex-wrap:wrap;gap:12px;align-items:end}.crm-search label{display:grid;gap:8px;flex:1;min-width:min(100%,220px)}.crm-list{padding:0;list-style:none;display:grid;gap:12px}.crm-list li{border:1px solid #607087;border-radius:10px;padding:16px;overflow-wrap:anywhere}.crm-list button{margin-top:12px}.crm-note{color:var(--muted);line-height:1.6}.crm-session span{margin-right:auto}.crm-error{border-color:var(--pink)}
+
+
+/* Compact reception workspace and aligned navigation cards. */
+.home-shell{max-width:1600px;padding:24px 3%}.home-header{margin-bottom:20px}
+.crm-main .eyebrow{margin-bottom:10px}.crm-main h1{font-size:clamp(32px,4vw,44px)}
+.crm-status{margin:10px 0 16px;color:var(--muted)}
+.crm-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 20px}
+.crm-session{margin:0;gap:8px}.crm-nav{margin:0 0 0 auto;gap:8px;justify-content:flex-end}
+#crm-content>h2{margin:0 0 16px;font:600 28px Oswald,sans-serif}
+.crm-reception-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:14px}
+.crm-reception-grid>.crm-card{display:flex;flex-direction:column;min-width:0;min-height:190px;padding:18px}
+.crm-reception-grid .crm-card h3{margin:0 0 10px;line-height:1.3}
+.crm-reception-grid .crm-card p{margin:0 0 16px;color:var(--muted)}
+.crm-reception-grid .crm-card button{margin-top:auto}
+.crm-customer-form{display:grid;gap:16px;max-width:480px;margin:16px 0}
+.crm-customer-form label{display:grid;gap:8px}.crm-customer-form input{min-width:0;width:100%}
+.crm-catalogue-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
+.crm-catalogue-tabs [aria-pressed=true]{background:var(--pink);border-color:var(--pink)}
+.crm-back{display:inline-block;margin:20px 0}footer{margin-top:20px}
+@media(max-width:1000px){.crm-reception-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.home-shell{padding:20px 5%}.crm-toolbar{align-items:stretch}.crm-nav{width:100%;margin-left:0;justify-content:flex-start}.crm-nav button{flex:1 1 auto}.crm-reception-grid{grid-template-columns:1fr}.crm-session{width:100%}}
