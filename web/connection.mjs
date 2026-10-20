@@ -14,3 +14,11 @@ export function resolveEndpoint(value,profile){
  return u.origin;
 }
 export function viewerOptions(profile,token){return {credentials:profile.sameOrigin||!token?'include':'omit',headers:!profile.sameOrigin&&token?{Authorization:'Bearer '+token}:{}};}
+
+// Display only known application errors; never expose arbitrary provider text.
+export async function loginFailureMessage(response){
+ if(response.status===409){
+  try{if((await response.json()).code==='SESSION_LIMIT_REACHED')return 'Súčasne môže byť prihlásených najviac 5 zariadení alebo prehliadačov. Odhlás sa na inom zariadení alebo počkaj, kým jeho prihlásenie vyprší.';}catch{}
+ }
+ return 'Prihlásenie zlyhalo: HTTP '+response.status;
+}
