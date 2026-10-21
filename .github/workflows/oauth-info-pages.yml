@@ -1,0 +1,51 @@
+name: OAuth public information pages
+on:
+  pull_request:
+    paths: ['oauth-info/**', 'scripts/build-oauth-info.py', 'scripts/test-oauth-info.py', '.github/workflows/oauth-info-pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oauth-info-pages
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 -B scripts/test-oauth-info.py
+      - name: Build only three public information files
+        run: python3 -B scripts/build-oauth-info.py --output "${{ runner.temp }}/oauth-info-site"
+  build-pages:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.LF_OAUTH_INFO_PAGES_ENABLED == 'true'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 -B scripts/build-oauth-info.py --output "${{ runner.temp }}/oauth-info-site"
+      - id: upload
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
+        with:
+          path: ${{ runner.temp }}/oauth-info-site
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.LF_OAUTH_INFO_PAGES_ENABLED == 'true'
+    needs: build-pages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
