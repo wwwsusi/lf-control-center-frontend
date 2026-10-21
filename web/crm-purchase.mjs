@@ -4,7 +4,12 @@ const cents=value=>{if(!/^\d+\.\d{2}$/.test(value))throw Error('MONEY');return B
 const money=value=>`${value/100n}.${String(value%100n).padStart(2,'0')}`;
 const eur=value=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR',maximumFractionDigits:4}).format(Number(value));
 const quantity=value=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:3}).format(Number(value));
-export function mountPurchase({root,api,onAuthFailure,saved=false}){
+export function purchaseCustomerReference(customer,anonymous=false){
+ if(customer!==null){if(anonymous||!customer||typeof customer.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(customer.id)||typeof customer.revision!=='string'||!/^[1-9][0-9]{0,17}$/.test(customer.revision))throw Error('Invalid selected customer');return {customer_id:customer.id,customer_revision:customer.revision};}
+ if(!anonymous)throw Error('Purchase identity must be selected');return {customer_id:null,customer_revision:null};
+}
+export function mountPurchase({root,api,onAuthFailure,saved=false,customer=null,anonymous=false}){
+ const identity=saved?null:purchaseCustomerReference(customer,anonymous);
  let live=true,generation=0,busy=false,pending=null,saleId=null,current=null,notice='',items=[],next=null;
  const cart=new Map(),controller=new AbortController();
  const button=(label,fn)=>{const b=text('button',label);b.type='button';b.disabled=busy;b.addEventListener('click',fn);return b;};
@@ -12,7 +17,7 @@ export function mountPurchase({root,api,onAuthFailure,saved=false}){
  async function read(body){return api('/api/crm/read',{body,signal:controller.signal});}
  async function loadSale(id){
   if(!live)return;const version=++generation;busy=true;saleId=id;current=null;render();
-  try{const data=await read({view:'OWN_CHECKOUT',sale_id:id});if(!live||version!==generation)return;current=data;notice='';}
+  try{const data=await read({view:'OWN_CHECKOUT',sale_id:id});if(!live||version!==generation)return;if(customer&&data.sale.customer_id!==customer.id)throw Error('CUSTOMER_MISMATCH');current=data;notice='';}
   catch(error){fail(error);}finally{if(live&&version===generation){busy=false;render();}}
  }
  async function complete(data){
@@ -34,31 +39,31 @@ export function mountPurchase({root,api,onAuthFailure,saved=false}){
   catch(error){fail(error);}finally{if(live){busy=false;render();}}
  }
  function render(){
-  if(!live)return;root.replaceChildren(text('h2',saleId?'Uložený predaj':'Nákup bez klienta'));
+  if(!live)return;root.replaceChildren(text('h2',saleId?'Uložený predaj':customer?'Nákup · '+customer.name:'Nákup bez klienta'));
   if(notice)root.append(text('p',notice));
   if(pending){root.append(text('p','Nevytváraj nový predaj ani platbu. Najprv over výsledok pôvodnej operácie.'),button('Overiť tú istú operáciu',verify));return;}
   if(saleId){
    if(!current){root.append(button('Obnoviť uložený predaj',()=>loadSale(saleId)));return;}
-   const {sale,payment,catalogue,resume_blocked}=current;root.append(text('p',`Spolu ${eur(sale.total)} · Prijaté ${eur(sale.paid)}`));
+   const {sale,payment,catalogue,resume_blocked}=current;root.append(text('p',sale.customer_id?'Klientka: '+sale.customer_name:'Bez identifikovanej klientky'));root.append(text('p',`Spolu ${eur(sale.total)} · Prijaté ${eur(sale.paid)}`));
    const list=document.createElement('ul');for(const line of sale.lines)list.append(text('li',`${line.display_name_at_sale} · ${quantity(line.quantity)} ${line.unit_at_sale} · ${eur(line.line_total)}`));root.append(list);
    if(sale.status==='CANCELLED'){root.append(text('p','Predaj bol stornovaný.'));return;}
    if(resume_blocked){root.append(text('p','Predaj vyžaduje kontrolu vlastníka. Zmenili sa údaje alebo katalóg.'),button('Obnoviť uložený predaj',()=>loadSale(saleId)));return;}
    if(sale.status==='DRAFT'){
-    const confirm=button('Potvrdiť predaj',()=>mutate('CONFIRM_SALE',{sale_id:sale.id,expected_revision:sale.revision,customer_revision:null,line_fingerprint:sale.line_fingerprint,catalogue}));confirm.disabled=busy||!catalogue.length;root.append(confirm);return;
+    const confirm=button('Potvrdiť predaj',()=>mutate('CONFIRM_SALE',{sale_id:sale.id,expected_revision:sale.revision,customer_revision:sale.customer_id?sale.customer_revision:null,line_fingerprint:sale.line_fingerprint,catalogue}));confirm.disabled=busy||!catalogue.length;root.append(confirm);return;
    }
    if(sale.status!=='CONFIRMED'){root.append(text('p','Stav predaja nie je pripravený na platbu.'));return;}
    if(payment){root.append(text('p',`Existujúca platba ${eur(payment.amount)} · ${{CASH:'Hotovosť',CARD:'Karta'}[payment.method]||'Na kontrolu'}`),button('Potvrdiť prijatie platby',()=>mutate('CONFIRM_PAYMENT',{payment_id:payment.id,expected_revision:payment.revision,sale_revision:sale.revision})));return;}
    let outstanding;try{outstanding=cents(sale.total)-cents(sale.paid);}catch{root.append(text('p','Suma vyžaduje kontrolu.'));return;}
-   if(outstanding<=0n){root.append(text('p','Predaj a prijatie platby sú potvrdené.'),button('Ďalší nákup',()=>{saleId=null;current=null;notice='';loadCatalogue();}));return;}
+   if(outstanding<=0n){root.append(text('p','Predaj a prijatie platby sú potvrdené.'));if(identity)root.append(button('Ďalší nákup',()=>{saleId=null;current=null;notice='';loadCatalogue();}));else root.append(text('p','Pre ďalší nákup znovu vyber klientku alebo nákup bez identifikácie v úvodnej ponuke.'));return;}
    const label=text('label','Spôsob platby'),select=document.createElement('select');for(const [value,name]of [['CASH','Hotovosť'],['CARD','Karta']]){const o=text('option',name);o.value=value;select.append(o);}select.disabled=busy;label.append(select);
    root.append(text('p',`Zostáva prijať ${eur(money(outstanding))}`),label,button('Zaznamenať platbu',()=>mutate('CREATE_PAYMENT',{sale_id:sale.id,sale_revision:sale.revision,method:select.value,amount:money(outstanding)})));return;
   }
-  root.append(text('p','Predaj bez klienta. Nevytvára návštevu ani permanentku.'));
+  root.append(text('p',customer?'Nákup sa uloží ku klientke '+customer.name+'. Jej existujúca permanentka zostáva zachovaná.':'Predaj bez identifikovanej klientky. Nevytvára návštevu ani permanentku.'));
   for(const product of items){const card=document.createElement('article');card.className='crm-card';card.append(text('h3',product.name),text('p',`${eur(product.current_price_eur)} / ${product.unit}`));
    card.append(button('Pridať '+product.name,()=>{if(cart.size>=25&&!cart.has(product.id))return;const line=cart.get(product.id);if((line?.quantity??0)>=999999999)return;cart.set(product.id,{product,quantity:(line?.quantity??0)+1});render();}));root.append(card);}
   if(next)root.append(button('Ďalšie produkty',()=>loadCatalogue(next)));
   for(const [id,line]of cart){const label=text('label',line.product.name+' · množstvo'),input=document.createElement('input');input.type='number';input.min='1';input.max='999999999';input.step='1';input.value=String(line.quantity);input.disabled=busy;input.addEventListener('change',()=>{const n=Number(input.value);if(!Number.isSafeInteger(n)||n<1||n>999999999){input.value=String(line.quantity);return;}line.quantity=n;});label.append(input);root.append(label,button('Odobrať '+line.product.name,()=>{cart.delete(id);render();}));}
-  const save=button('Uložiť rozpracovaný predaj',()=>mutate('CREATE_SALE',{customer_id:null,customer_revision:null,lines:[...cart.values()].map(({product,quantity})=>({product_id:product.id,quantity:String(quantity),catalogue_fingerprint:product.catalogue_fingerprint}))}));save.disabled=busy||cart.size===0;root.append(save);
+  const save=button('Uložiť rozpracovaný predaj',()=>mutate('CREATE_SALE',{...identity,lines:[...cart.values()].map(({product,quantity})=>({product_id:product.id,quantity:String(quantity),catalogue_fingerprint:product.catalogue_fingerprint}))}));save.disabled=busy||cart.size===0;root.append(save);
  }
  async function loadCatalogue(after){
   if(!live||busy)return;busy=true;render();const version=++generation;
@@ -68,7 +73,7 @@ export function mountPurchase({root,api,onAuthFailure,saved=false}){
   if(!live||busy)return;busy=true;const version=++generation;root.replaceChildren(text('h2','Rozpracované predaje'));
   try{const data=await read({view:'OWN_CHECKOUTS',...(after?{after}:{})});if(!live||version!==generation)return;busy=false;
    if(!data.items.length)root.append(text('p','V tomto pohľade nie sú uložené predaje.'));
-   for(const sale of data.items){const row=document.createElement('article');row.className='crm-card';row.append(text('p',`${sale.business_date} · ${{DRAFT:'Rozpracované',CONFIRMED:'Potvrdené',CANCELLED:'Stornované'}[sale.status]||'Na kontrolu'} · ${eur(sale.total)}`),button('Otvoriť uložený predaj',()=>loadSale(sale.id)));root.append(row);}
+   for(const sale of data.items){const row=document.createElement('article');row.className='crm-card';row.append(text('p',`${sale.customer_name||'Bez identifikovanej klientky'} · ${sale.business_date} · ${{DRAFT:'Rozpracované',CONFIRMED:'Potvrdené',CANCELLED:'Stornované'}[sale.status]||'Na kontrolu'} · ${eur(sale.total)}`),button('Otvoriť uložený predaj',()=>loadSale(sale.id)));root.append(row);}
    if(data.next)root.append(button('Ďalšie predaje',()=>savedSales(data.next)));
   }catch(error){fail(error);if(live)root.append(text('p',notice));}finally{if(live&&version===generation)busy=false;}
  }
