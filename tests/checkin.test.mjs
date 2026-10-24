@@ -30,3 +30,9 @@ test('disposing in-flight visit ignores its response and prevents more requests'
  let resolve,successes=0,calls=0;const writer=createVisitWriter(()=>{calls++;return new Promise(r=>resolve=r);},{newId:()=>id(7),onSuccess:()=>successes++});
  const pending=writer.submit(visitPayload(admission));writer.dispose();resolve(result);await pending;await writer.retry();assert.equal(calls,1);assert.equal(successes,0);
 });
+test('single entry retains exact purchased line and sale revision and rejects another client purchase',()=>{
+ const a={...admission,code:'SINGLE_ENTRY'},p={id:id(8),sale_id:id(9),sale_revision:'12',customer_id:customer.id};
+ const payload=visitPayload(a,customer,null,p);assert.equal(payload.sale_item_id,p.id);assert.equal(payload.sale_revision,'12');assert.equal(payload.entitlement_id,null);
+ assert.throws(()=>visitPayload(a,null,null,p));assert.throws(()=>visitPayload(a,customer,null,{...p,sale_revision:'bad'}));
+ assert.equal(visitPayload(a,null,null,{...p,customer_id:null}).customer_id,null);
+});
