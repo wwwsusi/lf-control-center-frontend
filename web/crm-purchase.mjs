@@ -15,7 +15,7 @@ export function purchaseLine(item,kind,count,identity,activationMode){
  if(monthly?(!identity?.customer_id||!item.requires_customer||!item.activation_choices.includes(activationMode)):activationMode!==undefined)throw Error('Invalid activation choice');
  return {[kind==='products'?'product_id':'service_id']:item.id,quantity:String(count),catalogue_fingerprint:item.catalogue_fingerprint,...(monthly?{activation_mode:activationMode}:{})};
 }
-export function mountPurchase({root,api,onAuthFailure,saved=false,customer=null,anonymous=false}){
+export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},saved=false,customer=null,anonymous=false}){
  const identity=saved?null:purchaseCustomerReference(customer,anonymous);
  let live=true,generation=0,busy=false,pending=null,saleId=null,current=null,notice='',items=[],next=null,catalogueKind='products';
  const cart=new Map(),controller=new AbortController();
@@ -31,7 +31,7 @@ export function mountPurchase({root,api,onAuthFailure,saved=false,customer=null,
   if(data.operation?.state==='REJECTED'){pending=null;notice='Operácia bola zamietnutá. Skontroluj uložený predaj.';return;}
   if(data.operation?.state!=='COMPLETED'||!data.projection)throw Error('UNVERIFIED');
   if(pending.type==='CREATE_SALE'){saleId=data.projection.id;cart.clear();}
-  pending=null;await loadSale(saleId);
+  const confirmed=pending.type==='CONFIRM_SALE';pending=null;await loadSale(saleId);if(live&&confirmed)onSaleConfirmed();
  }
  async function mutate(type,payload){
   if(!live||busy||pending)return;
@@ -92,6 +92,6 @@ export function mountPurchase({root,api,onAuthFailure,saved=false,customer=null,
   }catch(error){fail(error);if(live)root.append(text('p',notice));}finally{if(live&&version===generation)busy=false;}
  }
  if(saved)savedSales();else loadCatalogue();
- return {dispose(){live=false;generation++;controller.abort();cart.clear();items=[];pending=current=null;saleId=null;}};
+ return {hasPending:()=>!!pending||busy,dispose(){live=false;generation++;controller.abort();cart.clear();items=[];pending=current=null;saleId=null;}};
 }
 

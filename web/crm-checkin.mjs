@@ -72,5 +72,5 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure}){
   if(customer){const c=await api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:customer.id},signal:controller.signal});if(!live)return;customer=c.customer;entitlements=c.entitlements;if(c.entitlements_truncated)message='Zobrazených je prvých 20 permanentiek; zoznam nie je úplný.';}
   for(const a of admissions.filter(a=>a.code==='SINGLE_ENTRY'))await loadEntries(a);
  }catch(error){if(!live||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))onAuthFailure(error.code);else message='Možnosti vstupu sa nepodarilo načítať.';}finally{loading=false;render();}}
- render();load();return {dispose(){live=false;writer.dispose();controller.abort();root.replaceChildren();}};
+ render();load();return {refresh(){if(!live||state.busy||state.pending)return false;loading=true;message='';render();load();return true;},dispose(){live=false;writer.dispose();controller.abort();root.replaceChildren();}};
 }
