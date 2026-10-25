@@ -28,3 +28,20 @@ test('checkout rejects invented catalogue identifiers, fingerprints and invalid 
  assert.throws(()=>purchaseLine({...item,catalogue_fingerprint:'stale'},'products',1,null));
  assert.throws(()=>purchaseLine(item,'other',1,null));
 });
+
+test('monthly line requires explicit activation and serializes the chosen option only',()=>{
+ const monthly={...item,requires_customer:true,activation_choices:['PURCHASE_DATE','FIRST_USE']},identity={customer_id:'selected-client'};
+ for(const choice of monthly.activation_choices)assert.equal(purchaseLine(monthly,'services',1,identity,choice).activation_mode,choice);
+ for(const choice of [undefined,'','FIXED_DATE','2026-10-25'])assert.throws(()=>purchaseLine(monthly,'services',1,identity,choice));
+ assert.throws(()=>purchaseLine(monthly,'services',1,null,'FIRST_USE'));
+ assert.throws(()=>purchaseLine(item,'services',1,identity,'FIRST_USE'));
+ assert.throws(()=>purchaseLine(item,'products',1,identity,'FIRST_USE'));
+});
+
+import {membershipValidityLabel} from '../web/crm-checkin.mjs';
+test('monthly UI shows inclusive last day and no invented expiry for unactivated membership',()=>{
+ assert.match(membershipValidityLabel({activated_on:null,expires_on:null}),/prvým vstupom/);
+ assert.match(membershipValidityLabel({activated_on:'2027-01-31',expires_on:'2027-03-01'}),/28\.\s*2\.\s*2027 vrátane/);
+ assert.match(membershipValidityLabel({activated_on:'2028-01-31',expires_on:'2028-03-01'}),/29\.\s*2\.\s*2028 vrátane/);
+ assert.match(membershipValidityLabel({activated_on:'2027-01-31',expires_on:'invalid'}),/kontrolu/);
+});

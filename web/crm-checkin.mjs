@@ -1,11 +1,19 @@
 // Visit intent stays in memory. A pending result cannot create another operation.
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const rev=v=>typeof v==='string'&&/^[1-9][0-9]{0,17}$/.test(v);
+export function membershipValidityLabel(e){
+ if(!e.activated_on)return 'Aktivuje sa prvým vstupom';
+ if(typeof e.expires_on!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.expires_on))return 'Dátum platnosti vyžaduje kontrolu';
+ const end=new Date(e.expires_on+'T00:00:00Z');
+ if(!Number.isFinite(end.getTime())||end.toISOString().slice(0,10)!==e.expires_on)return 'Dátum platnosti vyžaduje kontrolu';
+ end.setUTCDate(end.getUTCDate()-1);
+ return 'Platí do '+new Intl.DateTimeFormat('sk-SK',{timeZone:'UTC'}).format(end)+' vrátane';
+}
 export function visitPayload(admission,customer=null,entitlement=null,purchase=null){
  if(!uuid(admission?.id)||!rev(admission?.revision))throw Error('INVALID_ADMISSION');
  if(customer!==null&&(!uuid(customer?.id)||!rev(customer?.revision)||customer.status!=='ACTIVE'))throw Error('INVALID_CUSTOMER');
  if(admission.code==='ENTITLEMENT'){
-  if(purchase!==null||!customer||!uuid(entitlement?.id)||!rev(entitlement?.revision)||entitlement.status!=='ENABLED'||entitlement.type_at_purchase!=='VISIT_COUNT')throw Error('INVALID_ENTITLEMENT');
+  if(purchase!==null||!customer||!uuid(entitlement?.id)||!rev(entitlement?.revision)||entitlement.status!=='ENABLED'||!['VISIT_COUNT','TIME_ACCESS'].includes(entitlement.type_at_purchase))throw Error('INVALID_ENTITLEMENT');
  }else if(admission.code==='SINGLE_ENTRY'){
   if(entitlement!==null||!uuid(purchase?.id)||!uuid(purchase?.sale_id)||!rev(purchase?.sale_revision)||purchase.customer_id!==(customer?.id??null))throw Error('INVALID_ENTRY_PURCHASE');
  }else if(admission.code!=='MULTISPORT'||entitlement!==null||purchase!==null)throw Error('UNSUPPORTED_ADMISSION');
@@ -43,9 +51,9 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure}){
    if(a.code==='MULTISPORT')card.append(button('Potvrdiť MultiSport vstup',()=>writer.submit(visitPayload(a,customer))));
    else if(a.code==='ENTITLEMENT'){
     if(!customer)card.append(el('p','Najprv vyber klientku v zozname klientov.'));
-    const eligible=entitlements.filter(e=>e.status==='ENABLED'&&e.type_at_purchase==='VISIT_COUNT');
-    for(const e of eligible)card.append(button('Použiť permanentku · čerpané '+e.consumed+' / '+(e.included_units_at_purchase??'neurčené'),()=>writer.submit(visitPayload(a,customer,e))));
-    if(customer&&!eligible.length)card.append(el('p','Klientka nemá zobrazenú dostupnú vstupovú permanentku.'));
+    const eligible=entitlements.filter(e=>e.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(e.type_at_purchase));
+    for(const e of eligible)card.append(button(e.type_at_purchase==='TIME_ACCESS'?'Použiť mesačnú permanentku · '+membershipValidityLabel(e):'Použiť permanentku · čerpané '+e.consumed+' / '+(e.included_units_at_purchase??'neurčené'),()=>writer.submit(visitPayload(a,customer,e))));
+    if(customer&&!eligible.length)card.append(el('p','Klientka nemá zobrazenú dostupnú permanentku.'));
    }else if(a.code==='SINGLE_ENTRY'){
     const page=entryPurchases.get(a.id);
     card.append(el('p','Vyber nepoužitú položku potvrdeného predaja. Potvrdenie predaja nie je potvrdením platby.'));
