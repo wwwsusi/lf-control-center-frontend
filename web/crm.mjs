@@ -29,7 +29,7 @@ function customer(id){if(purchase?.hasPending?.()){status.textContent='Najprv ov
   function mountVisit(){checkin?.dispose();checkin=mountCheckin({root:visit,api,customer:data.customer,onBack:mountVisit,onAuthFailure:failed});}
   mountVisit();
   const checkout=mountPurchase({root:sale,api,customer:data.customer,anonymous:false,onAuthFailure:failed,onSaleConfirmed:()=>{checkin.refresh();api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:id},signal:lifetime.signal}).then(fresh=>{if(live)renderGrants(fresh);}).catch(error=>{if(live&&['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))failed(error.code);});}});
-  purchase={hasPending:()=>checkout.hasPending(),dispose(){live=false;lifetime.abort();checkin.dispose();checkout.dispose();}};
+  purchase={hasPending:()=>checkout.hasPending()||checkin.hasPending(),dispose(){live=false;lifetime.abort();checkin.dispose();checkout.dispose();}};
  }
  content.append(button('Ďalšia klientka',customerSearch));
 });}
