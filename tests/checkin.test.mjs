@@ -36,3 +36,30 @@ test('single entry retains exact purchased line and sale revision and rejects an
  assert.throws(()=>visitPayload(a,null,null,p));assert.throws(()=>visitPayload(a,customer,null,{...p,sale_revision:'bad'}));
  assert.equal(visitPayload(a,null,null,{...p,customer_id:null}).customer_id,null);
 });
+test('uncertain or wrong-kind readback never reports a saved visit or permits another mutation',async()=>{
+ for(const response of [
+  {operation:{state:'PROCESSING'}},
+  {operation:{state:'COMPLETED',target_type:'sale'},projection:{id:id(4),status:'POSTED'}},
+  {operation:{state:'COMPLETED',target_type:'visit'},projection:{id:id(4),status:'CANCELLED'}},
+  {operation:{state:'COMPLETED',target_type:'visit'},projection:{id:'invalid',status:'POSTED'}}
+ ]){
+  const calls=[];let successes=0,latest;
+  const writer=createVisitWriter(async(path,options)=>{calls.push({path,options});return calls.length<3?response:result;},{newId:()=>id(10),onSuccess:()=>successes++,onChange:s=>latest=s});
+  await writer.submit(visitPayload(admission,customer));
+  await writer.submit(visitPayload(admission));
+  assert.equal(calls.length,1);assert.equal(successes,0);assert.equal(latest.pending,true);
+  await writer.verify();assert.equal(successes,0);assert.equal(latest.pending,true);
+  await writer.verify();assert.equal(successes,1);assert.equal(latest.done,true);
+  assert.ok(calls.slice(1).every(c=>c.path==='/api/crm/readback?request_id='+id(10)&&!c.options.body));
+  await writer.submit(visitPayload(admission));assert.equal(calls.length,3);
+ }
+});
+test('confirmed business rejection releases pending intent without claiming a saved visit',async()=>{
+ let calls=0,successes=0,latest,error,sequence=10;
+ const bodies=[];const writer=createVisitWriter(async(path,options)=>{bodies.push(options.body);return ++calls===1?{operation:{state:'REJECTED',result_code:'ENTITLEMENT_EXHAUSTED'}}:result;},{newId:()=>id(++sequence),onSuccess:()=>successes++,onError:e=>error=e,onChange:s=>latest=s});
+ await writer.submit(visitPayload(admission,customer));
+ assert.equal(error.code,'ENTITLEMENT_EXHAUSTED');assert.equal(latest.pending,false);assert.equal(latest.done,false);assert.equal(successes,0);
+ await writer.verify();assert.equal(calls,1);
+ await writer.submit(visitPayload(admission));assert.equal(successes,1);assert.notEqual(bodies[0].request_id,bodies[1].request_id);
+ assert.equal(bodies[0].payload.customer_id,customer.id);assert.equal(bodies[1].payload.customer_id,null);
+});
