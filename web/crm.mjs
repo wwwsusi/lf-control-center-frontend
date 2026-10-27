@@ -26,10 +26,11 @@ function customer(id){if(purchase?.hasPending?.()){status.textContent='Najprv ov
  renderGrants(data);
  if(data.customer.status==='ACTIVE'){
   const actions=node('div',undefined,'crm-client-workspace'),visit=node('section',undefined,'crm-card'),sale=node('section',undefined,'crm-card');visit.setAttribute('aria-label','Návšteva klientky');sale.setAttribute('aria-label','Nákup klientky');actions.append(visit,sale);content.append(actions);
-  const failed=code=>wipe(labels[code]),lifetime=new AbortController();let live=true,checkin;
-  function mountVisit(){checkin?.dispose();checkin=mountCheckin({root:visit,api,customer:data.customer,onBack:mountVisit,onAuthFailure:failed});}
+  const failed=code=>wipe(labels[code]),lifetime=new AbortController();let live=true,checkin,grantRead=0;
+  function refreshGrants(){const version=++grantRead;api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:id},signal:lifetime.signal}).then(fresh=>{if(live&&version===grantRead)renderGrants(fresh);}).catch(error=>{if(live&&version===grantRead&&['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))failed(error.code);});}
+  function mountVisit(){checkin?.dispose();checkin=mountCheckin({root:visit,api,customer:data.customer,onBack:mountVisit,onAuthFailure:failed,onVisitConfirmed:refreshGrants});}
   mountVisit();
-  const checkout=mountPurchase({root:sale,api,customer:data.customer,anonymous:false,onAuthFailure:failed,onSaleConfirmed:()=>{checkin.refresh();api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:id},signal:lifetime.signal}).then(fresh=>{if(live)renderGrants(fresh);}).catch(error=>{if(live&&['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))failed(error.code);});}});
+  const checkout=mountPurchase({root:sale,api,customer:data.customer,anonymous:false,onAuthFailure:failed,onSaleConfirmed:()=>{checkin.refresh();refreshGrants();}});
   purchase={hasPending:()=>checkout.hasPending()||checkin.hasPending(),dispose(){live=false;lifetime.abort();checkin.dispose();checkout.dispose();}};
  }
  content.append(button('Ďalšia klientka',customerSearch));
