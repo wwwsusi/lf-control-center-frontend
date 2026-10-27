@@ -18,7 +18,9 @@ try{
  await page.goto('https://crm.test/crm');await expect(page.getByRole('heading',{name:'CRM · Recepcia',exact:true})).toBeVisible();
  await page.clock.pauseAt(new Date(base+1000));serverNow=base+180000;await page.clock.fastForward(179000);
  await page.locator('.crm-card').filter({hasText:'Zoznam klientov'}).getByRole('button',{name:'Otvoriť',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Zoznam klientov',exact:true})).toBeVisible();assert.equal(reads,1);assert.equal(expires,base+480000);
+ await expect(page.getByRole('heading',{name:'Zoznam klientov',exact:true})).toBeVisible();
+ // The heading renders before fetch completes; wait for the app to consume its response.
+ await expect(page.locator('#crm-status')).toHaveText('CRM · pripojené');assert.equal(reads,1);assert.equal(expires,base+480000);
  serverNow=base+301000;await page.clock.fastForward(121000);
  await expect(page.getByRole('heading',{name:'CRM · Recepcia',exact:true})).toBeVisible();
  serverNow=base+481000;await page.clock.fastForward(180000);
