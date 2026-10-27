@@ -9,6 +9,11 @@ export function membershipValidityLabel(e){
  end.setUTCDate(end.getUTCDate()-1);
  return 'Platí do '+new Intl.DateTimeFormat('sk-SK',{timeZone:'UTC'}).format(end)+' vrátane';
 }
+export function entryMembershipLabel(e){
+ const count='Použiť permanentku · čerpané '+e.consumed+' / '+(e.included_units_at_purchase??'neurčené');
+ if(e.validity_value_at_purchase===6&&e.validity_unit_at_purchase==='MONTH')return count+' · '+(!e.activated_on?'Platnosť 6 mesiacov od prvého vstupu':membershipValidityLabel(e));
+ return count+(e.expires_on?' · '+membershipValidityLabel(e):'');
+}
 export function visitPayload(admission,customer=null,entitlement=null,purchase=null){
  if(!uuid(admission?.id)||!rev(admission?.revision))throw Error('INVALID_ADMISSION');
  if(customer!==null&&(!uuid(customer?.id)||!rev(customer?.revision)||customer.status!=='ACTIVE'))throw Error('INVALID_CUSTOMER');
@@ -27,7 +32,7 @@ export function createVisitWriter(api,{signal,onChange=()=>{},onSuccess=()=>{},o
   try{
    const data=await api(readback?'/api/crm/readback?request_id='+encodeURIComponent(pending.request_id):'/api/crm/operations',{...(readback?{}:{body:pending}),signal});
    if(!live)return;
-   if(data.operation?.state==='REJECTED'){pending=null;onError({code:data.operation.result_code||'BUSINESS_REJECTED'});return;}
+   if(data.operation?.state==='REJECTED'){pending=null;onError({code:data.operation.result_code||'BUSINESS_REJECTED',rejected:true});return;}
    if(data.operation?.state!=='COMPLETED'||data.operation.target_type!=='visit'||!uuid(data.projection?.id)||data.projection.status!=='POSTED')throw Error('UNVERIFIED');
    pending=null;done=true;onSuccess(data.projection);
   }catch(error){if(live&&error.name!=='AbortError')onError(error);}
@@ -39,7 +44,7 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure}){
  let live=true,generation=0,admissions=[],entitlements=[],loading=true,message='',entryPurchases=new Map(),state={busy:false,pending:false,done:false};const controller=new AbortController();
  const el=(tag,value)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);return x;};
  const button=(label,action)=>{const x=el('button',label);x.type='button';x.disabled=state.busy;x.addEventListener('click',action);return x;};
- const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
+ const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
  function render(){
   if(!live)return;root.replaceChildren(el('h2',customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky'));
   if(message){const p=el('p',message);p.setAttribute('role','status');root.append(p);}
@@ -52,7 +57,7 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure}){
    else if(a.code==='ENTITLEMENT'){
     if(!customer)card.append(el('p','Najprv vyber klientku v zozname klientov.'));
     const eligible=entitlements.filter(e=>e.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(e.type_at_purchase));
-    for(const e of eligible)card.append(button(e.type_at_purchase==='TIME_ACCESS'?'Použiť mesačnú permanentku · '+membershipValidityLabel(e):'Použiť permanentku · čerpané '+e.consumed+' / '+(e.included_units_at_purchase??'neurčené'),()=>writer.submit(visitPayload(a,customer,e))));
+    for(const e of eligible)card.append(button(e.type_at_purchase==='TIME_ACCESS'?'Použiť mesačnú permanentku · '+membershipValidityLabel(e):entryMembershipLabel(e),()=>writer.submit(visitPayload(a,customer,e))));
     if(customer&&!eligible.length)card.append(el('p','Klientka nemá zobrazenú dostupnú permanentku.'));
    }else if(a.code==='SINGLE_ENTRY'){
     const page=entryPurchases.get(a.id);
