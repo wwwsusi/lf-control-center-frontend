@@ -54,10 +54,16 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
      const view=new window.google.picker.DocsView(window.google.picker.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(true);
      let picker;
      picker=new window.google.picker.PickerBuilder().addView(view).enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED).setMaxItems(MAX_SELECTED_ITEMS).setOAuthToken(accessToken).setDeveloperKey(apiKey).setAppId(appId).setCallback(data=>{
-      accessToken='';
       const responseKey=window.google.picker.Response?.ACTION;
       const action=(responseKey&&data?.[responseKey])||data?.action;
       const actionName=typeof action==='string'?action.toLowerCase():'';
+      // Google Picker also emits `loaded` while its dialog is opening. Keep the
+      // dialog alive until the user picks, cancels, or an actual error occurs.
+      if(actionName==='loaded'){
+       onStatus('Google Picker je pripravený. Vyber súbory alebo priečinky.');
+       return;
+      }
+      accessToken='';
       if(actionName==='picked'||action===window.google.picker.Action.PICKED){try{const manifest=createSelectionManifest(data?.docs||[]);onManifest(manifest);onStatus(`Pripravený výber ${manifest.selected_file_ids.length} položiek. Súbor ešte nie je odoslaný ani synchronizovaný.`);}catch(error){onStatus(error.message);}}
       else if(actionName==='cancel'||action===window.google.picker.Action.CANCEL)onStatus('Výber zrušený; žiadny súbor sa neodoslal.');
       else if(actionName==='error'||action===window.google.picker.Action.ERROR)onStatus('Google Picker oznámil chybu. Skontroluj, či je Google Picker API zapnuté a či API kľúč povoľuje lf-control-center.vercel.app aj docs.google.com/*; nič sa neodoslalo.');
