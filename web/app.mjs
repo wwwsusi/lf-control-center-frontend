@@ -14,8 +14,15 @@ const serviceConfig=await(await fetch('./config.json',{cache:'no-store'})).json(
 let pendingDriveSelection=null;
 const drivePicker=configureDrivePicker({config:serviceConfig.googlePicker,onStatus:text=>{$('picker-status').textContent=text;},onManifest:manifest=>{pendingDriveSelection=manifest;$('download-selection').hidden=false;}});
 $('pick-drive').disabled=!drivePicker.enabled;
-if(drivePicker.enabled){$('picker-status').textContent='Vyber iba zdroje, ktoré chceš zaradiť do mapy. Prístup k ostatným súborom ani synchronizácia sa tým nevytvoria.';}
-$('pick-drive').onclick=()=>{pendingDriveSelection=null;$('download-selection').hidden=true;drivePicker.open().catch(()=>{});};
+if(drivePicker.enabled){
+ $('pick-drive').disabled=true;
+ $('picker-status').textContent='Pripravujem bezpečný výber Google Drive…';
+ drivePicker.prepare().then(()=>{
+  $('pick-drive').disabled=false;
+  $('picker-status').textContent='Vyber iba zdroje, ktoré chceš zaradiť do mapy. Prístup k ostatným súborom ani synchronizácia sa tým nevytvoria.';
+ }).catch(()=>{$('pick-drive').disabled=false;});
+}
+$('pick-drive').onclick=()=>{pendingDriveSelection=null;$('download-selection').hidden=true;drivePicker.open();};
 $('download-selection').onclick=()=>{if(!pendingDriveSelection)return;try{downloadSelectionManifest(pendingDriveSelection);}catch(error){$('picker-status').textContent=error.message;}};
 let graph=normalizeGraph({nodes:[],edges:[],coverage:{}}), demoGraph=null, selected=null, selectedEdge=null, page=0,zoom=1,dx=0,dy=0;
 let endpoint='',stream=null,retry=null,closed=true,lastSequence=0,lastSync=null,sessionToken='',transport='sse',eventPolling=false,eventTimer=null,eventCursor=null,connectionEpoch=0,historyCatchingUp=false,eventStreamStale=false;
