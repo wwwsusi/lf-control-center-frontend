@@ -36,17 +36,15 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
  const apiKey=typeof config.apiKey==='string'?config.apiKey.trim():'';
  const appId=typeof config.appId==='string'?config.appId.trim():'';
  const enabled=Boolean(clientId&&apiKey&&appId);
- let accessToken='',tokenClient=null,busy=false;
- async function open(){
-  if(!enabled)throw Error('Google Picker ešte nie je nakonfigurovaný.');
-  if(!['https:','http:'].includes(location.protocol)||location.protocol==='http:'&&!['localhost','127.0.0.1'].includes(location.hostname))throw Error('Google Picker vyžaduje zabezpečenú HTTPS stránku.');
-  if(busy)throw Error('Google Picker už prebieha.');busy=true;onStatus('Načítavam bezpečný výber Google Drive…');
-  try{
-   await Promise.all([
-    loadScript('https://accounts.google.com/gsi/client',()=>Boolean(window.google?.accounts?.oauth2?.initTokenClient)),
-    loadScript('https://apis.google.com/js/api.js',()=>Boolean(window.gapi?.load))
-   ]);
-   await loadPickerApi();
+ let accessToken='',tokenClient=null,busy=false,preparePromise=null;
+ function prepare(){
+  if(!enabled)return Promise.reject(Error('Google Picker ešte nie je nakonfigurovaný.'));
+  if(!['https:','http:'].includes(location.protocol)||location.protocol==='http:'&&!['localhost','127.0.0.1'].includes(location.hostname))return Promise.reject(Error('Google Picker vyžaduje zabezpečenú HTTPS stránku.'));
+  if(preparePromise)return preparePromise;
+  preparePromise=Promise.all([
+   loadScript('https://accounts.google.com/gsi/client',()=>Boolean(window.google?.accounts?.oauth2?.initTokenClient)),
+   loadScript('https://apis.google.com/js/api.js',()=>Boolean(window.gapi?.load))
+  ]).then(loadPickerApi).then(()=>{
    tokenClient=window.google.accounts.oauth2.initTokenClient({client_id:clientId,scope:DRIVE_FILE_SCOPE,include_granted_scopes:false,error_callback:()=>{accessToken='';busy=false;onStatus('Google prihlásenie bolo zatvorené alebo zablokované.');},callback:response=>{
     if(response.error){busy=false;onStatus('Google autorizáciu sa nepodarilo dokončiť.');return;}
     const scopes=new Set(String(response.scope||'').split(/\s+/).filter(Boolean));
@@ -64,10 +62,20 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
      picker.setVisible(true);onStatus('V Google okne vyber účet lady.fitness.he@gmail.com a iba požadované súbory alebo priečinky.');
     }catch{accessToken='';busy=false;onStatus('Google Picker sa nepodarilo otvoriť.');}
    }});
-   tokenClient.requestAccessToken({prompt:'select_account consent',include_granted_scopes:false});
-  }catch(error){busy=false;accessToken='';onStatus(error.message||'Google Picker sa nepodarilo otvoriť.');throw error;}
+  }).catch(error=>{preparePromise=null;onStatus(error.message||'Google Picker sa nepodarilo pripraviť.');throw error;});
+  return preparePromise;
  }
- return {enabled,open};
+ function open(){
+  if(!enabled){onStatus('Google Picker ešte nie je nakonfigurovaný.');return;}
+  if(!tokenClient){onStatus('Google Picker sa ešte pripravuje. Skús to o chvíľu.');return;}
+  if(busy){onStatus('Google Picker už prebieha.');return;}
+  busy=true;onStatus('Otváram bezpečné prihlásenie Google…');
+  try{
+   // Must be called directly from the user's click; do not await script loading here.
+   tokenClient.requestAccessToken({prompt:'select_account consent',include_granted_scopes:false});
+  }catch{busy=false;accessToken='';onStatus('Google prihlásenie sa nepodarilo otvoriť. Skontroluj blokovanie vyskakovacích okien.');}
+ }
+ return {enabled,prepare,open};
 }
 
 export function downloadSelectionManifest(manifest){
