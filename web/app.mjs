@@ -7,7 +7,7 @@ themeButton.onclick=()=>{const next=document.documentElement.dataset.theme==='da
 import {parseSnapshot} from './snapshot.mjs';
 import {createDashboard} from './dashboard.mjs?v=20261011-legends-controls';
 import {AREAS,normalizeGraph,ActivityStore,safeUrl,matchesSearch} from './model.mjs';
-import {configureDrivePicker,downloadSelectionManifest} from './drive-picker.mjs';
+import {configureDrivePicker,downloadSelectionManifest} from './drive-picker.mjs?v=20261030-drive-metadata-snapshot';
 const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg';
 $('connection').textContent='Pripájam…';
 const serviceConfig=await(await fetch('./config.json',{cache:'no-store'})).json(),serviceProfile=connectionProfile(serviceConfig);
@@ -19,11 +19,11 @@ if(drivePicker.enabled){
  $('picker-status').textContent='Pripravujem bezpečný výber Google Drive…';
  drivePicker.prepare().then(()=>{
   $('pick-drive').disabled=false;
-  $('picker-status').textContent='Vyber iba zdroje, ktoré chceš zaradiť do mapy. Prístup k ostatným súborom ani synchronizácia sa tým nevytvoria.';
+  $('picker-status').textContent='Vyber iba položky určené do mapy. Samotný priečinok nezahŕňa jeho obsah; pre mapu vyber potrebné súbory aj priečinky. Obsah sa nečíta.';
  }).catch(()=>{$('pick-drive').disabled=false;});
 }
 $('pick-drive').onclick=()=>{pendingDriveSelection=null;$('download-selection').hidden=true;drivePicker.open();};
-$('download-selection').onclick=()=>{if(!pendingDriveSelection)return;try{downloadSelectionManifest(pendingDriveSelection);}catch(error){$('picker-status').textContent=error.message;}};
+ $('download-selection').onclick=()=>{if(!pendingDriveSelection)return;try{downloadSelectionManifest(pendingDriveSelection);$('picker-status').textContent=`Drive snapshot s metadátami ${pendingDriveSelection.selected_count} vybraných položiek sa sťahuje do tohto zariadenia. Importuj ho cez „Importovať snapshot“. Nič sa neodoslalo.`;}catch(error){$('picker-status').textContent=error.message;}};
 let graph=normalizeGraph({nodes:[],edges:[],coverage:{}}), demoGraph=null, selected=null, selectedEdge=null, page=0,zoom=1,dx=0,dy=0;
 let endpoint='',stream=null,retry=null,closed=true,lastSequence=0,lastSync=null,sessionToken='',transport='sse',eventPolling=false,eventTimer=null,eventCursor=null,connectionEpoch=0,historyCatchingUp=false,eventStreamStale=false;
 let importedAt=null,importFilename='',storageNote='',persisted=false;
