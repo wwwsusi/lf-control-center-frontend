@@ -57,10 +57,11 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
       accessToken='';
       const responseKey=window.google.picker.Response?.ACTION;
       const action=(responseKey&&data?.[responseKey])||data?.action;
-      if(action===window.google.picker.Action.PICKED||action==='PICKED'){try{const manifest=createSelectionManifest(data?.docs||[]);onManifest(manifest);onStatus(`Pripravený výber ${manifest.selected_file_ids.length} položiek. Súbor ešte nie je odoslaný ani synchronizovaný.`);}catch(error){onStatus(error.message);}}
-      else if(action===window.google.picker.Action.CANCEL||action==='CANCEL')onStatus('Výber zrušený; žiadny súbor sa neodoslal.');
-      else if(action===window.google.picker.Action.ERROR||action==='ERROR')onStatus('Google Picker oznámil chybu. Skontroluj, či je Google Picker API zapnuté a či API kľúč povoľuje lf-control-center.vercel.app aj docs.google.com/*; nič sa neodoslalo.');
-      else {const safeAction=typeof action==='string'&&/^[A-Z_]{1,40}$/.test(action)?action:'bez názvu';const safeKeys=data&&typeof data==='object'?Object.keys(data).filter(key=>/^[A-Za-z_]{1,30}$/.test(key)).sort().join(', '):'';onStatus(`Google Picker vrátil neznámu odpoveď (${safeAction}${safeKeys?`; polia: ${safeKeys}`:''}); nič sa neodoslalo.`);}
+      const actionName=typeof action==='string'?action.toLowerCase():'';
+      if(actionName==='picked'||action===window.google.picker.Action.PICKED){try{const manifest=createSelectionManifest(data?.docs||[]);onManifest(manifest);onStatus(`Pripravený výber ${manifest.selected_file_ids.length} položiek. Súbor ešte nie je odoslaný ani synchronizovaný.`);}catch(error){onStatus(error.message);}}
+      else if(actionName==='cancel'||action===window.google.picker.Action.CANCEL)onStatus('Výber zrušený; žiadny súbor sa neodoslal.');
+      else if(actionName==='error'||action===window.google.picker.Action.ERROR)onStatus('Google Picker oznámil chybu. Skontroluj, či je Google Picker API zapnuté a či API kľúč povoľuje lf-control-center.vercel.app aj docs.google.com/*; nič sa neodoslalo.');
+      else {const safeAction=actionName&&/^[a-z_]{1,40}$/.test(actionName)?actionName:'bez názvu';const safeKeys=data&&typeof data==='object'?Object.keys(data).filter(key=>/^[A-Za-z_]{1,30}$/.test(key)).sort().join(', '):'';onStatus(`Google Picker vrátil neznámu odpoveď (${safeAction}${safeKeys?`; polia: ${safeKeys}`:''}); nič sa neodoslalo.`);}
       picker?.setVisible(false);busy=false;
      }).build();
      picker.setVisible(true);onStatus('V Google okne vyber účet lady.fitness.he@gmail.com a iba požadované súbory alebo priečinky.');
