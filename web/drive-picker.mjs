@@ -46,8 +46,7 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
     loadScript('https://apis.google.com/js/api.js',()=>Boolean(window.gapi?.load))
    ]);
    await loadPickerApi();
-   tokenClient=window.google.accounts.oauth2.initTokenClient({client_id:clientId,scope:DRIVE_FILE_SCOPE,include_granted_scopes:false,callback:response=>{
-    busy=false;
+   tokenClient=window.google.accounts.oauth2.initTokenClient({client_id:clientId,scope:DRIVE_FILE_SCOPE,include_granted_scopes:false,error_callback:()=>{accessToken='';busy=false;onStatus('Google prihlásenie bolo zatvorené alebo zablokované.');},callback:response=>{
     if(response.error){busy=false;onStatus('Google autorizáciu sa nepodarilo dokončiť.');return;}
     const scopes=new Set(String(response.scope||'').split(/\s+/).filter(Boolean));
     if(!response.access_token||scopes.size!==1||!scopes.has(DRIVE_FILE_SCOPE)){busy=false;onStatus('Google neudelil presne oprávnenie drive.file. Výber sa zastavil.');return;}
@@ -62,7 +61,7 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
       picker?.setVisible(false);busy=false;
      }).build();
      picker.setVisible(true);onStatus('V Google okne vyber účet lady.fitness.he@gmail.com a iba požadované súbory alebo priečinky.');
-    }catch{accessToken='';onStatus('Google Picker sa nepodarilo otvoriť.');}
+    }catch{accessToken='';busy=false;onStatus('Google Picker sa nepodarilo otvoriť.');}
    }});
    tokenClient.requestAccessToken({prompt:'select_account consent',include_granted_scopes:false});
   }catch(error){busy=false;accessToken='';onStatus(error.message||'Google Picker sa nepodarilo otvoriť.');throw error;}
