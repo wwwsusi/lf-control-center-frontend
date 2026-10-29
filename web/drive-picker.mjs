@@ -56,7 +56,9 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
      picker=new window.google.picker.PickerBuilder().addView(view).enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED).setMaxItems(MAX_SELECTED_ITEMS).setOAuthToken(accessToken).setDeveloperKey(apiKey).setAppId(appId).setCallback(data=>{
       accessToken='';
       if(data.action===window.google.picker.Action.PICKED){try{const manifest=createSelectionManifest(data.docs||[]);onManifest(manifest);onStatus(`Pripravený výber ${manifest.selected_file_ids.length} položiek. Súbor ešte nie je odoslaný ani synchronizovaný.`);}catch(error){onStatus(error.message);}}
-      else onStatus('Výber zrušený; žiadny súbor sa neodoslal.');
+      else if(data.action===window.google.picker.Action.CANCEL)onStatus('Výber zrušený; žiadny súbor sa neodoslal.');
+      else if(data.action===window.google.picker.Action.ERROR)onStatus('Google Picker oznámil chybu. Skontroluj, či je Google Picker API zapnuté a či API kľúč povoľuje lf-control-center.vercel.app aj docs.google.com/*; nič sa neodoslalo.');
+      else onStatus('Google Picker vrátil neočakávanú odpoveď; nič sa neodoslalo.');
       picker?.setVisible(false);busy=false;
      }).build();
      picker.setVisible(true);onStatus('V Google okne vyber účet lady.fitness.he@gmail.com a iba požadované súbory alebo priečinky.');
