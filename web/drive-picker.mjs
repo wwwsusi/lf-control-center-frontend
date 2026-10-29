@@ -1,8 +1,9 @@
 export const DRIVE_FILE_SCOPE='https://www.googleapis.com/auth/drive.file';
+export const MAX_SELECTED_ITEMS=600;
 const ID_PATTERN=/^[A-Za-z0-9_-]{10,256}$/;
 
 export function createSelectionManifest(documents,createdAt=new Date().toISOString()){
- if(!Array.isArray(documents)||documents.length<1||documents.length>500)throw Error('Vyber 1 až 500 položiek.');
+ if(!Array.isArray(documents)||documents.length<1||documents.length>MAX_SELECTED_ITEMS)throw Error(`Vyber 1 až ${MAX_SELECTED_ITEMS} položiek.`);
  const ids=documents.map(item=>item?.id);
  if(ids.some(id=>typeof id!=='string'||!ID_PATTERN.test(id)))throw Error('Google Picker vrátil neplatné ID položky.');
  if(new Set(ids).size!==ids.length)throw Error('Google Picker vrátil duplicitné ID položky.');
@@ -54,7 +55,7 @@ export function configureDrivePicker({config={},onStatus=()=>{},onManifest=()=>{
     try{
      const view=new window.google.picker.DocsView(window.google.picker.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(true);
      let picker;
-     picker=new window.google.picker.PickerBuilder().addView(view).enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED).setOAuthToken(accessToken).setDeveloperKey(apiKey).setAppId(appId).setCallback(data=>{
+     picker=new window.google.picker.PickerBuilder().addView(view).enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED).setMaxItems(MAX_SELECTED_ITEMS).setOAuthToken(accessToken).setDeveloperKey(apiKey).setAppId(appId).setCallback(data=>{
       accessToken='';
       if(data.action===window.google.picker.Action.PICKED){try{const manifest=createSelectionManifest(data.docs||[]);onManifest(manifest);onStatus(`Pripravený výber ${manifest.selected_file_ids.length} položiek. Súbor ešte nie je odoslaný ani synchronizovaný.`);}catch(error){onStatus(error.message);}}
       else onStatus('Výber zrušený; žiadny súbor sa neodoslal.');
