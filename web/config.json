@@ -1,1 +1,1 @@
-{"eventServiceUrl": "https://lf-interactive-file-map-service.vercel.app", "scope": "Read-only inventár cez zabezpečenú službu; prihlásenie vyžadované. Globálne Codex operácie sa nesledujú."}
+{"eventServiceUrl": "https://lf-interactive-file-map-service.vercel.app", "scope": "Read-only inventár cez zabezpečenú službu; prihlásenie vyžadované. Globálne Codex operácie sa nesledujú.", "googlePicker": {"clientId": "", "apiKey": "", "appId": ""}}

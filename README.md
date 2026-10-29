@@ -17,6 +17,12 @@ The backend `service/frontend-pin.json` remains unchanged. Merging this frontend
 - Public builds contain an empty graph, allowlisted code and licensed fonts. Do not commit private business payloads or QA fixtures.
 - Business status/lifecycle/category semantics belong to the backend DTO and registry. Source code is not a business master.
 
+## Google Drive File Map selection — prepared, not activated
+
+The map's Drive input is explicitly selection-based. `control-center.html` can open Google Picker only after the public `googlePicker.clientId`, `googlePicker.apiKey`, and `googlePicker.appId` values are configured. These are public browser identifiers, never OAuth client secrets. The browser requests only `drive.file`, keeps the short-lived access token in memory, and offers a JSON download containing the selected IDs. It does not scan a Drive root, save tokens, upload the manifest, or start a refresh. Verify that the user selected `lady.fitness.he@gmail.com`; this page does not assert the account identity.
+
+The downloaded `drive-picker-selection.json` is only a selection artifact. The existing backend refresh is still gated until an authorized private manifest persistence path is implemented and verified. Do not add the manifest to public assets or run the refresh workflow as part of this frontend change. Picker credentials, OAuth scopes, secrets, workflow configuration, Drive content, backend pin and deployment remain unchanged.
+
 ## Retired paths remain retired
 
 The Pages publication workflow and current-state Markdown CLI entrypoints `scripts/refresh-now.mjs` / `scripts/enrich-campaign-briefs.mjs` remain removed. Do not restore `/api/report`, Markdown/Sheets current-state runtime or GitHub Pages reporting. Shared historical parser libraries/tests remain offline-only.

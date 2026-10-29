@@ -9,7 +9,7 @@ test('same-origin profile locks all endpoints to relative paths and cookie crede
 test('same-origin public build removes remote API configuration, includes no snapshots and shares the Pages build allowlist',()=>{
  const root=path.resolve(import.meta.dirname,'..'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'lf-shell-'));try{
   const own=buildPublic({root,out:path.join(temp,'own'),profile:'same-origin'}),pages=buildPublic({root,out:path.join(temp,'pages')});
-  assert.deepEqual(fs.readdirSync(own),fs.readdirSync(pages));const config=JSON.parse(fs.readFileSync(path.join(own,'config.json')));assert.equal(config.connectionMode,'same-origin');assert.equal(config.eventServiceUrl,'');
+  assert.deepEqual(fs.readdirSync(own),fs.readdirSync(pages));const config=JSON.parse(fs.readFileSync(path.join(own,'config.json')));assert.equal(config.connectionMode,'same-origin');assert.equal(config.eventServiceUrl,'');assert.deepEqual(config.googlePicker,{clientId:'',apiKey:'',appId:''});
   const graph=JSON.parse(fs.readFileSync(path.join(own,'data/graph.json')));assert.deepEqual(graph.nodes,[]);assert.deepEqual(graph.edges,[]);
   for(const file of fs.readdirSync(own).filter(f=>/\.(mjs|json|html|css)$/.test(f)))assert.doesNotMatch(fs.readFileSync(path.join(own,file),'utf8'),/lf-interactive-file-map-service\.vercel\.app|SUPABASE_SERVICE_ROLE_KEY|SYNTHETIC_PRIVATE_SENTINEL/);
   assert.match(fs.readFileSync(path.join(own,'index.html'),'utf8'),/href="\.\/crm"><strong>CRM recepcia/);
