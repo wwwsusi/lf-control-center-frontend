@@ -7,23 +7,32 @@ themeButton.onclick=()=>{const next=document.documentElement.dataset.theme==='da
 import {parseSnapshot} from './snapshot.mjs';
 import {createDashboard} from './dashboard.mjs?v=20261011-legends-controls';
 import {AREAS,normalizeGraph,ActivityStore,safeUrl,matchesSearch} from './model.mjs';
-import {configureDrivePicker,downloadSelectionManifest} from './drive-picker.mjs?v=20261030-drive-metadata-snapshot';
+import {configureDrivePicker,downloadSelectionManifest,REQUIRED_MIGRATION_ITEMS,REQUIRED_MIGRATION_FILES,REQUIRED_MIGRATION_FOLDERS} from './drive-picker.mjs?v=20261030-drive-batch-selection';
 const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg';
 $('connection').textContent='Pripájam…';
 const serviceConfig=await(await fetch('./config.json',{cache:'no-store'})).json(),serviceProfile=connectionProfile(serviceConfig);
 let pendingDriveSelection=null;
-const drivePicker=configureDrivePicker({config:serviceConfig.googlePicker,onStatus:text=>{$('picker-status').textContent=text;},onManifest:manifest=>{pendingDriveSelection=manifest;$('download-selection').hidden=false;}});
+const drivePicker=configureDrivePicker({config:serviceConfig.googlePicker,onStatus:text=>{$('picker-status').textContent=text;},onManifest:(manifest,progress,exact,persisted)=>{
+ pendingDriveSelection=exact?manifest:null;
+ $('download-selection').hidden=!exact;
+ $('reset-drive-selection').hidden=!progress.selected;
+ $('pick-drive').disabled=exact;
+ $('picker-progress').max=REQUIRED_MIGRATION_ITEMS;
+ $('picker-progress').value=Math.min(progress.selected,REQUIRED_MIGRATION_ITEMS);
+ $('picker-progress-label').textContent=`Vybrané: ${progress.selected}/${REQUIRED_MIGRATION_ITEMS} · Súbory: ${progress.files}/${REQUIRED_MIGRATION_FILES} · Priečinky: ${progress.folders}/${REQUIRED_MIGRATION_FOLDERS}.${progress.selected?(persisted?' Dávky sú zapamätané v tejto karte.':' Dávky sa stratia po obnovení stránky.'):' Použi ten istý účet Lady Fitness pre všetky dávky.'}`;
+}});
 $('pick-drive').disabled=!drivePicker.enabled;
 if(drivePicker.enabled){
  $('pick-drive').disabled=true;
  $('picker-status').textContent='Pripravujem bezpečný výber Google Drive…';
  drivePicker.prepare().then(()=>{
-  $('pick-drive').disabled=false;
-  $('picker-status').textContent='Vyber iba položky určené do mapy. Samotný priečinok nezahŕňa jeho obsah; pre mapu vyber potrebné súbory aj priečinky. Obsah sa nečíta.';
+  $('pick-drive').disabled=Boolean(pendingDriveSelection);
+  if(!pendingDriveSelection)$('picker-status').textContent='Vyber dávku súborov a priečinkov. Po potvrdení klikni znova a pridaj ďalšiu dávku z iného priečinka. Samotný priečinok nevyberá jeho obsah.';
  }).catch(()=>{$('pick-drive').disabled=false;});
 }
-$('pick-drive').onclick=()=>{pendingDriveSelection=null;$('download-selection').hidden=true;drivePicker.open();};
- $('download-selection').onclick=()=>{if(!pendingDriveSelection)return;try{downloadSelectionManifest(pendingDriveSelection);$('picker-status').textContent=`Drive snapshot s metadátami ${pendingDriveSelection.selected_count} vybraných položiek sa sťahuje do tohto zariadenia. Importuj ho cez „Importovať snapshot“. Nič sa neodoslalo.`;}catch(error){$('picker-status').textContent=error.message;}};
+ $('pick-drive').onclick=()=>drivePicker.open();
+ $('reset-drive-selection').onclick=()=>drivePicker.resetSelection();
+ $('download-selection').onclick=()=>{if(!pendingDriveSelection)return;try{downloadSelectionManifest(pendingDriveSelection);$('picker-status').textContent='Úplný, presný snapshot sa sťahuje do tohto zariadenia. Importuj ho cez „Importovať snapshot“. Obsah sa nečítal a nič sa neodoslalo.';}catch(error){$('picker-status').textContent=error.message;}};
 let graph=normalizeGraph({nodes:[],edges:[],coverage:{}}), demoGraph=null, selected=null, selectedEdge=null, page=0,zoom=1,dx=0,dy=0;
 let endpoint='',stream=null,retry=null,closed=true,lastSequence=0,lastSync=null,sessionToken='',transport='sse',eventPolling=false,eventTimer=null,eventCursor=null,connectionEpoch=0,historyCatchingUp=false,eventStreamStale=false;
 let importedAt=null,importFilename='',storageNote='',persisted=false;
