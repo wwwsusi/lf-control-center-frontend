@@ -34,6 +34,18 @@ jobs:
       - run: npm run qa:ux
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-access.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-checkin.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-idle.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-idle-race.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
