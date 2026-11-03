@@ -10,6 +10,8 @@ try{
   let consumed=0;let serverNow=base,expires=base+300000,polls=0,held=false,delivered=false,deny=false,release;
   const gate=new Promise(r=>release=r);const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.clock.install({time:new Date(base)});
+  // Freeze before navigation: CI rendering may otherwise exceed base+1000.
+  await page.clock.pauseAt(new Date(base+1000));
   await page.route('**/*',async route=>{
    const req=route.request(),u=new URL(req.url());assert.equal(u.origin,'https://crm.test');
    const json=(status,body)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
@@ -35,7 +37,7 @@ try{
   await page.locator('.crm-card').filter({hasText:'Zoznam klientov'}).getByRole('button',{name:'Otvoriť',exact:true}).click();
   await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();
   const entry=page.getByRole('button',{name:/Použiť permanentku/});await expect(entry).toBeVisible();
-  await page.clock.pauseAt(new Date(base+1000));serverNow=base+180000;await page.clock.fastForward(179000);await expect.poll(()=>held).toBe(true);
+  serverNow=base+180000;await page.clock.fastForward(179000);await expect.poll(()=>held).toBe(true);
   await entry.click();await expect(page.getByText('Návšteva bola uložená a overená.',{exact:true})).toBeVisible();assert.equal(expires,base+480000);await expect(page.getByText('Čerpané: 1 / 10',{exact:true})).toBeVisible();
   serverNow=base+releaseAt;await page.clock.fastForward(releaseAt-180000);release();await expect.poll(()=>delivered).toBe(true);await page.clock.fastForward(1);
   if(releaseAt<300000){serverNow=base+301000;await page.clock.fastForward(301000-releaseAt);}
