@@ -30,3 +30,7 @@
 .crm-report-period{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:0 0 14px}.crm-report-period label{display:grid;gap:6px}.crm-report-tabs{justify-content:flex-start;margin:0 0 12px}.crm-report-tabs button[aria-current=page]{background:var(--pink);border-color:var(--pink)}.crm-report-period input{min-width:170px}
 
 .crm-privacy-count{font:600 38px Oswald,sans-serif;margin:6px 0}.crm-privacy-banner{border-left:4px solid var(--pink);padding:12px 16px;background:#15243a;margin:16px 0;line-height:1.6}
+
+.crm-access-banner{border:1px solid #607087;border-left:4px solid var(--pink);border-radius:12px;padding:18px 20px;margin-bottom:20px;background:#192a40}.crm-access-banner p{margin:8px 0 0;line-height:1.6;color:var(--muted)}.crm-home-grid{margin:20px 0}.crm-home-grid .crm-card{min-width:0}.crm-home-grid .crm-card h3{margin:12px 0 8px}.crm-home-state{display:inline-block;font-size:13px;letter-spacing:.02em;color:var(--muted);border:1px solid #607087;border-radius:20px;padding:4px 10px}
+
+.crm-home-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:1000px){.crm-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.crm-home-grid{grid-template-columns:1fr}}
