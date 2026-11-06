@@ -13,7 +13,7 @@ permissions:
   contents: read
 jobs:
   synthetic-browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -32,6 +32,18 @@ jobs:
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
       - run: npm run qa:ux
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-access.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-checkin.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-idle.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-idle-race.mjs
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
