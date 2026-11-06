@@ -43,6 +43,9 @@ jobs:
       - run: node scripts/qa-crm-summary-only.mjs
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
+      - run: node scripts/qa-crm-owner-tasks.mjs
+        env:
+          LF_UX_BROWSER: ${{ matrix.browser }}
       - run: node scripts/qa-crm-access.mjs
         env:
           LF_UX_BROWSER: ${{ matrix.browser }}
