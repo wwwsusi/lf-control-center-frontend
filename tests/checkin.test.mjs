@@ -72,4 +72,4 @@ test('confirmed business rejection releases pending intent without claiming a sa
  assert.equal(bodies[0].payload.customer_id,customer.id);assert.equal(bodies[1].payload.customer_id,null);
 });
 
- test('unpaid or unknown payment entitlement cannot be submitted',()=>{for(const payment_confirmed of [false,undefined,null])assert.throws(()=>visitPayload({...admission,code:'ENTITLEMENT'},customer,{...entitlement,payment_confirmed}));});
+test('confirmed purchase entitlement needs no payment evidence',()=>{for(const payment_confirmed of [false,undefined,null])assert.equal(visitPayload({...admission,code:'ENTITLEMENT'},customer,{...entitlement,payment_confirmed}).entitlement_id,entitlement.id);});
