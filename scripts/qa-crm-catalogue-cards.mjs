@@ -15,7 +15,7 @@ try{for(const [width,height]of [[1440,1000],[820,1100],[375,900]]){
  const passNames=await page.locator('[data-tone=pink] .crm-price-card h4').allTextContents();assert.deepEqual(passNames,['10-vstupová permanentka','30-vstupová permanentka']);
  await expect(page.getByRole('option',{name:'Najpredávanejšie · zatiaľ nedostupné'})).toHaveAttribute('disabled','');
  await page.screenshot({path:`qa-artifacts/reception-cards/${engine}-services-${width}.png`,fullPage:true});
- await page.getByRole('button',{name:'Časové permanentky · 3',exact:true}).click();assert.equal(await page.locator('.crm-price-card').count(),3);
+ if(width>1000)await page.getByRole('button',{name:'Časové permanentky · 3',exact:true}).click();else await page.getByLabel('Kategória',{exact:true}).selectOption('time');assert.equal(await page.locator('.crm-price-card').count(),3);
  await page.getByRole('searchbox',{name:'Vyhľadať položku'}).fill('mesacna studenti');assert.equal(await page.locator('.crm-price-card').count(),1);await expect(page.locator('.crm-price-audience')).toContainText('seniori');
  await page.getByRole('searchbox').fill('nenajdes');await expect(page.getByText('Nenašli sa žiadne položky.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Zrušiť filtre'}).click();assert.equal(await page.locator('.crm-price-card').count(),9);
  await page.getByRole('button',{name:'Produkty',exact:true}).click();await expect(page.getByText('Zobrazené 5 z 5 položiek')).toBeVisible();await page.getByRole('searchbox').fill('vanilka');await expect(page.locator('.crm-price-card')).toContainText('Vanilka');assert.equal(await page.locator('.crm-price-card').count(),1);await page.getByRole('searchbox').fill('');

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {catalogueGroup,catalogueSelection,cataloguePrice,loadCataloguePages} from '../web/crm-catalogue.mjs';
+import {catalogueGroup,catalogueSelection,cataloguePrice,loadCataloguePages,catalogueAudience,cataloguePreferences,clearCataloguePreferences} from '../web/crm-catalogue.mjs';
 const item=(id,business_id,name,category='Dospelí')=>({id,business_id,name,category});
 test('presentation groups use exact service IDs without inferring rights from names',()=>{
  assert.equal(catalogueGroup(item('a','LF-SVC-005','Anything'),'SERVICES').key,'visits');
@@ -32,4 +32,14 @@ test('pagination failure, cancellation and repeated cursors do not return a misl
  await assert.rejects(()=>loadCataloguePages(async(p,{body})=>{if(body.after)throw Error('OFFLINE');return {items:[item('a','A','A')],next:'next'};}),/OFFLINE/);
  await assert.rejects(()=>loadCataloguePages(async()=>({items:[item('a','A','A')],next:'same'})),/pagination/);
  const c=new AbortController();await assert.rejects(()=>loadCataloguePages(async()=>{c.abort();return {items:[],next:null};},{signal:c.signal}),{name:'AbortError'});
+});
+
+test('audience badges keep discounted audience distinct without hiding age conditions',()=>{
+ const a=catalogueAudience({business_id:'LF-SVC-012',category:'Študenti do 18 rokov a seniori nad 60 rokov'},'SERVICES');assert.equal(a.label,'Študenti / seniori');assert.match(a.detail,/18/);assert.match(a.detail,/60/);assert.equal(a.type,'discount');
+ assert.equal(catalogueAudience({category:'Dospelí'},'SERVICES').type,'adult');assert.equal(catalogueAudience({category:'Nápoje',variant_package:'Citrón 500 ml'},'PRODUCTS').label,'Citrón 500 ml');
+});
+test('temporary preferences are isolated by actor and view boundary and explicitly clearable',()=>{
+ clearCataloguePreferences();const a=cataloguePreferences('owner-a','PRICE_LIST');a.views.SERVICES={query:'mesacna',favorites:['service-a']};assert.equal(cataloguePreferences('owner-a','PRICE_LIST'),a);
+ assert.deepEqual(cataloguePreferences('owner-b','PRICE_LIST').views,{});assert.deepEqual(cataloguePreferences('owner-a','CATALOGUE').views,{});
+ clearCataloguePreferences();assert.notEqual(cataloguePreferences('owner-a','PRICE_LIST'),a);assert.deepEqual(cataloguePreferences('owner-a','PRICE_LIST').views,{});
 });
