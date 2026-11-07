@@ -57,12 +57,12 @@ try{
    await f.open();assert.equal(f.writes.length,0);f.setLose('CREATE_SALE');await p.getByRole('button',{name:'Uložiť rozpracovaný predaj'}).click();
    await expect(p.getByRole('button',{name:'Overiť tú istú operáciu'})).toBeVisible();assert.equal(f.writes.length,1);
    await p.getByRole('button',{name:'Overiť tú istú operáciu'}).click();await expect(p.getByRole('button',{name:'Potvrdiť predaj',exact:true})).toBeEnabled();assert.equal(f.writes.length,1);
-   await p.getByRole('button',{name:'Potvrdiť predaj',exact:true}).click();
-   await expect(p.getByText('Nákup je zaznamenaný.',{exact:false})).toBeVisible();assert.equal(f.writes.length,2);
-   assert.equal(await p.getByRole('button',{name:'Zaznamenať platbu'}).count(),0);
-   await p.reload();await f.card('Rozpracované predaje').click();await p.getByRole('button',{name:'Otvoriť uložený predaj'}).click();
-   await expect(p.getByText('Nákup je zaznamenaný.',{exact:false})).toBeVisible();assert.equal(f.writes.length,2);
-   assert.ok(f.writes.every(w=>!JSON.stringify(w).includes('PAYMENT')));
+   await p.getByRole('button',{name:'Potvrdiť predaj',exact:true}).click();await expect(p.getByRole('button',{name:'Zaznamenať platbu'})).toBeEnabled();
+   f.setLose('CREATE_PAYMENT');await p.getByRole('button',{name:'Zaznamenať platbu'}).click();await expect(p.getByRole('button',{name:'Overiť tú istú operáciu'})).toBeVisible();assert.equal(f.writes.length,3);
+   await p.reload();await f.card('Rozpracované predaje').click();await p.getByRole('button',{name:'Otvoriť uložený predaj'}).click();await expect(p.getByRole('button',{name:'Potvrdiť prijatie platby'})).toBeEnabled();if(known)await expect(p.locator('#crm-content')).toContainText('Klientka: Synthetic client');assert.equal(f.writes.length,3);assert.equal(await p.getByRole('button',{name:'Zaznamenať platbu'}).count(),0);
+   await p.getByRole('button',{name:'Potvrdiť prijatie platby'}).click();await expect(p.getByText('Predaj a prijatie platby sú potvrdené.',{exact:true})).toBeVisible();assert.equal(f.writes.length,4);
+   if(process.env.LF_CRM_SCREENSHOT_DIR&&width===1280)await p.screenshot({path:path.join(process.env.LF_CRM_SCREENSHOT_DIR,'purchase-confirmed.png'),fullPage:true});
+   await p.reload();await f.card('Rozpracované predaje').click();await p.getByRole('button',{name:'Otvoriť uložený predaj'}).click();await expect(p.getByText('Predaj a prijatie platby sú potvrdené.',{exact:true})).toBeVisible();assert.equal(f.writes.length,4);
    assert.deepEqual(await p.evaluate(()=>({local:localStorage.length,session:sessionStorage.length})),{local:0,session:0});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(f.errors,[]);
   }finally{await p.close();}
  }
