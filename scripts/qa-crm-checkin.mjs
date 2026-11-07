@@ -21,8 +21,8 @@ try{
     mountCheckin({root:document.querySelector('#root'),customer,onBack(){},onAuthFailure(){throw Error('Unexpected auth failure')},api:async(path,{body}={})=>{
      if(body?.view==='ADMISSIONS')return {items:[{id:id(2),revision:'1',code:'ENTITLEMENT',label_sk:'Permanentka'}]};
      if(body?.view==='CUSTOMER')return {customer,entitlements:[
-      {id:id(3),revision:'1',status:'ENABLED',type_at_purchase:'VISIT_COUNT',included_units_at_purchase:'10',consumed:'0',validity_value_at_purchase:6,validity_unit_at_purchase:'MONTH',activated_on:null,expires_on:null},
-      {id:id(4),revision:'1',status:'ENABLED',type_at_purchase:'VISIT_COUNT',included_units_at_purchase:'15',consumed:'2',validity_value_at_purchase:6,validity_unit_at_purchase:'MONTH',activated_on:'2026-08-31',expires_on:'2027-03-01'}]};
+      {id:id(3),revision:'1',status:'ENABLED',payment_confirmed:true,type_at_purchase:'VISIT_COUNT',included_units_at_purchase:'10',consumed:'0',validity_value_at_purchase:6,validity_unit_at_purchase:'MONTH',activated_on:null,expires_on:null},
+      {id:id(4),revision:'1',status:'ENABLED',payment_confirmed:true,type_at_purchase:'VISIT_COUNT',included_units_at_purchase:'15',consumed:'2',validity_value_at_purchase:6,validity_unit_at_purchase:'MONTH',activated_on:'2026-08-31',expires_on:'2027-03-01'}]};
      if(path==='/api/crm/operations'){await window.recordWrite(body);return {operation:{state:'REJECTED',result_code:'BUSINESS_REJECTED'}};}
      throw Error('Unexpected API route');
     }});

@@ -61,10 +61,10 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
     if(customer&&!eligible.length)card.append(el('p','Klientka nemá zobrazenú dostupnú permanentku.'));
    }else if(a.code==='SINGLE_ENTRY'){
     const page=entryPurchases.get(a.id);
-    card.append(el('p','Vyber nepoužitú položku potvrdeného predaja. Potvrdenie predaja nie je potvrdením platby.'));
+    card.append(el('p','Vyber nepoužitý vstup z potvrdeného nákupu.'));
     if(!page)card.append(el('p','Predaje pre tento vstup nie sú dostupné.'));
     else{for(const item of page.items)card.append(button('Použiť vstup · '+item.display_name_at_sale+' · '+item.business_date+' · '+item.actual_unit_price+' EUR',()=>writer.submit(visitPayload(a,customer,null,item))));
-     if(!page.items.length)card.append(el('p','Nie sú dostupné nepoužité potvrdené predaje. Najprv dokonči predaj služby.'));
+     if(!page.items.length)card.append(el('p','Nie sú dostupné nepoužité potvrdené predaje. Najprv zaznamenaj nákup.'));
      if(page.next)card.append(button('Ďalšie predaje',()=>loadEntries(a,page.next)));}
    }else card.append(el('p','Tento typ vstupu zatiaľ nie je podporovaný.'));
    root.append(card);
