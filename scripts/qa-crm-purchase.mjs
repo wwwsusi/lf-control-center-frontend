@@ -18,7 +18,7 @@ async function fixture(width,known=false){
   const json=(status,data)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   if(url.pathname==='/api/crm/session')return json(200,{active:true,actor_id:'synthetic-reception',role:'RECEPTION',expires_at:new Date(Date.now()+120000).toISOString(),csrf_token:'synthetic-csrf'});
   if(url.pathname==='/api/crm/read'){
-   const body=req.postDataJSON();if(body.view==='CUSTOMERS')return json(200,{items:[client],next:null});if(body.view==='CUSTOMER')return json(200,{customer:client,entitlements:[{type_at_purchase:'TIME_ACCESS',status:'ENABLED',consumed:'0',included_units_at_purchase:null},{type_at_purchase:'VISIT_COUNT',status:'ENABLED',consumed:'2',included_units_at_purchase:'10'}]});if(body.view==='PRODUCT_CATALOGUE')return json(200,{items:[product],next:null});
+   const body=req.postDataJSON();if(body.view==='CUSTOMERS')return json(200,{items:[client],next:null});if(body.view==='CUSTOMER')return json(200,{customer:client,entitlements:[{type_at_purchase:'TIME_ACCESS',status:'ENABLED',payment_confirmed:true,consumed:'0',included_units_at_purchase:null},{type_at_purchase:'VISIT_COUNT',status:'ENABLED',payment_confirmed:true,consumed:'2',included_units_at_purchase:'10'}]});if(body.view==='ADMISSIONS')return json(200,{items:[]});if(body.view==='PRODUCT_CATALOGUE')return json(200,{items:[product],next:null});
    if(body.view==='OWN_CHECKOUTS')return json(200,{items:sale?[{id:sale.id,business_date:'2026-10-18',status:sale.status,total:sale.total,paid:sale.paid}]:[],next:null});
    assert.equal(body.view,'OWN_CHECKOUT');assert.equal(body.sale_id,sale.id);return json(200,snapshot());
   }
