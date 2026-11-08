@@ -2,16 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import '../scripts/build.mjs';
+import {buildPublic} from '../scripts/lib/public-build.mjs';
 test('Public artifact contains no inventory; build ignores an injected graph',()=>{
  const root=path.resolve(import.meta.dirname,'..'),data=JSON.parse(fs.readFileSync(path.join(root,'dist/data/graph.json')));
  assert.equal(data.nodes.length,0);assert.equal(data.edges.length,0);
- assert.deepEqual(fs.readdirSync(path.join(root,'dist')).sort(),['.nojekyll','crm','crm.html','crm-access.mjs','crm.css','crm.mjs','crm-catalogue.mjs','crm-purchase.mjs','crm-owner.mjs','crm-customer.mjs','crm-checkin.mjs','crm-reporting.mjs','crm-privacy-summary.mjs','crm-privacy-summary-data.mjs','README.html','app.mjs','connection.mjs','drive-picker.mjs','config.json','data','fonts','index.html','control-center.html','home.css','assets','model.mjs','dashboard.mjs','ux-model.mjs','ux.mjs','status-model.mjs','operational.mjs','dashboard-model.mjs','dashboard-demo.mjs','reporting.mjs','live-report.mjs','snapshot.mjs','style.css'].sort());
+ assert.deepEqual(fs.readdirSync(path.join(root,'dist')).sort(),['.nojekyll','crm','crm.html','crm-access.mjs','crm.css','crm.mjs','crm-control-center.css','crm-control-center.mjs','crm-session-idle.mjs','crm-catalogue.mjs','crm-purchase.mjs','crm-owner.mjs','crm-customer.mjs','crm-checkin.mjs','crm-reporting.mjs','crm-privacy-summary.mjs','crm-privacy-summary-data.mjs','README.html','app.mjs','connection.mjs','drive-picker.mjs','config.json','data','fonts','index.html','control-center.html','home.css','assets','model.mjs','dashboard.mjs','ux-model.mjs','ux.mjs','status-model.mjs','operational.mjs','dashboard-model.mjs','dashboard-demo.mjs','reporting.mjs','live-report.mjs','snapshot.mjs','style.css'].sort());
  for(const name of ['data-private','private-data','.runtime','reference','server','sources'])assert.equal(fs.existsSync(path.join(root,'dist',name)),false);
 });
 test('Dashboard build ignores a synthetic private payload and retains only allowlisted fonts',async()=>{
  const root=path.resolve(import.meta.dirname,'..'),sentinel=path.join(root,'web/dashboard-private.json');
  try{fs.writeFileSync(sentinel,'{"private":"SYNTHETIC_PRIVATE_SENTINEL"}');await import('../scripts/build.mjs?privacy-sentinel');assert.equal(fs.existsSync(path.join(root,'dist/dashboard-private.json')),false);assert.deepEqual(fs.readdirSync(path.join(root,'dist/fonts')).sort(),['Inter.woff','OFL.txt','Oswald.woff'].sort());for(const file of fs.readdirSync(path.join(root,'dist')).filter(f=>/\.(mjs|html|json|css)$/.test(f)))assert.equal(fs.readFileSync(path.join(root,'dist',file),'utf8').includes('SYNTHETIC_PRIVATE_SENTINEL'),false);}finally{fs.rmSync(sentinel,{force:true});}
+});
+
+test('CRM public build contains every newly referenced module and stylesheet',()=>{
+ const root=path.resolve(import.meta.dirname,'..'),temp=fs.mkdtempSync(path.join(os.tmpdir(),'lf-crm-shell-'));
+ try{const out=buildPublic({root,out:path.join(temp,'dist'),profile:'same-origin'}),html=fs.readFileSync(path.join(out,'crm.html'),'utf8'),script=fs.readFileSync(path.join(out,'crm.mjs'),'utf8');
+  for(const file of ['crm-control-center.css','crm-control-center.mjs','crm-session-idle.mjs'])assert.ok(fs.existsSync(path.join(out,file)),file);
+  assert.match(html,/href="\/crm-control-center\.css"/);assert.match(script,/\.\/crm-control-center\.mjs/);assert.match(script,/\.\/crm-session-idle\.mjs/);
+ }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 
 
