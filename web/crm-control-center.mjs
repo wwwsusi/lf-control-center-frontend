@@ -1,3 +1,4 @@
+import {renderOperational} from './operational.mjs?v=20261011-legends-controls';
 import {renderUX} from './ux.mjs?v=20261011-legends-controls';
 import {pragueToday} from './ux-model.mjs?v=20261011-legends-controls';
 import {registryStatus,statusLabel,statusDomain,renderStatusLegend} from './status-model.mjs?v=20261011-legends-controls';
@@ -41,6 +42,7 @@ export function mountControlCenter({root,api,onAuthFailure,onBack}){
   const renderLegend=(target)=>renderStatusLegend({data,section,parent:target,make,statusBadge});
   const tableShell=(title,columns,parent,note='',controls=true)=>{const box=make('section',undefined,parent,'dash-group');box.dataset.title=title;make('h3',title,box);if(note)make('p',note,box,'section-note');const wrap=make('div',undefined,box,'table-scroll'),table=make('table',undefined,wrap,'report-table');table.setAttribute('aria-label',title);const head=make('thead',undefined,table),body=make('tbody',undefined,table);if(controls)enhanceTable({table,head,body,columns,box,make,action});else{const row=make('tr',undefined,head);for(const label of columns)make('th',label,row).scope='col';}renderLegend(box);return {box,body};};
   const sectionKey=section;
+  if(sectionKey==='sources'){renderOperational({data,section:sectionKey,parent:host,make,action,detail,statusBadge,tableShell});return;}
   renderUX({data,section:sectionKey,parent:host,make,action,detail,statusBadge,tableShell,renderLegend,calendarMonth,onCalendarMonth:next=>{calendarMonth=next;render();},storage});
  }
 
