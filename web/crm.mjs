@@ -34,7 +34,7 @@ function customer(id){if(purchase?.hasPending?.()){status.textContent='Najprv ov
   function refreshGrants(){const version=++grantRead;api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:id},signal:lifetime.signal}).then(fresh=>{if(live&&version===grantRead)renderGrants(fresh);}).catch(error=>{if(live&&version===grantRead&&['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))failed(error.code);});}
   function mountVisit(){checkin?.dispose();checkin=mountCheckin({root:visit,api,customer:data.customer,onBack:mountVisit,onAuthFailure:failed,onVisitConfirmed:refreshGrants});}
   mountVisit();
-  const checkout=mountPurchase({root:sale,api,customer:data.customer,anonymous:false,onAuthFailure:failed,onSaleConfirmed:()=>{checkin.refresh();refreshGrants();}});
+  const checkout=mountPurchase({root:sale,api,customer:data.customer,anonymous:false,onAuthFailure:failed,onSaleConfirmed:()=>{checkin.refresh();refreshGrants();},onPaymentConfirmed:()=>{checkin.refresh();refreshGrants();}});
   purchase={hasPending:()=>checkout.hasPending()||checkin.hasPending(),dispose(){live=false;lifetime.abort();checkin.dispose();checkout.dispose();}};
  }
  content.append(button('Ďalšia klientka',customerSearch));

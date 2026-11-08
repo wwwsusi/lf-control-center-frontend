@@ -18,7 +18,7 @@ async function fixture(width,known=false){
   const json=(status,data)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   if(url.pathname==='/api/crm/session')return json(200,{active:true,actor_id:'synthetic-reception',role:'RECEPTION',expires_at:new Date(Date.now()+120000).toISOString(),csrf_token:'synthetic-csrf'});
   if(url.pathname==='/api/crm/read'){
-   const body=req.postDataJSON();if(body.view==='CUSTOMERS')return json(200,{items:[client],next:null});if(body.view==='CUSTOMER')return json(200,{customer:client,entitlements:[{type_at_purchase:'TIME_ACCESS',status:'ENABLED',consumed:'0',included_units_at_purchase:null},{type_at_purchase:'VISIT_COUNT',status:'ENABLED',consumed:'2',included_units_at_purchase:'10'}]});if(body.view==='PRODUCT_CATALOGUE')return json(200,{items:[product],next:null});
+   const body=req.postDataJSON();if(body.view==='CUSTOMERS')return json(200,{items:[client],next:null});if(body.view==='CUSTOMER')return json(200,{customer:client,entitlements:[{type_at_purchase:'TIME_ACCESS',status:'ENABLED',payment_confirmed:true,consumed:'0',included_units_at_purchase:null},{type_at_purchase:'VISIT_COUNT',status:'ENABLED',payment_confirmed:true,consumed:'2',included_units_at_purchase:'10'}]});if(body.view==='ADMISSIONS')return json(200,{items:[]});if(body.view==='PRODUCT_CATALOGUE')return json(200,{items:[product],next:null});
    if(body.view==='OWN_CHECKOUTS')return json(200,{items:sale?[{id:sale.id,business_date:'2026-10-18',status:sale.status,total:sale.total,paid:sale.paid}]:[],next:null});
    assert.equal(body.view,'OWN_CHECKOUT');assert.equal(body.sale_id,sale.id);return json(200,snapshot());
   }
@@ -48,7 +48,7 @@ async function fixture(width,known=false){
   try{return route.fulfill({body:await readFile(file),contentType:({'.mjs':'text/javascript','.css':'text/css','.html':'text/html','.png':'image/png','.woff':'font/woff'})[path.extname(file)]||'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}
  });
  const card=heading=>page.locator('.crm-card').filter({has:page.getByRole('heading',{name:heading,exact:true})}).getByRole('button',{name:'Otvoriť'});
- const open=async()=>{await page.goto(base+'/crm');if(known){await card('Zoznam klientov').click();await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();await expect(page.locator('#crm-content')).toContainText('Časový prístup');await expect(page.locator('#crm-content')).toContainText('Počet vstupov');await page.getByRole('button',{name:'Nakúpiť pre klientku',exact:true}).click();await expect(page.locator('#crm-content')).toContainText('Synthetic client');}else{await card('Prišla nakupovať').click();await page.getByRole('button',{name:'Nákup bez identifikovanej klientky',exact:true}).click();}await page.getByRole('button',{name:'Pridať Synthetic bar',exact:true}).click();};
+ const open=async()=>{await page.goto(base+'/crm');if(known){await card('Zoznam klientov').click();await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();await expect(page.locator('#crm-content')).toContainText('Synthetic client');await expect(page.getByRole('region',{name:'Nákup klientky'})).toBeVisible();}else{await card('Prišla nakupovať').click();await page.getByRole('button',{name:'Nákup bez identifikovanej klientky',exact:true}).click();}await page.getByRole('button',{name:'Pridať Synthetic bar',exact:true}).click();};
  return {page,writes,errors,open,held,card,setLose:v=>lose=v,setHold:()=>hold=true,release:()=>release(),setBlocked:()=>blocked='CATALOGUE_CHANGED',sale:()=>sale};
 }
 try{
@@ -57,12 +57,12 @@ try{
    await f.open();assert.equal(f.writes.length,0);f.setLose('CREATE_SALE');await p.getByRole('button',{name:'Uložiť rozpracovaný predaj'}).click();
    await expect(p.getByRole('button',{name:'Overiť tú istú operáciu'})).toBeVisible();assert.equal(f.writes.length,1);
    await p.getByRole('button',{name:'Overiť tú istú operáciu'}).click();await expect(p.getByRole('button',{name:'Potvrdiť predaj',exact:true})).toBeEnabled();assert.equal(f.writes.length,1);
-   await p.getByRole('button',{name:'Potvrdiť predaj',exact:true}).click();
-   await expect(p.getByText('Nákup je zaznamenaný.',{exact:false})).toBeVisible();assert.equal(f.writes.length,2);
-   assert.equal(await p.getByRole('button',{name:'Zaznamenať platbu'}).count(),0);
-   await p.reload();await f.card('Rozpracované predaje').click();await p.getByRole('button',{name:'Otvoriť uložený predaj'}).click();
-   await expect(p.getByText('Nákup je zaznamenaný.',{exact:false})).toBeVisible();assert.equal(f.writes.length,2);
-   assert.ok(f.writes.every(w=>!JSON.stringify(w).includes('PAYMENT')));
+   await p.getByRole('button',{name:'Potvrdiť predaj',exact:true}).click();await expect(p.getByRole('button',{name:'Zaznamenať platbu'})).toBeEnabled();
+   f.setLose('CREATE_PAYMENT');await p.getByRole('button',{name:'Zaznamenať platbu'}).click();await expect(p.getByRole('button',{name:'Overiť tú istú operáciu'})).toBeVisible();assert.equal(f.writes.length,3);
+   await p.reload();await f.card('Rozpracované predaje').click();await p.getByRole('button',{name:'Otvoriť uložený predaj'}).click();await expect(p.getByRole('button',{name:'Potvrdiť prijatie platby'})).toBeEnabled();if(known)await expect(p.locator('#crm-content')).toContainText('Klientka: Synthetic client');assert.equal(f.writes.length,3);assert.equal(await p.getByRole('button',{name:'Zaznamenať platbu'}).count(),0);
+   await p.getByRole('button',{name:'Potvrdiť prijatie platby'}).click();await expect(p.getByText('Predaj a prijatie platby sú potvrdené.',{exact:true})).toBeVisible();assert.equal(f.writes.length,4);
+   if(process.env.LF_CRM_SCREENSHOT_DIR&&width===1280)await p.screenshot({path:path.join(process.env.LF_CRM_SCREENSHOT_DIR,'purchase-confirmed.png'),fullPage:true});
+   await p.reload();await f.card('Rozpracované predaje').click();await p.getByRole('button',{name:'Otvoriť uložený predaj'}).click();await expect(p.getByText('Predaj a prijatie platby sú potvrdené.',{exact:true})).toBeVisible();assert.equal(f.writes.length,4);
    assert.deepEqual(await p.evaluate(()=>({local:localStorage.length,session:sessionStorage.length})),{local:0,session:0});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(f.errors,[]);
   }finally{await p.close();}
  }
