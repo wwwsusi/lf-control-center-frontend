@@ -68,6 +68,8 @@ try {
     await expect(table).toContainText('Synthetic t1');
     await expect(table).toContainText('IN_PROGRESS');
     await expect(table).toContainText('Other / Unclassified');
+    await tabs.getByRole('button', { name: 'Kvalita', exact: true }).click();
+    await expect(page.getByRole('table', { name: 'Pravidlá kvality dát', exact: true }).locator('tbody tr')).toHaveCount(2);
     assert.ok(readViews.includes('OWNER_CONTROL_CENTER'));
     assert.ok(calls.every(call => ['/api/crm/session', '/api/crm/read', '/api/crm/logout'].includes(call)));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
