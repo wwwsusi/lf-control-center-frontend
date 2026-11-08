@@ -46,9 +46,9 @@ export function mountControlCenter({root,api,onAuthFailure,onBack}){
 
  async function load(){
   if(!live||loading)return;loading=true;disposeRequest();requestController=new AbortController();
-  if(!data)root.replaceChildren(make('h2','Úlohy'),make('p','Načítavam existujúce pohľady Control Center…','crm-note'));
+  if(!data)root.replaceChildren(make('h2','Úlohy'),make('p','Načítavam existujúce pohľady Control Center…',null,'crm-note'));
   try{const result=await api('/api/crm/read',{body:{view:'OWNER_CONTROL_CENTER'},signal:requestController.signal});if(!live)return;if(result?.dashboard?.origin!=='supabase'||!Array.isArray(result.dashboard.items)||!result.dashboard.status_catalog){throw new Error('PROJECTION_INVALID');}data=result.dashboard;render();}
-  catch(error){if(!live||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}root.replaceChildren(make('h2','Úlohy'),make('p','Pohľady Control Center nie sú dostupné. Existujúci register a záznamy zostali nezmenené.','crm-error'),action('Skúsiť znova',load));}
+  catch(error){if(!live||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}root.replaceChildren(make('h2','Úlohy'),make('p','Pohľady Control Center nie sú dostupné. Existujúci register a záznamy zostali nezmenené.',null,'crm-error'),action('Skúsiť znova',load));}
   finally{loading=false;}
  }
  load();return {dispose(){live=false;disposeRequest();root.replaceChildren();}};
