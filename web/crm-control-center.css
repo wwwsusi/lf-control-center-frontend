@@ -1,0 +1,158 @@
+.crm-control-center{color-scheme:dark;--ink:#edf2fa;--muted:#a4b2c6;--pink:#ff6398;--line:#304056;--paper:#101b2b;--bg:#0b1422;--surface:#142238;--subtle:#192a40;--danger:#ff9ca8;--danger-bg:#422532;--warning:#f3ce89;--warning-bg:#3a311d;--success:#7bddad;--success-bg:#18372c;--info:#89bdff;--info-bg:#173452;--neutral:#9aa8bb;font:13px Inter,system-ui,sans-serif;}
+.crm-control-center button,.crm-control-center input,.crm-control-center select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 10px;}
+.crm-control-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.crm-control-tabs button[aria-current=page]{border-color:#ff6398;color:#ff8db4;background:#2e1928;font-weight:700}.crm-control-back{margin-left:8px}.crm-control-center{margin-top:12px;overflow:hidden}.crm-control-center .dash-group{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:13px 15px;margin:12px 0}.crm-control-center .dash-group h3{margin:0 0 10px}.crm-control-center .table-scroll{overflow:auto;max-width:100%}.crm-control-center .report-table{border-collapse:collapse;width:100%;min-width:690px;font-size:12px}.crm-control-center .report-table th,.crm-control-center .report-table td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}.crm-control-center .report-table th{font-size:10px;text-transform:uppercase}.crm-control-detail{max-width:min(900px,94vw);max-height:88vh;overflow:auto;color:var(--ink);background:#101b2b;border:1px solid #304056;border-radius:12px;padding:22px}.crm-control-detail::backdrop{background:#050a12cc}.crm-control-detail .detail-close{float:right}.crm-control-detail .dash-fields{display:grid;grid-template-columns:minmax(140px,.35fr) minmax(0,1fr);gap:6px 14px}.crm-control-detail dt{font-weight:700;color:#a4b2c6}.crm-control-detail dd{margin:0;overflow-wrap:anywhere}.crm-control-detail a{display:block;margin:8px 0}.crm-control-center .dash-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:12px;background:var(--subtle);color:var(--tone,var(--neutral));font-weight:700}.crm-control-center .empty-row{color:var(--muted)}@media(max-width:700px){.crm-control-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.crm-control-tabs button:last-child{grid-column:1/-1}.crm-control-detail .dash-fields{grid-template-columns:1fr}}
+.crm-control-center .data-status>span:not(.dash-badge){overflow-wrap:anywhere;max-width:100%}
+.crm-control-center .dash-group{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:13px 15px;margin:12px 0}
+.crm-control-center .overview-stack>.dash-group{margin:0}
+.crm-control-center .dash-group>h3{font-size:15px;font-weight:750;padding:0 0 8px;margin:0 0 10px;border-bottom:1px solid var(--line);letter-spacing:.2px;color:var(--ink)}
+.crm-control-center .section-note{font-size:11px;margin:5px 0 9px}
+.crm-control-center .empty-row{font-size:12px;margin:3px 0;padding:5px 0;color:var(--muted)}
+.crm-control-center .dash-badge{display:inline-flex;align-items:center;white-space:nowrap;background:var(--neutral-bg);color:var(--neutral);padding:2px 6px;font-size:10px;line-height:1.5;font-weight:700;border-radius:4px}
+.crm-control-center .dash-badge[data-tone]{color:var(--tone);background:var(--tone-bg)}
+.crm-control-center .task-row[data-tone]{border-left-color:var(--tone)}
+.crm-control-center .dash-group[data-tone]>h3{color:var(--tone);border-bottom-color:var(--tone)}
+.crm-control-center .campaign-card[data-tone]{background:var(--tone-bg)}
+.crm-control-center .conflict-label{font-size:11px;color:var(--danger)}
+.crm-control-center .task-list{display:flex;flex-direction:column;gap:6px}
+.crm-control-center .task-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:12px;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--neutral);border-radius:6px;background:var(--surface)}
+.crm-control-center .task-list+button{font-size:11px;margin-top:9px}
+.crm-control-center .table-scroll{overflow:auto;max-width:100%}
+.crm-control-center .report-table{border-collapse:collapse;width:100%;min-width:690px;font-size:12px}
+.crm-control-center .report-table th{text-align:left;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:7px 9px;background:var(--subtle);border-bottom:1px solid var(--line)}
+.crm-control-center .report-table td{padding:8px 9px;vertical-align:top;border-bottom:1px solid var(--line);max-width:330px;overflow-wrap:anywhere;line-height:1.4}
+.crm-control-center .report-table .cell-summary{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:230px;margin:0}
+.crm-control-center .campaign-row .dash-badge{display:table;margin-top:5px}
+.crm-control-center .campaign-row[data-tone]{background:var(--tone-bg)}
+.crm-control-center .report-table tbody tr:hover{background:var(--subtle)}
+.crm-control-center .table-title{border:0;padding:0;text-align:left;font-size:12px;font-weight:650;background:transparent}
+.crm-control-center .table-id{display:block;font-size:9px;color:var(--muted);margin-top:3px}
+.crm-control-center .report-table td p{margin:3px 0;font-size:11px}
+.crm-control-center .price-cell{white-space:nowrap}
+.crm-control-center .description-cell{width:33%}
+.crm-control-center .secondary-section>.dash-group{margin-top:7px}
+.crm-control-center .campaign-fields{display:grid;grid-template-columns:75px minmax(0,1fr);gap:5px;margin:2px 0;font-size:11px}
+.crm-control-center .campaign-fields dt{color:var(--muted)}
+.crm-control-center .campaign-fields dd{margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.crm-control-center .event-tag{background:var(--subtle);color:var(--ink)}
+@media(max-width:600px){
+.crm-control-center .dash-group{padding:11px}
+.crm-control-center .task-row{grid-template-columns:1fr;gap:5px}
+}
+.crm-control-center .now-category .task-list{display:grid;gap:.6rem}
+.crm-control-center .dash-badge[data-tone=none]{background:transparent;padding:0;font-weight:inherit}
+.crm-control-center .task-row[data-tone=none]{border-left-color:var(--line)}
+.crm-control-center .ux-summary-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1rem 0}
+.crm-control-center .ux-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.crm-control-center .ux-summary-row .dash-group{margin:0;min-width:0}
+.crm-control-center .ux-counts{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem 1rem;margin:0}
+.crm-control-center .ux-counts dt{overflow-wrap:anywhere}
+.crm-control-center .ux-counts dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.crm-control-center .ux-important-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.crm-control-center .ux-important-grid>.dash-group{min-width:0;margin:0}
+.crm-control-center .ux-panel{min-width:0}
+.crm-control-center .ux-item{padding:.7rem 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.crm-control-center .ux-item-meta{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin:.4rem 0}
+.crm-control-center .ux-item small.table-id{display:block}
+.crm-control-center .ux-campaign-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+.crm-control-center .ux-campaign-kpis .ux-counts dd{font-size:1.5rem}
+.crm-control-center .ux-campaign-kpis h3{font-size:1rem}
+.crm-control-center .ux-campaign-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.crm-control-center .ux-long-text{max-width:32rem;overflow-wrap:anywhere}
+.crm-control-center .ux-long-text summary{cursor:pointer;white-space:normal}
+.crm-control-center .ux-full-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:none;overflow:visible}
+.crm-control-center .ux-column-selector{border:1px solid var(--line);padding:.75rem;border-radius:.5rem;margin:1rem 0}
+.crm-control-center .ux-column-selector summary{cursor:pointer}
+.crm-control-center .ux-column-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin:.75rem 0}
+.crm-control-center .ux-column-row{display:flex;gap:.5rem;align-items:center;min-width:0}
+.crm-control-center .ux-column-row label{flex:1;display:flex;gap:.5rem;align-items:center}
+.crm-control-center .ux-column-row button{min-width:2.5rem}
+.crm-control-center .ux-entities .report-table{min-width:0;width:100%}
+.crm-control-center .ux-entities th,
+.crm-control-center .ux-entities td{overflow-wrap:anywhere}
+.crm-control-center .ux-calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.crm-control-center .ux-calendar-toolbar h4{font-size:1.2rem;margin:.5rem 0}
+.crm-control-center .ux-calendar{width:100%;table-layout:fixed;border-collapse:collapse}
+.crm-control-center .ux-calendar th,
+.crm-control-center .ux-calendar td{border:1px solid var(--line);padding:.4rem}
+.crm-control-center .ux-calendar td{height:116px;vertical-align:top;overflow-wrap:anywhere}
+.crm-control-center .ux-calendar time{display:block;margin-bottom:.4rem;font-weight:700}
+.crm-control-center .ux-calendar .ux-outside{color:var(--muted);background:var(--subtle)}
+.crm-control-center .ux-calendar .ux-today{box-shadow:inset 0 0 0 2px var(--pink)}
+.crm-control-center .ux-calendar .ux-today time{color:var(--pink)}
+.crm-control-center .ux-calendar-event{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere;font-size:.78rem;padding:.35rem;margin:.3rem 0;line-height:1.3}
+.crm-control-center .ux-calendar-status{display:flex;flex-direction:column;align-items:flex-start;gap:.08rem;margin-top:.2rem;font-size:.67rem;font-weight:700;line-height:1.15;color:var(--tone,var(--neutral))}
+.crm-control-center .ux-calendar-status[data-tone]{color:var(--tone)}
+.crm-control-center .ux-calendar-status-dot{display:block;width:.48rem;height:.48rem;flex:none;border-radius:50%;background:var(--tone,var(--neutral))}
+.crm-control-center .ux-calendar-status-label{color:var(--tone,var(--neutral));overflow-wrap:anywhere}
+.crm-control-center .ux-calendar-more summary{font-size:.8rem;cursor:pointer}
+.crm-control-center .ux-calendar-more>div{max-height:220px;overflow:auto}
+.crm-control-center .ux-long-text summary:focus-visible,
+.crm-control-center .ux-column-selector summary:focus-visible,
+.crm-control-center .ux-calendar-more summary:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+@media(max-width:1100px){
+.crm-control-center .ux-summary-row,
+.crm-control-center .ux-important-grid,
+.crm-control-center .ux-campaign-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.crm-control-center .ux-campaign-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+.crm-control-center .ux-calendar td{height:104px}
+}
+@media(max-width:700px){
+.crm-control-center .ux-summary-row,
+.crm-control-center .ux-important-grid,
+.crm-control-center .ux-campaign-list,
+.crm-control-center .ux-column-controls{grid-template-columns:1fr}
+.crm-control-center .ux-campaign-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.crm-control-center .ux-calendar td,
+.crm-control-center .ux-calendar th{padding:.2rem}
+.crm-control-center .ux-calendar-event{font-size:.68rem;padding:.2rem}
+.crm-control-center .ux-calendar-toolbar h4{order:-1;width:100%}
+}
+.crm-control-center /* Small screens keep a readable month grid and expose complete events in an accessible agenda. */
+.ux-mobile-agenda,
+.crm-control-center .ux-mobile-day-count{display:none}
+@media(max-width:700px){
+.crm-control-center .ux-calendar td{height:60px;overflow-wrap:normal}
+.crm-control-center .ux-calendar time{margin-bottom:.15rem}
+.crm-control-center .ux-calendar .ux-calendar-event,
+.crm-control-center .ux-calendar .ux-calendar-more{display:none}
+.crm-control-center .ux-mobile-day-count{display:inline-block;min-width:1.45rem;padding:.15rem .32rem;border-radius:1rem;background:var(--subtle);color:var(--ink);font-size:.72rem;font-weight:700;line-height:1.3;text-align:center}
+.crm-control-center .ux-mobile-agenda{display:block;margin-top:1rem}
+.crm-control-center .ux-mobile-agenda h4{margin:.25rem 0 .75rem;font-size:1rem}
+.crm-control-center .ux-agenda-day{border:1px solid var(--line);padding:.6rem .75rem;border-radius:.5rem;margin:.4rem 0}
+.crm-control-center .ux-agenda-day summary{cursor:pointer;font-weight:700}
+.crm-control-center .ux-agenda-events{display:grid;gap:.45rem;margin-top:.6rem}
+.crm-control-center .ux-agenda-event{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.crm-control-center .ux-agenda-day summary:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+}
+.crm-control-center .status-legend{grid-column:1/-1;width:100%;box-sizing:border-box;margin:12px 0;padding:10px 14px;border:1px solid var(--line,#cbd0dc);border-radius:8px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;background:var(--panel);}
+.crm-control-center .status-legend>strong{font-size:.8rem;}
+.crm-control-center .status-legend-domain{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;}
+.crm-control-center .status-legend-label{font-weight:600;}
+.crm-control-center .status-legend .dash-badge{font-size:.75rem;padding:2px 6px;}
+@media(max-width:600px){
+.crm-control-center .ux-entities .report-table{min-width:760px;}
+}
+.crm-control-center /* Isolated campaign board: five columns; narrow screens scroll within the board. */
+.campaign-board-scroll{max-width:100%;overflow-x:auto;padding:4px 0 14px;overscroll-behavior-x:contain}
+.crm-control-center .campaign-board{display:grid;grid-template-columns:repeat(5,minmax(250px,1fr));gap:14px;align-items:start}
+.crm-control-center .campaign-board-column{min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--subtle);padding:12px}
+.crm-control-center .campaign-column-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;min-height:36px}
+.crm-control-center .campaign-column-header h3{font-size:15px;margin:0}
+.crm-control-center .campaign-count{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 9px;font-weight:700;font-size:13px}
+.crm-control-center .campaign-column-cards{display:grid;gap:12px}
+.crm-control-center .campaign-board-card{min-width:0;padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--paper);overflow-wrap:anywhere}
+.crm-control-center .campaign-board-card h4{margin:0 0 5px}
+.crm-control-center .campaign-title{border:0;background:transparent;text-align:left;padding:0;font-size:14px;font-weight:700;line-height:1.4;width:100%}
+.crm-control-center .campaign-next{font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:10px 0}
+.crm-control-center .campaign-related{border-top:1px solid var(--line);padding-top:8px;margin-top:10px}
+.crm-control-center .campaign-related h5{font-size:11px;margin:0 0 7px;color:var(--muted)}
+.crm-control-center .campaign-related ul{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.crm-control-center .campaign-related-task{font-size:11px;text-align:left;border:0;background:transparent;padding:0;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%}
+.crm-control-center .campaign-file,
+.crm-control-center .campaign-file-missing{font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.crm-control-center .campaign-more{margin-top:8px;font-size:11px}
+.crm-control-center .campaign-more summary{cursor:pointer;color:var(--pink);margin-bottom:8px}
+.crm-control-center .campaign-board-scroll:focus-visible,
+.crm-control-center .campaign-more summary:focus-visible,
+.crm-control-center .campaign-file:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+.crm-main .crm-table-scroll{overflow:auto;max-width:100%;margin:12px 0 18px}.crm-main .crm-report-table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}.crm-main .crm-report-table th,.crm-main .crm-report-table td{border-bottom:1px solid #607087;padding:9px 10px;text-align:left;vertical-align:top}.crm-main .crm-report-table th{font-size:11px;color:var(--muted);white-space:nowrap}.crm-main .crm-report-table tbody th{color:var(--text)}

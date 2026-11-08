@@ -22,6 +22,7 @@ try{
    if(url.pathname==='/api/crm/readback'){assert.ok(operations.has(url.searchParams.get('request_id')));return json(operations.get(url.searchParams.get('request_id')));}
    const body=request.postDataJSON();assert.equal(request.headers()['x-csrf-token'],'synthetic');
    if(url.pathname==='/api/crm/read'){
+    if(body.view==='SESSION_ACTIVITY')return json({read_only:true,expires_at:new Date(Date.now()+300000).toISOString()});
     if(body.view==='CUSTOMERS')return json({items:[client],next:null});
     if(body.view==='CUSTOMER')return json({customer:client,can_edit:true,entitlements:entitlement?[{...entitlement,payment_confirmed:paid,consumed:String(consumed),activated_on:consumed?'2026-11-07':null,expires_on:consumed?'2027-05-08':null}]:[],entitlements_truncated:false});
     if(body.view==='ADMISSIONS')return json({items:[{id:id(3),revision:'1',code:'ENTITLEMENT',label_sk:'Permanentka'}]});

@@ -10,7 +10,7 @@ try{
   const u=new URL(route.request().url());assert.equal(u.origin,'https://crm.test');
   const json=(status,body)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
   if(u.pathname==='/api/crm/session'){polls++;return json(200,{active:true,actor_id:'synthetic',role:'RECEPTION',csrf_token:'synthetic',expires_at:new Date(expires).toISOString()});}
-  if(u.pathname==='/api/crm/read'){reads++;expires=Math.min(serverNow+300000,base+900000);return json(200,{items:[],next:null,expires_at:new Date(expires).toISOString()});}
+  if(u.pathname==='/api/crm/read'){const body=route.request().postDataJSON();expires=Math.min(serverNow+300000,base+900000);if(body.view==='SESSION_ACTIVITY')return json(200,{read_only:true,expires_at:new Date(expires).toISOString()});reads++;return json(200,{items:[],next:null,expires_at:new Date(expires).toISOString()});}
   assert.ok(!u.pathname.startsWith('/api/'),'Unexpected API call');
   const file=path.resolve(root,'.'+(u.pathname==='/crm'?'/crm.html':u.pathname));assert.ok(file.startsWith(root+'/'));
   try{return route.fulfill({body:await fs.readFile(file),contentType:({'.html':'text/html','.mjs':'text/javascript','.css':'text/css','.woff':'font/woff'})[path.extname(file)]||'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}

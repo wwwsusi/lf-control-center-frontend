@@ -22,6 +22,7 @@ try{
    }
    if(u.pathname==='/api/crm/read'){
     const b=req.postDataJSON();
+    if(b.view==='SESSION_ACTIVITY'){expires=Math.min(serverNow+300000,base+900000);return json(200,{read_only:true,expires_at:new Date(expires).toISOString()});}
     if(b.view==='CUSTOMERS')return json(200,{items:[customer],next:null});
     if(b.view==='CUSTOMER')return json(200,{customer,entitlements:[{id:id(3),revision:'1',status:'ENABLED',payment_confirmed:true,type_at_purchase:'VISIT_COUNT',included_units_at_purchase:'10',consumed:String(consumed),activated_on:null,expires_on:null,validity_value_at_purchase:6,validity_unit_at_purchase:'MONTH'}]});
     if(b.view==='ADMISSIONS')return json(200,{items:[{id:id(2),revision:'1',code:'ENTITLEMENT',label_sk:'Permanentka'}]});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {multisportReportingMessage,reportingCoverageMessage,reportingPeriodError} from '../web/crm-reporting.mjs';
+import {multisportReportingMessage,reportingCoverageMessage,reportingPeriodError,validateHistoricalSnapshot} from '../web/crm-reporting.mjs';
 
 test('reporting period accepts a single day and the inclusive 366-day maximum',()=>{
  assert.equal(reportingPeriodError('2026-11-01','2026-11-01'),'');
@@ -36,4 +36,20 @@ test('missing calendar dates remain explicitly unknown even when recorded days a
  const message=reportingCoverageMessage({recorded_days:'1',complete_days:'1',open_days:'0',unknown_opening_days:'0',incomplete_days:'0',missing_days:'29'});
  assert.match(message,/29 dní chýba evidencia otvorenia/);
  assert.match(message,/nie sú potvrdená nula/);
+});
+
+test('historical snapshot accepts only the five-week numeric aggregate allowlist',()=>{
+ const keys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
+ const weekly=Array.from({length:5},(_,i)=>Object.fromEntries(keys.map(key=>[key,key==='week'?40+i:['period_start','period_end'].includes(key)?null:key==='new_visitors'||key==='change_pct'?null:0])));
+ const snapshot={schema_version:1,source:'Lady Fitness Reporting MVP · weekly aggregate query',generated_at:'2026-11-01',source_sha256:'a'.repeat(64),limitations:{scope:'scope',costs:'costs',missing:'missing',receipts:'receipts'},weekly,snapshot_period:{from:null,to:null,weeks:[40,41,42,43,44]}};
+ assert.equal(validateHistoricalSnapshot(snapshot),snapshot);
+});
+
+test('historical snapshot rejects personal fields, duplicate weeks and unsafe numeric values',()=>{
+ const keys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
+ const row=Object.fromEntries(keys.map(key=>[key,key==='week'?40:['period_start','period_end','new_visitors','change_pct'].includes(key)?null:0]));
+ const snapshot={schema_version:1,source:'Lady Fitness Reporting MVP · weekly aggregate query',generated_at:'2026-11-01',source_sha256:'b'.repeat(64),limitations:{scope:'scope',costs:'costs',missing:'missing',receipts:'receipts'},weekly:[row,{...row,week:41},{...row,week:42},{...row,week:43},{...row,week:44}],snapshot_period:{weeks:[40,41,42,43,44]}};
+ assert.throws(()=>validateHistoricalSnapshot({...snapshot,weekly:snapshot.weekly.map((r,i)=>i===0?{...r,person_label:'Meno'}:r)}));
+ assert.throws(()=>validateHistoricalSnapshot({...snapshot,weekly:snapshot.weekly.map((r,i)=>i===1?{...r,week:40}:r)}));
+ assert.throws(()=>validateHistoricalSnapshot({...snapshot,weekly:snapshot.weekly.map((r,i)=>i===0?{...r,visits:'0'}:r)}));
 });
