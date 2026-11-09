@@ -221,4 +221,21 @@
 .crm-main .crm-chart-head h3{margin:0}
 .crm-main .crm-chart-head .crm-segment{margin:0}
 .crm-main .crm-segment button:disabled{opacity:.45;cursor:not-allowed}
-.crm-main .crm-part-title{margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line);font-size:20px}
+.crm-main .crm-part-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+.crm-main .crm-part-head .crm-segment{margin:0}
+.crm-main .crm-part-title{margin:0;font-size:20px}
+.crm-main .crm-table-card{margin:0 0 12px}
+.crm-main .crm-metric-pick{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.crm-main .crm-metric-pick select{min-height:38px;padding-top:0;padding-bottom:0;font-size:15px}
+.crm-main .crm-data-table{max-height:380px;margin:6px 0 0}
+.crm-main .crm-data-table .crm-report-table{min-width:640px;margin:0}
+.crm-main .crm-data-table thead th{position:sticky;top:0;z-index:1;background:var(--surface);text-align:right;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+.crm-main .crm-data-table thead th:first-child{text-align:left}
+.crm-main .crm-data-table tbody th{text-align:left;font-weight:700;color:var(--ink,#edf2fa)}
+.crm-main .crm-data-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.crm-main .crm-data-table td.delta[data-direction=up]{color:var(--success)}
+.crm-main .crm-data-table td.delta[data-direction=down]{color:var(--danger)}
+.crm-main .crm-data-table td.delta[data-direction=none],.crm-main .crm-data-table td.delta[data-direction=flat]{color:var(--muted)}
+.crm-main .crm-chart-card-empty{align-self:start}
+.crm-main .crm-table-card>.crm-note{font-size:13px;margin:0 0 6px}
+.crm-main .crm-data-table tbody th,.crm-main .crm-data-table td{font-size:14px}

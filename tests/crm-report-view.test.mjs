@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -11,6 +11,8 @@ test('percent change never invents a value from a missing or zero base',()=>{
  assert.equal(formatPercent(null),'N/A');
  assert.match(formatPercent(8.333),/^\+8,33\s%$/);
  assert.match(formatPercent(-7.142),/^−7,14\s%$/);
+ assert.equal(formatPercent(0),'0 %');
+ assert.equal(formatPercent(12.5,{trim:true}).replace(/\s/g,' '),'+12,5 %');assert.equal(formatPercent(45.4545,{trim:true}).replace(/\s/g,' '),'+45,45 %');assert.equal(formatPercent(12.5).replace(/\s/g,' '),'+12,50 %');
  assert.equal(formatEuro(null),'N/A');assert.equal(formatCount(undefined),'N/A');
 });
 
@@ -89,4 +91,43 @@ test('visit and mix series follow the chosen grain; mix per day is not offered',
  assert.equal(mixSeries(weeks,'day'),null);
  assert.deepEqual(mixSeries(weeks,'week').labels,['W44','W45']);
  assert.equal(mixSeries(weeks,'month').labels.length,2);
+});
+
+const sheet=[[40,'2026-09-28',216,1472.5,18,21,11],[41,'2026-10-05',242,2234.9,22,31,16],[42,'2026-10-12',251,1882.9,17,17,18],[43,'2026-10-19',252,2091.6,14,24,19],[44,'2026-10-26',234,1888.4,12,22,12]]
+ .map(([week,start,visits,total,products,trainings,passes])=>row(week,start,{visits,report_value:total,product_units:products,training_units:trainings,pass_units:passes}));
+
+test('table reproduces the original report: changes follow the selected metric',()=>{
+ const weeks=weekModel(sheet);
+ const model=tableModel(weeks,[],'week','passUnits');
+ assert.deepEqual(model.rows.map(r=>r.label),['W40','W41','W42','W43','W44']);
+ assert.deepEqual(model.rows[0].values,{visits:216,total:1472.5,productUnits:18,trainingUnits:21,passUnits:11});
+ assert.equal(model.rows[0].changePrev,null);assert.equal(model.rows[0].changeFirst,0);
+ const prev=model.rows.map(r=>r.changePrev===null?null:Math.round(r.changePrev*100)/100),first=model.rows.map(r=>Math.round(r.changeFirst*100)/100);
+ assert.deepEqual(prev,[null,45.45,12.5,5.56,-36.84]);
+ assert.deepEqual(first,[0,45.45,63.64,72.73,9.09]);
+ assert.deepEqual(model.headers,{prev:'Zmena týždenná',first:'Zmena kum'});
+ assert.match(model.note,/Zmena kum = oproti W40/);
+ assert.equal(tableModel(weeks,[],'week','visits').metricKey,'visits');
+ assert.equal(tableModel(weeks,[],'week','bogus').metricKey,'visits');
+});
+
+test('table in month grain sums whole weeks; in day grain only visits exist',()=>{
+ const weeks=weekModel(sheet.concat([row(45,'2026-11-02',{visits:285,report_value:2110.3,product_units:16,training_units:42,pass_units:10})]));
+ const months=tableModel(weeks,[],'month','visits');
+ assert.deepEqual(months.rows.map(r=>[r.label,r.values.visits,r.values.passUnits]),[['október 2026',1195,76],['november 2026',285,10]]);
+ assert.equal(months.headers.prev,'Zmena mesačná');
+ assert.equal(Math.round(months.rows[1].changePrev*100)/100,Math.round((285-1195)/1195*10000)/100);
+ const daily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-10-31',label:'31.10.2026',value:20,weekend:true}];
+ const days=tableModel(weeks,daily,'day','passUnits');
+ assert.equal(days.metricKey,'visits');
+ assert.deepEqual(days.columns.map(c=>c.key),['visits']);
+ assert.deepEqual(days.rows.map(r=>r.label),['Po 26.10','So 31.10']);
+ assert.equal(days.headers.prev,'Zmena denná');
+});
+
+test('unknown values keep their changes unknown',()=>{
+ const weeks=weekModel([row(40,'2026-09-28',{pass_units:null}),row(41,'2026-10-05',{pass_units:5})]);
+ const model=tableModel(weeks,[],'week','passUnits');
+ assert.equal(model.rows[1].changePrev,null);assert.equal(model.rows[1].changeFirst,null);
+ assert.equal(TABLE_METRICS.length,5);
 });

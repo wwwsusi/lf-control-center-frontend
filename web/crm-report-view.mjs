@@ -11,10 +11,11 @@ const nf=(max=0)=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:max});
 export const formatCount=v=>finite(v)?nf().format(v):'N/A';
 export const formatEuroShort=v=>finite(v)?nf().format(v)+' €':'N/A';
 export const formatEuro=v=>finite(v)?new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(v):'N/A';
-export function formatPercent(value){
+export function formatPercent(value,{trim=false}={}){
  if(!finite(value))return 'N/A';
  const rounded=Math.round(value*100)/100;
- return (rounded>0?'+':rounded<0?'−':'')+new Intl.NumberFormat('sk-SK',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Math.abs(rounded))+' %';
+ if(rounded===0)return '0 %';
+ return (rounded>0?'+':rounded<0?'−':'')+new Intl.NumberFormat('sk-SK',{minimumFractionDigits:trim?0:2,maximumFractionDigits:2}).format(Math.abs(rounded))+' %';
 }
 // Missing or zero base means no meaningful change: report N/A, never an invented 0 % or infinity.
 export function percentChange(current,base){return finite(current)&&finite(base)&&base!==0?(current-base)/Math.abs(base)*100:null;}
@@ -57,7 +58,7 @@ export function aggregateByMonth(weeks){
  for(const w of weeks){const key=monthKeyOfWeek(w.period_start);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(w);}
  return [...groups.entries()].sort(([a],[b])=>a<b?-1:1).map(([key,rows])=>{
   const sum=name=>rows.every(r=>finite(r[name]))?rows.reduce((n,r)=>n+r[name],0):null;
-  return {key,label:monthLabel(key),weeks:rows.length,visits:sum('visits'),membership:sum('membership'),single:sum('single'),multisport:sum('multisport')};
+  return {key,label:monthLabel(key),weeks:rows.length,visits:sum('visits'),membership:sum('membership'),single:sum('single'),multisport:sum('multisport'),total:sum('total'),productUnits:sum('productUnits'),trainingUnits:sum('trainingUnits'),passUnits:sum('passUnits')};
  });
 }
 export function visitsSeries(weeks,daily,grain){
@@ -70,6 +71,22 @@ export function mixSeries(weeks,grain){
  if(grain==='day')return null;
  const rows=grain==='month'?aggregateByMonth(weeks):weeks;
  return {labels:rows.map(r=>r.label),membership:rows.map(r=>r.membership),single:rows.map(r=>r.single),multisport:rows.map(r=>r.multisport)};
+}
+// ---- Data table under the charts. Same time grain as the charts; the two change columns refer to the chosen metric.
+export const TABLE_METRICS=[{key:'visits',label:'Návštevy'},{key:'total',label:'Predaj + MultiSport'},{key:'productUnits',label:'Produkty ks'},{key:'trainingUnits',label:'Tréningy'},{key:'passUnits',label:'Permanentky'}];
+const GRAIN_WORDS={day:{adj:'denná',dative:'dňu'},week:{adj:'týždenná',dative:'týždňu'},month:{adj:'mesačná',dative:'mesiacu'}};
+const WEEKDAY_SHORT=['Po','Ut','St','Št','Pi','So','Ne'];
+export function tableModel(weeks,daily,grain,metric){
+ let rows;
+ if(grain==='day')rows=daily.map(d=>({label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,total:null,productUnits:null,trainingUnits:null,passUnits:null}));
+ else if(grain==='month')rows=aggregateByMonth(weeks);
+ else rows=weeks.map(w=>({label:w.label,visits:w.visits,total:w.total,productUnits:w.productUnits,trainingUnits:w.trainingUnits,passUnits:w.passUnits}));
+ // Per day only visits are stored, so the change columns always follow visits there.
+ const metricKey=grain==='day'||!TABLE_METRICS.some(m=>m.key===metric)?'visits':metric;
+ const columns=grain==='day'?TABLE_METRICS.slice(0,1):TABLE_METRICS;
+ const out=rows.map((r,i)=>({label:r.label,values:Object.fromEntries(columns.map(c=>[c.key,r[c.key]??null])),changePrev:i===0?null:percentChange(r[metricKey],rows[i-1][metricKey]),changeFirst:rows.length?percentChange(r[metricKey],rows[0][metricKey]):null}));
+ const words=GRAIN_WORDS[grain]??GRAIN_WORDS.week;
+ return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(rows[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:rows[0]?.label??null};
 }
 export function productRanking(facts,weeks,metric){
  const starts=new Set(weeks.map(w=>w.period_start)),by=new Map();
@@ -162,4 +179,19 @@ export function segmentControl({options,value,onPick,ariaLabel}){
  const wrap=node('div',undefined,'crm-segment');wrap.setAttribute('role','group');wrap.setAttribute('aria-label',ariaLabel);
  for(const o of options){const b=node('button',o.label);b.type='button';b.setAttribute('aria-pressed',String(o.key===value));if(o.disabled){b.disabled=true;b.title=o.title??'';}else b.addEventListener('click',()=>onPick(o.key));wrap.append(b);}
  return wrap;
+}
+
+export function reportTable(model,{rowHeader}){
+ const wrap=node('div',undefined,'crm-table-scroll crm-data-table'),table=node('table',undefined,'crm-report-table');table.setAttribute('aria-label','Tabuľka vývoja');
+ const head=node('thead'),tr=node('tr');
+ for(const label of [rowHeader,...model.columns.map(c=>c.label),model.headers.prev,model.headers.first]){const th=node('th',label);th.scope='col';tr.append(th);}
+ head.append(tr);
+ const body=node('tbody');
+ for(const row of model.rows){
+  const r=node('tr'),th=node('th',row.label);th.scope='row';r.append(th);
+  for(const c of model.columns)r.append(node('td',c.key==='total'?formatEuro(row.values[c.key]):formatCount(row.values[c.key]),'num'));
+  for(const pct of [row.changePrev,row.changeFirst]){const td=node('td',formatPercent(pct,{trim:true}),'num delta');td.dataset.direction=pct===null?'none':pct>0?'up':pct<0?'down':'flat';r.append(td);}
+  body.append(r);
+ }
+ table.append(head,body);wrap.append(table);return wrap;
 }
