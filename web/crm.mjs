@@ -7,7 +7,7 @@ import {mountCustomer} from './crm-customer.mjs';
 import {mountOwner} from './crm-owner.mjs';
 import {mountPurchase} from './crm-purchase.mjs?v=20261021-customer-link';
 import {mountControlCenter} from './crm-control-center.mjs?v=20261108-integrated-views';
-import {idleRemaining,isTrustedUserActivity} from './crm-session-idle.mjs?v=20261108-idle-timeout';
+import {idleRemaining,isTrustedUserActivity,formatIdleRemaining,idleState,logoutRemaining} from './crm-session-idle.mjs?v=20261109-session-bar';
 // CRM data stays transient: no browser storage, URL contacts, dashboard imports or analytics.
 const byId=id=>document.getElementById(id),workspace=byId('crm-workspace'),content=byId('crm-content'),status=byId('crm-status');
 let purchase=null,access=null,workspaceEnabled=true,priceListEnabled=false,reportSummaryEnabled=false,ownerTasksEnabled=false;
@@ -92,4 +92,9 @@ function openAccess(purpose){wipe('Nastavenie pracovného prístupu');byId('crm-
 byId('crm-first-access').addEventListener('click',()=>openAccess('SETUP'));byId('crm-recovery').addEventListener('click',()=>openAccess('RECOVERY'));
 byId('crm-logout').addEventListener('click',async()=>{sessionChannel?.postMessage({type:'logout'});const pending=api('/api/crm/logout',{body:{}});wipe('Odhlasujem… Údaje sú skryté.');const version=epoch;try{await pending;if(version===epoch)wipe('Bola si odhlásená.');}catch{if(version===epoch)wipe('Lokálne údaje sú skryté, ale odhlásenie sa nepodarilo potvrdiť. Skús to znova.');}});
 for(const b of document.querySelectorAll('[data-view]'))b.addEventListener('click',()=>show(b.dataset.view));byId('crm-hide').addEventListener('click',()=>wipe());byId('crm-refresh').addEventListener('click',boot);window.addEventListener('offline',()=>wipe('Bez pripojenia. Údaje sú skryté.'));window.addEventListener('pagehide',()=>wipe());document.addEventListener('visibilitychange',()=>{if(document.hidden)wipe(undefined,true);else boot();});boot();
-
+// Session bar (top right): identity, countdown to the inactivity logout, log-out and hide buttons. It follows the workspace visibility.
+const sessionBar=byId('crm-session'),idleTimer=byId('crm-idle-timer');let idleTicker=null;
+function tickIdleTimer(){const remaining=active?logoutRemaining(lastUserActivityAt,expiryDeadline):null;if(remaining===null){idleTimer.textContent='—';idleTimer.dataset.state='ok';return;}idleTimer.textContent=formatIdleRemaining(remaining);idleTimer.dataset.state=idleState(remaining);}
+function syncSessionBar(){sessionBar.hidden=workspace.hidden;clearInterval(idleTicker);idleTicker=null;if(!workspace.hidden){tickIdleTimer();idleTicker=setInterval(tickIdleTimer,1000);}}
+new MutationObserver(syncSessionBar).observe(workspace,{attributes:true,attributeFilter:['hidden']});syncSessionBar();
+document.addEventListener('visibilitychange',()=>{if(!workspace.hidden)tickIdleTimer();});
