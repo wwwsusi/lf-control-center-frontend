@@ -166,3 +166,34 @@ test('day-grain table gains the three entry types and lets the change follow any
  assert.equal(Math.round(model.rows[1].changePrev*100)/100,-33.33);
  assert.equal(tableModel(weeks,daily,'day','membershipEntries').metricKey,'visits');   // without daily mix only visits exist
 });
+
+test('a single selected week is compared with the history: previous week and the first week of all data',()=>{
+ const all=weekModel(sheet.concat([row(45,'2026-11-02',{visits:285,report_value:2110.3,product_units:16,training_units:42,pass_units:10})]));
+ const selected=all.slice(-1);
+ const c=changes(selected,'visits',all);
+ assert.equal(Math.round(c.weekly*100)/100,Math.round((285-234)/234*10000)/100);
+ assert.equal(Math.round(c.cumulative*100)/100,Math.round((285-216)/216*10000)/100);
+ assert.deepEqual([c.latest,c.previous,c.first],['W45','W44','W40']);
+ // the first week of all data has no previous week; a week that is not in the history gets no change at all
+ assert.equal(changes(all.slice(0,1),'visits',all).weekly,null);
+ assert.equal(changes([{...all[1],period_start:'2030-01-01'}],'visits',all).cumulative,null);
+ assert.deepEqual(changes([],'visits',all),{weekly:null,cumulative:null,latest:null,previous:null,first:null});
+});
+
+test('table rows of a short selection still get their change from the full history',()=>{
+ const all=weekModel(sheet.concat([row(45,'2026-11-02',{visits:285,report_value:2110.3,product_units:16,training_units:42,pass_units:10})]));
+ const only45=tableModel(all.slice(-1),[],'week','visits',[],{weeks:all});
+ assert.deepEqual(only45.rows.map(r=>r.label),['W45']);
+ assert.equal(Math.round(only45.rows[0].changePrev*100)/100,Math.round((285-234)/234*10000)/100);
+ assert.equal(Math.round(only45.rows[0].changeFirst*100)/100,Math.round((285-216)/216*10000)/100);
+ assert.match(only45.note,/Zmena kum = oproti W40/);
+ const w42to44=tableModel(all.slice(2,5),[],'week','passUnits',[],{weeks:all});
+ assert.deepEqual(w42to44.rows.map(r=>r.label),['W42','W43','W44']);
+ assert.equal(Math.round(w42to44.rows[0].changePrev*100)/100,12.5);          // W42 vs W41, although W41 is not shown
+ assert.equal(Math.round(w42to44.rows[0].changeFirst*100)/100,63.64);        // vs W40
+ const fullDaily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-10-27',label:'27.10.2026',value:43,weekend:false},{date:'2026-10-28',label:'28.10.2026',value:38,weekend:false}];
+ const day=tableModel(all,fullDaily.slice(1,3),'day','visits',[],{weeks:all,daily:fullDaily});
+ assert.deepEqual(day.rows.map(r=>r.label),['Ut 27.10','St 28.10']);
+ assert.equal(Math.round(day.rows[0].changePrev*100)/100,Math.round((43-51)/51*10000)/100);
+ assert.equal(Math.round(day.rows[1].changeFirst*100)/100,Math.round((38-51)/51*10000)/100);
+});

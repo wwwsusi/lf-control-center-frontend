@@ -6,6 +6,7 @@ const button=(label,fn)=>{const el=node('button',label);el.type='button';el.addE
 let range=null,selectedSection='overview',productMetric='sales',timeGrain='week',tableMetric='visits';
 const historicalKeys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
 function currentMonth(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return {from:v.year+'-'+v.month+'-01',to:v.year+'-'+v.month+'-'+v.day};}
+function shortRange(from,to){const [,m1,d1]=from.split('-').map(Number),[,m2,d2]=to.split('-').map(Number);return m1===m2?d1+'.–'+d2+'. '+m2+'.':d1+'. '+m1+'. – '+d2+'. '+m2+'.';}
 function dateLabel(value){const match=typeof value==='string'&&value.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!match)return 'Dátum na kontrolu';const [,y,m,d]=match,date=new Date(Date.UTC(+y,+m-1,+d));return date.toISOString().slice(0,10)===value?new Intl.DateTimeFormat('sk-SK',{day:'numeric',month:'numeric',year:'numeric',timeZone:'UTC'}).format(date):'Dátum na kontrolu';}
 function historicalPeriodLabel(from,to){const start=typeof from==='string'?dateLabel(from):null,end=typeof to==='string'?dateLabel(to):null;if(start&&end)return start+' – '+end;if(start)return 'od '+start;if(end)return 'do '+end;return 'Dátumy v snapshot-e nie sú uvedené';}
 function euro(value){if(typeof value!=='string'||!/^-?\d{1,12}(\.\d{1,2})?$/.test(value))return 'Suma na kontrolu';return new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(value));}
@@ -59,7 +60,7 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
  function draw(){
   if(!live||!loaded)return;heading();
   const rows=history.included,hasHistory=rows.length>0,hasLive=Number(loaded.coverage.recorded_days)>0,sales=loaded.sales;
-  const weeks=weekModel(rows),facts=normalizeFacts(snapshot),allWeeks=historicalPeriods(snapshot);
+  const weeks=weekModel(rows),facts=normalizeFacts(snapshot),allWeeks=historicalPeriods(snapshot),fullWeeks=weekModel(allWeeks);
   // One compact bar: section tabs on the left, period controls on the right (wraps on narrow screens).
   const bar=node('div',undefined,'crm-report-bar');
   const nav=node('nav',undefined,'crm-report-tabs');nav.setAttribute('aria-label','Sekcie reportingu');for(const [key,label] of [['overview','Prehľad'],['attendance','Návštevnosť'],['sales','Predaj a zisk'],['catalogue','Produkty a služby']]){const tab=button(label,()=>{selectedSection=key;draw();});if(key===selectedSection)tab.setAttribute('aria-current','page');nav.append(tab);}
@@ -67,7 +68,7 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   const optionFor=(value,text)=>{const o=node('option',text);o.value=value;return o;};
   const first=allWeeks[0],isAll=range.from===first.period_start&&range.to>=allWeeks.at(-1).period_end;
   const single=allWeeks.find(w=>w.period_start===range.from&&w.period_end===range.to);
-  select.append(optionFor('all','Všetky týždne'),...allWeeks.map(w=>optionFor('w'+w.week,'W'+w.week+' · '+historicalPeriodLabel(w.period_start,w.period_end))),optionFor('month','Tento mesiac'),optionFor('custom','Vlastné obdobie'));
+  select.append(optionFor('all','Všetky týždne'),...allWeeks.map(w=>optionFor('w'+w.week,'W'+w.week+' · '+shortRange(w.period_start,w.period_end))),optionFor('month','Tento mesiac'),optionFor('custom','Vlastné obdobie'));
   select.value=isAll?'all':single?'w'+single.week:'custom';
   select.onchange=()=>{const v=select.value;if(v==='all'){range={from:first.period_start,to:currentMonth().to};load();}else if(v==='month'){range=currentMonth();load();}else if(v==='custom'){root.querySelector('.crm-report-period input')?.focus();}else{const w=allWeeks.find(x=>'w'+x.week===v);range={from:w.period_start,to:w.period_end};load();}};
   selectLabel.append(select);
@@ -87,7 +88,7 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   const sum=key=>rows.every(r=>Number.isFinite(r[key]))?rows.reduce((n,r)=>n+r[key],0):null;
   const money=value=>value===null?'Neúplné údaje':euro(Number(value).toFixed(2));
   const total=(key,liveKey)=>sum(key)===null?null:sum(key)+(hasLive?Number(sales[liveKey]??0):0);
-  const chg=key=>changes(weeks,key);
+  const chg=key=>changes(weeks,key,fullWeeks);
   const cards=node('div',undefined,'crm-kpi-grid');
   const visitsTotal=hasHistory||hasLive?(sum('visits')??0)+(hasLive?loaded.attendance.reduce((n,r)=>n+Number(r.visit_count),0):0):null;
   const noData='Bez evidencie';
@@ -121,7 +122,7 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
    charts.append(
     chartCard('Návštevy',columnChart({labels:vs.labels,series:[{name:'Návštevy',color:SERIES_COLORS.visits,values:vs.values}],bands:vs.bands,ariaLabel:'Návštevy po '+forms[timeGrain]}),timeGrain==='month'?monthNote:timeGrain==='day'?'Víkendy sú zvýraznené.':undefined),
     ms?chartCard('Mix vstupov po '+forms[timeGrain],columnChart({labels:ms.labels,stacked:true,bands:ms.bands??[],series:[{name:'Permanentky',color:SERIES_COLORS.membership,values:ms.membership},{name:'Jednorazové vstupy',color:SERIES_COLORS.single,values:ms.single},{name:'MultiSport',color:SERIES_COLORS.multisport,values:ms.multisport}],ariaLabel:'Mix vstupov po '+forms[timeGrain]}),timeGrain==='month'?monthNote:undefined):Object.assign(chartCard('Mix vstupov',unavailable('Rozpis vstupov po dňoch zatiaľ nemáme. Vyber týždne alebo mesiace.')),{className:'crm-chart-card crm-chart-card-empty'}));
-   const model=tableModel(weeks,daily,timeGrain,tableMetric,mixDaily),pick=node('label',undefined,'crm-metric-pick'),metricSelect=node('select');
+   const fullDaily=dailySeries(facts,fullWeeks),model=tableModel(weeks,daily,timeGrain,tableMetric,mixDaily,{weeks:fullWeeks,daily:fullDaily,dailyMix:dailyMix(facts,fullWeeks)}),pick=node('label',undefined,'crm-metric-pick'),metricSelect=node('select');
    metricSelect.setAttribute('aria-label','Ukazovateľ, ku ktorému sa vzťahujú stĺpce zmien');for(const m of model.columns){const o=node('option',m.label);o.value=m.key;metricSelect.append(o);}
    metricSelect.value=model.metricKey;metricSelect.disabled=model.columns.length<2;if(model.columns.length<2)metricSelect.title='Po dňoch máme len návštevy.';metricSelect.onchange=()=>{tableMetric=metricSelect.value;draw();};
    pick.append(node('span','Zmena podľa'),metricSelect);

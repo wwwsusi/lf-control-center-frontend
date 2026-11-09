@@ -30,11 +30,13 @@ export function weekModel(rows){
  return [...rows].sort((a,b)=>a.period_start<b.period_start?-1:1).map(r=>({week:r.week,label:'W'+r.week,period_start:r.period_start,period_end:r.period_end,visits:r.visits??null,membership:r.membership??null,single:r.single??null,multisport:r.multisport??null,sales:r.recorded_sales??null,multisportValue:r.multisport_receivable??null,total:r.report_value??null,cost:r.product_cost??null,profit:r.product_profit??null,productUnits:r.product_units??null,passUnits:r.pass_units??null,trainingUnits:r.training_units??null}));
 }
 export function sumKnown(weeks,key){return weeks.length&&weeks.every(w=>finite(w[key]))?weeks.reduce((n,w)=>n+w[key],0):null;}
-// Weekly change = latest week vs the one before; cumulative change = latest week vs the first included week.
-export function changes(weeks,key){
- if(weeks.length<2)return {weekly:null,cumulative:null,latest:weeks.at(-1)?.label??null,previous:null,first:null};
- const last=weeks.at(-1),prev=weeks.at(-2),first=weeks[0];
- return {weekly:percentChange(last[key],prev[key]),cumulative:percentChange(last[key],first[key]),latest:last.label,previous:prev.label,first:first.label};
+// Changes use the whole history, not only the selected weeks, so a single selected week still has something to compare to:
+// weekly = latest selected week vs the week before it in all data; cumulative = vs the first week of all data.
+export function changes(weeks,key,allWeeks=weeks){
+ const last=weeks.at(-1);
+ if(!last)return {weekly:null,cumulative:null,latest:null,previous:null,first:null};
+ const index=allWeeks.findIndex(w=>w.period_start===last.period_start),prev=index>0?allWeeks[index-1]:null,first=index>=0?allWeeks[0]:null;
+ return {weekly:prev?percentChange(last[key],prev[key]):null,cumulative:first?percentChange(last[key],first[key]):null,latest:last.label,previous:prev?.label??null,first:first?.label??null};
 }
 const weekdayIndex=date=>(new Date(date+'T00:00:00Z').getUTCDay()+6)%7;
 export function dailySeries(facts,weeks){
@@ -94,17 +96,27 @@ const DAY_MIX_COLUMNS=[{key:'membershipEntries',label:'S permanentkou'},{key:'si
 export function tableMetricsFor(grain,hasDailyMix=false){return grain==='day'?[TABLE_METRICS[0],...(hasDailyMix?DAY_MIX_COLUMNS:[])]:TABLE_METRICS;}
 const GRAIN_WORDS={day:{adj:'denná',dative:'dňu'},week:{adj:'týždenná',dative:'týždňu'},month:{adj:'mesačná',dative:'mesiacu'}};
 const WEEKDAY_SHORT=['Po','Ut','St','Št','Pi','So','Ne'];
-export function tableModel(weeks,daily,grain,metric,dailyMixRows=[]){
- let rows;
- const mixByDate=new Map(dailyMixRows.map(r=>[r.date,r]));
- if(grain==='day')rows=daily.map(d=>{const m=mixByDate.get(d.date);return {label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,membershipEntries:m?.membership??null,singleEntries:m?.single??null,multisportEntries:m?.multisport??null};});
- else if(grain==='month')rows=aggregateByMonth(weeks);
- else rows=weeks.map(w=>({label:w.label,visits:w.visits,total:w.total,productUnits:w.productUnits,trainingUnits:w.trainingUnits,passUnits:w.passUnits}));
- const columns=tableMetricsFor(grain,dailyMixRows.length>0);
+// context = {weeks, daily, dailyMix} of the whole history: change columns of the shown rows are computed against the neighbouring rows of the
+// full series (so a single shown week still gets its change); months only use the selected weeks.
+export function tableModel(weeks,daily,grain,metric,dailyMixRows=[],context={}){
+ const allWeeks=context.weeks?.length?context.weeks:weeks,allDaily=context.daily?.length?context.daily:daily,allMix=context.dailyMix?.length?context.dailyMix:dailyMixRows;
+ const mixByDate=new Map(allMix.map(r=>[r.date,r]));
+ let full,shown;
+ if(grain==='day'){
+  full=allDaily.map(d=>{const m=mixByDate.get(d.date);return {id:d.date,label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,membershipEntries:m?.membership??null,singleEntries:m?.single??null,multisportEntries:m?.multisport??null};});
+  shown=new Set(daily.map(d=>d.date));
+ }else if(grain==='month'){
+  full=aggregateByMonth(weeks).map(r=>({...r,id:r.key}));shown=new Set(full.map(r=>r.id));
+ }else{
+  full=allWeeks.map(w=>({id:w.period_start,label:w.label,visits:w.visits,total:w.total,productUnits:w.productUnits,trainingUnits:w.trainingUnits,passUnits:w.passUnits}));
+  shown=new Set(weeks.map(w=>w.period_start));
+ }
+ const columns=tableMetricsFor(grain,allMix.length>0);
  const metricKey=columns.some(m=>m.key===metric)?metric:'visits';
- const out=rows.map((r,i)=>({label:r.label,values:Object.fromEntries(columns.map(c=>[c.key,r[c.key]??null])),changePrev:i===0?null:percentChange(r[metricKey],rows[i-1][metricKey]),changeFirst:rows.length?percentChange(r[metricKey],rows[0][metricKey]):null}));
+ const out=[];
+ full.forEach((r,i)=>{if(!shown.has(r.id))return;out.push({label:r.label,values:Object.fromEntries(columns.map(c=>[c.key,r[c.key]??null])),changePrev:i===0?null:percentChange(r[metricKey],full[i-1][metricKey]),changeFirst:percentChange(r[metricKey],full[0][metricKey])});});
  const words=GRAIN_WORDS[grain]??GRAIN_WORDS.week;
- return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(rows[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:rows[0]?.label??null};
+ return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(full[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:full[0]?.label??null};
 }
 export function productRanking(facts,weeks,metric){
  const starts=new Set(weeks.map(w=>w.period_start)),by=new Map();

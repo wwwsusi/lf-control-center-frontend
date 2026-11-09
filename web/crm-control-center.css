@@ -199,7 +199,7 @@
 .crm-main .crm-report-period-group{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 10px;min-width:0}
 .crm-main .crm-report-period-group label{display:flex;align-items:center;gap:8px;color:var(--muted);margin:0}
 .crm-main .crm-report-period-group select,.crm-main .crm-report-period-group input,.crm-main .crm-report-period-group button{min-height:40px;padding-top:0;padding-bottom:0;font-size:15px}.crm-main .crm-report-period-group button{padding-left:12px;padding-right:12px}
-.crm-main .crm-report-period-group select{width:150px;max-width:100%;padding-left:10px;padding-right:6px}
+.crm-main .crm-report-period-group select{width:164px;max-width:100%;padding-left:10px;padding-right:6px}
 .crm-main .crm-report-period-group input[type=date]{width:132px;min-width:0;padding-left:10px;padding-right:6px}
 .crm-main .crm-report-period-group .crm-report-period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0}
 .crm-main .crm-report-period-group .crm-error{flex-basis:100%;margin:0}.crm-main .crm-report-period-group .crm-error:empty{display:none}
