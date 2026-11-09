@@ -157,23 +157,16 @@
 .crm-control-center .campaign-file:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
 .crm-main .crm-table-scroll{overflow:auto;max-width:100%;margin:12px 0 18px}.crm-main .crm-report-table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}.crm-main .crm-report-table th,.crm-main .crm-report-table td{border-bottom:1px solid #607087;padding:9px 10px;text-align:left;vertical-align:top}.crm-main .crm-report-table th{font-size:11px;color:var(--muted);white-space:nowrap}.crm-main .crm-report-table tbody th{color:var(--text)}
 
+/* Default design tokens for pages without the .crm-control-center wrapper (Reporting lives in the plain CRM shell). A closer .crm-control-center definition still wins. */
+.crm-main{--line:#304056;--paper:#101b2b;--surface:#142238;--success:#7bddad;--danger:#ff9ca8;--warning:#f3ce89;--info:#89bdff;--info-bg:#173452}
 /* Owner Reporting: KPI cards, week-over-week changes and SVG charts (same palette as the CRM shell). */
-.crm-main .crm-report-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
-.crm-main .crm-report-controls label{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted)}
-.crm-main .crm-report-controls select{min-height:48px;min-width:220px;max-width:100%}
-.crm-main .crm-report-custom{margin:0 0 12px;border:1px solid var(--line);border-radius:14px;padding:12px 16px;background:var(--paper)}
-.crm-main .crm-report-custom .crm-report-period{margin:0}
-.crm-main .crm-report-badge{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 12px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
-.crm-main .crm-report-badge .crm-note{margin:0}
 .crm-main .crm-chip{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--info-bg);color:var(--info);font-weight:600}
-.crm-main .crm-report-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.crm-main .crm-report-tabs button{min-height:48px;border-radius:12px}
-.crm-main .crm-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px;margin:0 0 16px}
-.crm-main .crm-kpi{display:flex;flex-direction:column;gap:8px;min-width:0;padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.crm-main .crm-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin:0 0 12px}
+.crm-main .crm-kpi{display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
 .crm-main .crm-kpi h3{margin:0;font-size:17px}
 .crm-main .crm-kpi p{margin:0}
-.crm-main .crm-kpi-value{font-size:clamp(28px,5vw,40px);font-weight:700;line-height:1.1;letter-spacing:-.01em;margin:14px 0 4px}
-.crm-main .crm-kpi-changes{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:10px;border-top:1px solid var(--line);padding-top:12px}
+.crm-main .crm-kpi-value{font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.1;letter-spacing:-.01em;margin:6px 0 2px}
+.crm-main .crm-kpi-changes{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
 .crm-main .crm-kpi-changes>div{display:grid;gap:2px;min-width:0;padding-right:12px}
 .crm-main .crm-kpi-changes>div+div{padding:0 0 0 14px;border-left:1px solid var(--line)}
 .crm-main .crm-kpi-changes span,.crm-main .crm-kpi-changes small{color:var(--muted)}
@@ -181,8 +174,8 @@
 .crm-main .crm-kpi-delta[data-direction=up]{color:var(--success)}
 .crm-main .crm-kpi-delta[data-direction=down]{color:var(--danger)}
 .crm-main .crm-kpi-delta[data-direction=none],.crm-main .crm-kpi-delta[data-direction=neutral],.crm-main .crm-kpi-delta[data-direction=flat]{color:var(--muted)}
-.crm-main .crm-chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:16px;margin:0 0 16px}
-.crm-main .crm-chart-card{min-width:0;padding:18px 18px 12px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.crm-main .crm-chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:12px;margin:0 0 12px}
+.crm-main .crm-chart-card{min-width:0;padding:14px 14px 8px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
 .crm-main .crm-chart-card h3{margin:0 0 6px;font-size:17px}
 .crm-main .crm-chart-card>.crm-note{margin:0 0 10px}
 .crm-main .crm-chart-svg{display:block;width:100%;height:auto;overflow:visible}
@@ -197,4 +190,52 @@
 .crm-main .crm-segment button{min-height:44px;border-radius:9px}
 .crm-main .crm-segment button[aria-pressed=true]{background:var(--pink);border-color:var(--pink)}
 .crm-main .crm-chart-empty{padding:16px;border:1px dashed var(--line);border-radius:14px}
-@media (max-width:560px){.crm-main .crm-kpi{padding:16px}.crm-main .crm-kpi-changes>div+div{padding-left:10px}.crm-main .crm-report-controls select{min-width:0;width:100%}}
+@media (max-width:560px){.crm-main .crm-kpi{padding:14px}.crm-main .crm-kpi-changes>div+div{padding-left:10px}.crm-main .crm-report-period-group select{min-width:0;width:100%}}
+
+/* Reporting control bar: tabs left, period controls right, one compact block. */
+.crm-main .crm-report-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;margin:0 0 8px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.crm-main .crm-report-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;border:0}
+.crm-main .crm-report-tabs button{min-height:40px;padding:0 12px;border-radius:10px;font-size:15px}
+.crm-main .crm-report-period-group{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 10px;min-width:0}
+.crm-main .crm-report-period-group label{display:flex;align-items:center;gap:8px;color:var(--muted);margin:0}
+.crm-main .crm-report-period-group select,.crm-main .crm-report-period-group input,.crm-main .crm-report-period-group button{min-height:40px;padding-top:0;padding-bottom:0;font-size:15px}.crm-main .crm-report-period-group button{padding-left:12px;padding-right:12px}
+.crm-main .crm-report-period-group select{width:150px;max-width:100%;padding-left:10px;padding-right:6px}
+.crm-main .crm-report-period-group input[type=date]{width:132px;min-width:0;padding-left:10px;padding-right:6px}
+.crm-main .crm-report-period-group .crm-report-period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0}
+.crm-main .crm-report-period-group .crm-error{flex-basis:100%;margin:0}.crm-main .crm-report-period-group .crm-error:empty{display:none}
+.crm-main .crm-report-badge{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 8px;padding:0 4px}
+.crm-main .crm-report-badge .crm-note{margin:0}
+.crm-main .crm-chip[title]{cursor:help}
+@media (max-width:760px){.crm-main .crm-report-bar{padding:8px}.crm-main .crm-report-period-group{justify-content:flex-start;width:100%}.crm-main .crm-report-period-group input[type=date]{width:100%;min-width:140px}.crm-main .crm-report-period-group label{flex:1 1 140px}.crm-main .crm-report-period-group select{width:100%}}
+.crm-main .crm-report-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:0 0 10px}
+.crm-main .crm-report-head h2{margin:0}
+.crm-main .crm-report-head button{min-height:40px;padding-top:0;padding-bottom:0}
+.crm-main .crm-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media (max-width:760px){.crm-main .crm-report-period-group .crm-report-period{display:grid;grid-template-columns:1fr 1fr;width:100%}.crm-main .crm-report-period-group .crm-report-period label{display:grid;gap:4px;flex:none}.crm-main .crm-report-period-group .crm-report-period input[type=date]{width:100%}.crm-main .crm-report-period-group .crm-report-period button,.crm-main .crm-report-period-group .crm-report-period .crm-error{grid-column:1/-1}.crm-main .crm-report-period-group>label{width:100%}}
+/* Overview part 1: each KPI box with the chart of the same metric under it; part 2: larger charts with a time-grain switch. */
+.crm-main .crm-kpi-col{display:grid;grid-template-rows:1fr auto;gap:8px;min-width:0}
+.crm-main .crm-kpi-col>.crm-kpi{height:100%}
+.crm-main .crm-kpi-col .crm-kpi-changes{margin-top:auto}
+.crm-main .crm-mini-chart{padding:8px 10px 4px}
+.crm-main .crm-chart-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;margin:0 0 6px}
+.crm-main .crm-chart-head h3{margin:0}
+.crm-main .crm-chart-head .crm-segment{margin:0}
+.crm-main .crm-segment button:disabled{opacity:.45;cursor:not-allowed}
+.crm-main .crm-part-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+.crm-main .crm-part-head .crm-segment{margin:0}
+.crm-main .crm-part-title{margin:0;font-size:20px}
+.crm-main .crm-table-card{margin:0 0 12px}
+.crm-main .crm-metric-pick{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.crm-main .crm-metric-pick select{min-height:38px;padding-top:0;padding-bottom:0;font-size:15px}
+.crm-main .crm-data-table{max-height:380px;margin:6px 0 0}
+.crm-main .crm-data-table .crm-report-table{min-width:640px;margin:0}
+.crm-main .crm-data-table thead th{position:sticky;top:0;z-index:1;background:var(--surface);text-align:right;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+.crm-main .crm-data-table thead th:first-child{text-align:left}
+.crm-main .crm-data-table tbody th{text-align:left;font-weight:700;color:var(--ink,#edf2fa)}
+.crm-main .crm-data-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.crm-main .crm-data-table td.delta[data-direction=up]{color:var(--success)}
+.crm-main .crm-data-table td.delta[data-direction=down]{color:var(--danger)}
+.crm-main .crm-data-table td.delta[data-direction=none],.crm-main .crm-data-table td.delta[data-direction=flat]{color:var(--muted)}
+.crm-main .crm-chart-card-empty{align-self:start}
+.crm-main .crm-table-card>.crm-note{font-size:13px;margin:0 0 6px}
+.crm-main .crm-data-table tbody th,.crm-main .crm-data-table td{font-size:14px}

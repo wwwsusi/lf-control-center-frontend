@@ -2,7 +2,7 @@
 
 
 /* Compact reception workspace and aligned navigation cards. */
-.home-shell{max-width:1600px;padding:24px 3%}.home-header{margin-bottom:20px}
+.home-shell{max-width:1600px;padding:24px 3%}.home-header{margin-bottom:20px;flex-wrap:wrap}
 .crm-main .eyebrow{margin-bottom:10px}.crm-main h1{font-size:clamp(32px,4vw,44px)}
 .crm-status{margin:10px 0 16px;color:var(--muted)}
 .crm-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 20px}
@@ -65,3 +65,22 @@
 @media(max-width:1000px){.crm-catalogue-tools{grid-template-columns:minmax(0,1fr) auto;align-items:stretch}.crm-catalogue-tools .crm-catalogue-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.crm-catalogue-controls label:first-child{grid-column:1/-1}.crm-catalogue-controls .crm-catalogue-category-select{display:grid}.crm-catalogue-tools .crm-catalogue-controls label:last-child{width:100%}.crm-catalogue-tools .crm-catalogue-filters{display:none}.crm-favorites-toggle{align-self:end;max-width:150px;min-width:0;flex-wrap:wrap}.crm-catalogue-tools .crm-catalogue-controls select{font-size:16px}}
 @media(max-width:600px){.crm-catalogue-tools{position:static;grid-template-columns:minmax(0,1fr);padding:12px}.crm-catalogue-tools .crm-catalogue-controls{grid-template-columns:minmax(0,1fr)}.crm-catalogue-tools .crm-catalogue-controls label:first-child{grid-column:auto}.crm-favorites-toggle{max-width:none;width:100%;flex-wrap:nowrap}.crm-filter-summary{align-items:stretch;flex-direction:column}.crm-filter-summary button{width:100%}.crm-favorites-section{padding:10px}.crm-price-card .crm-audience-badge{font-size:18px}}
 @media(max-height:700px){.crm-catalogue-tools{position:static}}
+
+/* Session bar in the page header (top right): who is signed in, inactivity countdown, log out / hide. */
+.crm-header-right{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px 18px;margin-left:auto;min-width:0}
+.crm-session-bar{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px 14px;padding:8px 10px 8px 16px;border:1px solid #304056;border-radius:14px;background:#142238}
+.crm-session-bar .crm-identity{font-weight:600;color:#edf2fa}
+.crm-session-bar .crm-idle{display:inline-flex;align-items:baseline;gap:6px;color:#a4b2c6;font-size:13px;white-space:nowrap}
+.crm-session-bar .crm-idle-timer{min-width:4ch;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700;color:#edf2fa}
+.crm-session-bar .crm-idle-timer[data-state=warn]{color:#f3ce89}
+.crm-session-bar .crm-idle-timer[data-state=danger]{color:#ff9ca8}
+.crm-session-bar button{font:inherit;font-size:15px;min-height:44px;padding:0 16px;white-space:nowrap;color:var(--text);background:#192a40;border:1px solid #607087;border-radius:8px;cursor:pointer}.crm-session-bar button:hover{border-color:var(--pink)}.crm-session-bar button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media (max-width:640px){.crm-header-right{width:100%;justify-content:flex-start}.crm-session-bar{width:100%;justify-content:space-between;padding:10px 12px}}
+/* Compact page head: smaller logo and heading, tighter status and toolbar spacing. */
+.home-header{margin-bottom:6px}
+.home-header .brand{padding:6px 12px}
+.home-header .brand img{width:112px}
+.crm-main .eyebrow{display:none}
+.crm-main h1{display:inline-block;font-size:clamp(26px,3.2vw,34px);line-height:1.15;margin:0 14px 0 0;vertical-align:baseline}
+.crm-status{display:inline-block;margin:0;font-size:13px;vertical-align:baseline}
+.crm-toolbar{margin:8px 0 8px}
