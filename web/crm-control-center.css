@@ -156,3 +156,45 @@
 .crm-control-center .campaign-more summary:focus-visible,
 .crm-control-center .campaign-file:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
 .crm-main .crm-table-scroll{overflow:auto;max-width:100%;margin:12px 0 18px}.crm-main .crm-report-table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}.crm-main .crm-report-table th,.crm-main .crm-report-table td{border-bottom:1px solid #607087;padding:9px 10px;text-align:left;vertical-align:top}.crm-main .crm-report-table th{font-size:11px;color:var(--muted);white-space:nowrap}.crm-main .crm-report-table tbody th{color:var(--text)}
+
+/* Owner Reporting: KPI cards, week-over-week changes and SVG charts (same palette as the CRM shell). */
+.crm-main .crm-report-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.crm-main .crm-report-controls label{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted)}
+.crm-main .crm-report-controls select{min-height:48px;min-width:220px;max-width:100%}
+.crm-main .crm-report-custom{margin:0 0 12px;border:1px solid var(--line);border-radius:14px;padding:10px 16px;background:var(--paper)}
+.crm-main .crm-report-custom summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--muted)}
+.crm-main .crm-report-badge{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 12px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.crm-main .crm-report-badge .crm-note{margin:0}
+.crm-main .crm-chip{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--info-bg);color:var(--info);font-weight:600}
+.crm-main .crm-report-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.crm-main .crm-report-tabs button{min-height:48px;border-radius:12px}
+.crm-main .crm-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px;margin:0 0 16px}
+.crm-main .crm-kpi{display:flex;flex-direction:column;gap:8px;min-width:0;padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.crm-main .crm-kpi h3{margin:0;font-size:17px}
+.crm-main .crm-kpi p{margin:0}
+.crm-main .crm-kpi-value{font-size:clamp(28px,5vw,40px);font-weight:700;line-height:1.1;letter-spacing:-.01em;margin:14px 0 4px}
+.crm-main .crm-kpi-changes{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:10px;border-top:1px solid var(--line);padding-top:12px}
+.crm-main .crm-kpi-changes>div{display:grid;gap:2px;min-width:0;padding-right:12px}
+.crm-main .crm-kpi-changes>div+div{padding:0 0 0 14px;border-left:1px solid var(--line)}
+.crm-main .crm-kpi-changes span,.crm-main .crm-kpi-changes small{color:var(--muted)}
+.crm-main .crm-kpi-delta{font-size:clamp(18px,3.2vw,22px);font-weight:700;white-space:nowrap}.crm-main .crm-kpi-changes span,.crm-main .crm-kpi-changes small{font-size:12px;white-space:nowrap}
+.crm-main .crm-kpi-delta[data-direction=up]{color:var(--success)}
+.crm-main .crm-kpi-delta[data-direction=down]{color:var(--danger)}
+.crm-main .crm-kpi-delta[data-direction=none],.crm-main .crm-kpi-delta[data-direction=neutral],.crm-main .crm-kpi-delta[data-direction=flat]{color:var(--muted)}
+.crm-main .crm-chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:16px;margin:0 0 16px}
+.crm-main .crm-chart-card{min-width:0;padding:18px 18px 12px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.crm-main .crm-chart-card h3{margin:0 0 6px;font-size:17px}
+.crm-main .crm-chart-card>.crm-note{margin:0 0 10px}
+.crm-main .crm-chart-svg{display:block;width:100%;height:auto;overflow:visible}
+.crm-main .crm-chart-grid line,.crm-main .crm-chart-svg .crm-chart-grid{stroke:var(--line);stroke-width:1}
+.crm-main .crm-chart-axis{fill:var(--muted);font-size:11px}
+.crm-main .crm-chart-na{fill:var(--warning);font-size:10px}
+.crm-main .crm-chart-band{fill:var(--surface);opacity:.9}
+.crm-main .crm-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 8px;padding:0;list-style:none;color:var(--muted)}
+.crm-main .crm-legend li{display:flex;align-items:center;gap:6px}
+.crm-main .crm-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.crm-main .crm-segment{display:inline-flex;gap:4px;margin:0 0 10px;padding:4px;border:1px solid var(--line);border-radius:12px}
+.crm-main .crm-segment button{min-height:44px;border-radius:9px}
+.crm-main .crm-segment button[aria-pressed=true]{background:var(--pink);border-color:var(--pink)}
+.crm-main .crm-chart-empty{padding:16px;border:1px dashed var(--line);border-radius:14px}
+@media (max-width:560px){.crm-main .crm-kpi{padding:16px}.crm-main .crm-kpi-changes>div+div{padding-left:10px}.crm-main .crm-report-controls select{min-width:0;width:100%}}
