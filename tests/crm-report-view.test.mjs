@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor,formatCompactNumber} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -196,4 +196,13 @@ test('table rows of a short selection still get their change from the full histo
  assert.deepEqual(day.rows.map(r=>r.label),['Ut 27.10','St 28.10']);
  assert.equal(Math.round(day.rows[0].changePrev*100)/100,Math.round((43-51)/51*10000)/100);
  assert.equal(Math.round(day.rows[1].changeFirst*100)/100,Math.round((38-51)/51*10000)/100);
+});
+
+test('compact number format keeps small chart labels short',()=>{
+ assert.equal(formatCompactNumber(63.76),'64');
+ assert.equal(formatCompactNumber(152.9),'153');
+ assert.equal(formatCompactNumber(999.4),'999');
+ assert.equal(formatCompactNumber(1472.5).replace(/\s/g,''),'1,5k');
+ assert.equal(formatCompactNumber(2234.9).replace(/\s/g,''),'2,2k');
+ assert.equal(formatCompactNumber(null),'N/A');
 });

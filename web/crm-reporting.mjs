@@ -1,4 +1,4 @@
-import {kpiCard,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,SERIES_COLORS} from './crm-report-view.mjs';
+import {kpiCard,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,formatCompactNumber,SERIES_COLORS} from './crm-report-view.mjs';
 import {selectHistoricalPeriods,liveReportingRanges,mergeLiveReports,historicalPeriods} from './crm-report-history.mjs';
 // Owner-only live CRM reporting. The backend independently enforces OWNER_ADMIN and UAT denial.
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
@@ -106,8 +106,8 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   }
   if(section==='overview'&&weeks.length){
    // Part 1: each box gets the chart of the same metric directly under it.
-   const miniLabels=weeks.map(w=>w.label),minis=[['visits',SERIES_COLORS.visits,formatCount,undefined,'Návštevy po týždňoch'],['total',SERIES_COLORS.sales,formatEuro,formatEuroShort,'Predaj a MultiSport po týždňoch'],['cost',SERIES_COLORS.cost,formatEuro,formatEuroShort,'Priame náklady po týždňoch'],['profit',SERIES_COLORS.profit,formatEuro,formatEuroShort,'Hrubý zisk po týždňoch']];
-   cards.replaceChildren(...[...cards.children].map((card,i)=>{const [key,color,format,axisFormat,label]=minis[i],col=node('div',undefined,'crm-kpi-col'),box=node('div',undefined,'crm-chart-card crm-mini-chart');box.append(columnChart({labels:miniLabels,series:[{name:label,color,values:weeks.map(w=>w[key])}],format,axisFormat,ariaLabel:label,size:'compact'}));col.append(card,box);return col;}));
+   const miniLabels=weeks.map(w=>w.label),minis=[['visits',SERIES_COLORS.visits,formatCount,undefined,formatCount,'Návštevy po týždňoch'],['total',SERIES_COLORS.sales,formatEuro,formatEuroShort,formatCompactNumber,'Predaj a MultiSport po týždňoch'],['cost',SERIES_COLORS.cost,formatEuro,formatEuroShort,formatCompactNumber,'Priame náklady po týždňoch'],['profit',SERIES_COLORS.profit,formatEuro,formatEuroShort,formatCompactNumber,'Hrubý zisk po týždňoch']];
+   cards.replaceChildren(...[...cards.children].map((card,i)=>{const [key,color,format,axisFormat,valueFormat,label]=minis[i],col=node('div',undefined,'crm-kpi-col'),box=node('div',undefined,'crm-chart-card crm-mini-chart');box.append(columnChart({labels:miniLabels,series:[{name:label,color,values:weeks.map(w=>w[key])}],format,axisFormat,valueFormat,ariaLabel:label,size:'compact'}));col.append(card,box);return col;}));
   }
   if(cards.children.length)root.append(cards);
   const labels=weeks.map(w=>w.label),charts=node('div',undefined,'crm-chart-grid');let overviewTable=null;

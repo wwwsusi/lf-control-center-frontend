@@ -152,49 +152,67 @@ export function kpiCard({title,value,note,hint,change,neutral=false}){
  return card;
 }
 
-// Generic column chart. series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
-export function columnChart({labels,series,stacked=false,format=formatCount,axisFormat,bands=[],ariaLabel,height=240,size='normal'}){
- const wrap=node('div',undefined,'crm-chart');
+// Charts are drawn at the real pixel width of their container (ResizeObserver), so text keeps a constant 12 px
+// whatever the card width is, and value labels are shown whenever they fit without overlapping.
+const CHAR_W=7; // average glyph width in px at 12 px Inter (digits)
+export const formatNumberRound=v=>finite(v)?nf().format(Math.round(v)):'N/A';
+// Short form for small charts: 64, 153, 1,5k, 2,2k.
+export const formatCompactNumber=v=>!finite(v)?'N/A':Math.abs(v)>=1000?new Intl.NumberFormat('sk-SK',{maximumFractionDigits:1}).format(Math.round(v/100)/10)+'k':nf().format(Math.round(v));
+function responsive(wrap,baseWidth,draw){
+ draw(baseWidth);
+ if(typeof ResizeObserver!=='function')return;
+ let last=baseWidth;
+ new ResizeObserver(entries=>{const width=Math.floor(entries[0].contentRect.width);if(width>=160&&Math.abs(width-last)>=2){last=width;draw(width);}}).observe(wrap);
+}
+// series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
+export function columnChart({labels,series,stacked=false,format=formatCount,axisFormat,valueFormat,bands=[],ariaLabel,size='normal'}){
+ const compact=size==='compact',wrap=node('div',undefined,'crm-chart'),H=compact?170:270,vf=valueFormat??format;
  const legend=node('ul',undefined,'crm-legend');for(const s of series){const li=node('li');const sw=node('i');sw.style.background=s.color;li.append(sw,s.name);legend.append(li);}
- if(series.length>1)wrap.append(legend);
- const compact=size==='compact',narrow=typeof window!=='undefined'&&window.innerWidth<=560,W=compact?360:narrow?340:640,H=compact?150:narrow?Math.min(height,220):height;
- const all=series.flatMap(s=>s.values.filter(finite)),sums=stacked?labels.map((_,i)=>series.every(s=>finite(s.values[i]))?series.reduce((n,s)=>n+s.values[i],0):null).filter(finite):[];
- const scale=niceScale(all.length?Math.min(...all):0,Math.max(1,...sums,...all)),min=scale.min,span=(scale.max-scale.min)||1;
- const ticks=[];for(let v=scale.min;v<=scale.max+scale.step/2;v+=scale.step)ticks.push(Math.round(v*100)/100);
- const tickText=ticks.map(v=>(axisFormat??format)(v)),padL=Math.max(30,Math.max(...tickText.map(t=>t.length))*6+12),padR=8,padT=10,padB=28,innerW=W-padL-padR,innerH=H-padT-padB,y=v=>padT+innerH-((v-min)/span)*innerH;
- const svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg',preserveAspectRatio:'xMidYMid meet'});
- ticks.forEach((v,i)=>{const yy=y(v);svg.append(svgNode('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'crm-chart-grid'}),svgNode('text',{x:padL-6,y:yy+4,'text-anchor':'end',class:'crm-chart-axis'},tickText[i]));});
- const slot=innerW/Math.max(labels.length,1),every=Math.max(1,Math.ceil(44/slot)),group=stacked?1:series.length,bar=Math.max(2,Math.min(48,slot*0.72/group));
- labels.forEach((label,i)=>{
-  const x0=padL+slot*i+slot/2;
-  if(bands.includes(i))svg.append(svgNode('rect',{x:padL+slot*i,y:padT,width:slot,height:innerH,class:'crm-chart-band'}));
-  let stack=0;
-  series.forEach((s,k)=>{
-   const v=s.values[i],x=stacked?x0-bar/2:x0-(group*bar)/2+k*bar;
-   if(!finite(v)){svg.append(svgNode('text',{x:x+bar/2,y:y(0)-4,'text-anchor':'middle',class:'crm-chart-na'},'N/A'));return;}
-   const top=stacked?stack+v:v,base=stacked?stack:0,yTop=y(Math.max(top,base)),yBase=y(Math.min(top,base));
-   const rect=svgNode('rect',{x,y:yTop,width:bar,height:Math.max(1,yBase-yTop),rx:3,fill:s.color});rect.append(svgNode('title',{},label+' · '+s.name+': '+format(v)));svg.append(rect);
-   if(stacked)stack+=v;
+ const all=series.flatMap(s=>s.values.filter(finite)),sums=stacked?labels.map((_,i)=>series.every(s=>finite(s.values[i]))?series.reduce((n,s)=>n+s.values[i],0):null):[];
+ const scale=niceScale(all.length?Math.min(...all):0,Math.max(1,...sums.filter(finite),...all)),min=scale.min,span=(scale.max-scale.min)||1;
+ const ticks=[];for(let t=scale.min;t<=scale.max+scale.step/2;t+=scale.step)ticks.push(Math.round(t*100)/100);
+ const tickText=ticks.map(t=>(axisFormat??format)(t)),padL=Math.max(30,Math.max(...tickText.map(t=>t.length))*CHAR_W+12),padR=8,padT=24,padB=28,innerH=H-padT-padB,y=t=>padT+innerH-((t-min)/span)*innerH;
+ const draw=W=>{
+  const innerW=W-padL-padR,svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
+  ticks.forEach((t,i)=>{const yy=y(t);svg.append(svgNode('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'crm-chart-grid'}),svgNode('text',{x:padL-6,y:yy+4,'text-anchor':'end',class:'crm-chart-axis'},tickText[i]));});
+  const slot=innerW/Math.max(labels.length,1),labelW=Math.max(...labels.map(l=>String(l).length))*CHAR_W+10,every=Math.max(1,Math.ceil(labelW/slot)),group=stacked?1:series.length,bar=Math.max(2,Math.min(56,slot*0.7/group));
+  const fits=(text,room)=>text.length*CHAR_W+2<=room;
+  labels.forEach((label,i)=>{
+   const x0=padL+slot*i+slot/2;
+   if(bands.includes(i))svg.append(svgNode('rect',{x:padL+slot*i,y:padT,width:slot,height:innerH,class:'crm-chart-band'}));
+   let stack=0;
+   series.forEach((s,k)=>{
+    const val=s.values[i],x=stacked?x0-bar/2:x0-(group*bar)/2+k*bar;
+    if(!finite(val)){svg.append(svgNode('text',{x:x+bar/2,y:y(0)-4,'text-anchor':'middle',class:'crm-chart-na'},'N/A'));return;}
+    const top=stacked?stack+val:val,base=stacked?stack:0,yTop=y(Math.max(top,base)),yBase=y(Math.min(top,base)),h=Math.max(1,yBase-yTop);
+    const rect=svgNode('rect',{x,y:yTop,width:bar,height:h,rx:3,fill:s.color});rect.append(svgNode('title',{},label+' · '+s.name+': '+format(val)));svg.append(rect);
+    const text=vf(val);
+    if(stacked){if(h>=16&&fits(text,bar))svg.append(svgNode('text',{x:x+bar/2,y:yTop+h/2+4,'text-anchor':'middle',class:'crm-chart-seg'},text));stack+=val;}
+    else if(fits(text,group===1?slot-2:bar))svg.append(svgNode('text',{x:x+bar/2,y:val<0?yBase+14:yTop-6,'text-anchor':'middle',class:'crm-chart-value'},text));
+   });
+   if(stacked&&finite(sums[i])){const text=vf(sums[i]);if(fits(text,slot-2))svg.append(svgNode('text',{x:x0,y:y(sums[i])-6,'text-anchor':'middle',class:'crm-chart-value'},text));}
+   if(i%every===0)svg.append(svgNode('text',{x:x0,y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},label));
   });
-  if(i%every===0)svg.append(svgNode('text',{x:x0,y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},label));
- });
- wrap.append(svg);
+  wrap.replaceChildren(...(series.length>1?[legend]:[]),svg);
+ };
+ responsive(wrap,compact?300:600,draw);
  return wrap;
 }
 
 export function rankingChart({rows,format=formatEuro,color=SERIES_COLORS.sales,ariaLabel}){
- const wrap=node('div',undefined,'crm-chart');
- const narrow=typeof window!=='undefined'&&window.innerWidth<=560,rowH=30,W=narrow?340:640,padL=narrow?120:190,padR=narrow?64:76,H=Math.max(rows.length,1)*rowH+8;
- const svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
- const max=Math.max(1,...rows.map(r=>r.value));
- rows.forEach((r,i)=>{
-  const yy=4+i*rowH,w=Math.max(2,(W-padL-padR)*r.value/max);
-  const cut=narrow?16:26,label=r.label.length>cut?r.label.slice(0,cut-1)+'…':r.label;
-  svg.append(svgNode('text',{x:padL-8,y:yy+rowH/2+4,'text-anchor':'end',class:'crm-chart-axis'},label));
-  const rect=svgNode('rect',{x:padL,y:yy+4,width:w,height:rowH-10,rx:3,fill:color});rect.append(svgNode('title',{},r.label+': '+format(r.value)));svg.append(rect);
-  svg.append(svgNode('text',{x:padL+w+6,y:yy+rowH/2+4,class:'crm-chart-axis'},format(r.value)));
- });
- wrap.append(svg);return wrap;
+ const wrap=node('div',undefined,'crm-chart'),rowH=32,H=Math.max(rows.length,1)*rowH+8,max=Math.max(1,...rows.map(r=>r.value)),valueW=Math.max(...rows.map(r=>format(r.value).length),1)*CHAR_W+12;
+ const draw=W=>{
+  const padL=Math.min(210,Math.max(110,Math.round(W*0.34))),chars=Math.floor((padL-12)/CHAR_W),svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
+  rows.forEach((r,i)=>{
+   const yy=4+i*rowH,w=Math.max(2,(W-padL-valueW)*r.value/max),label=r.label.length>chars?r.label.slice(0,chars-1)+'…':r.label;
+   svg.append(svgNode('text',{x:padL-8,y:yy+rowH/2+4,'text-anchor':'end',class:'crm-chart-axis'},label));
+   const rect=svgNode('rect',{x:padL,y:yy+5,width:w,height:rowH-12,rx:3,fill:color});rect.append(svgNode('title',{},r.label+': '+format(r.value)));svg.append(rect);
+   svg.append(svgNode('text',{x:padL+w+6,y:yy+rowH/2+4,class:'crm-chart-value-end'},format(r.value)));
+  });
+  wrap.replaceChildren(svg);
+ };
+ responsive(wrap,560,draw);
+ return wrap;
 }
 
 export function chartCard(title,body,note,actions){
