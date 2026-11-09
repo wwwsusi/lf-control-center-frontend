@@ -199,7 +199,7 @@
 .crm-main .crm-report-period-group{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 10px;min-width:0}
 .crm-main .crm-report-period-group label{display:flex;align-items:center;gap:8px;color:var(--muted);margin:0}
 .crm-main .crm-report-period-group select,.crm-main .crm-report-period-group input,.crm-main .crm-report-period-group button{min-height:40px;padding-top:0;padding-bottom:0;font-size:15px}.crm-main .crm-report-period-group button{padding-left:12px;padding-right:12px}
-.crm-main .crm-report-period-group select{width:150px;max-width:100%;padding-left:10px;padding-right:6px}
+.crm-main .crm-report-period-group select{width:164px;max-width:100%;padding-left:10px;padding-right:6px}
 .crm-main .crm-report-period-group input[type=date]{width:132px;min-width:0;padding-left:10px;padding-right:6px}
 .crm-main .crm-report-period-group .crm-report-period{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0}
 .crm-main .crm-report-period-group .crm-error{flex-basis:100%;margin:0}.crm-main .crm-report-period-group .crm-error:empty{display:none}
@@ -239,3 +239,26 @@
 .crm-main .crm-chart-card-empty{align-self:start}
 .crm-main .crm-table-card>.crm-note{font-size:13px;margin:0 0 6px}
 .crm-main .crm-data-table tbody th,.crm-main .crm-data-table td{font-size:14px}
+/* ---- Reporting typography: ONE scale for the whole view (section 24, card title 18, value 34, body 14, note 13, small 12). ---- */
+.crm-main{--rep-section:600 24px/1.2 Oswald,system-ui,sans-serif;--rep-title:600 18px/1.25 Oswald,system-ui,sans-serif;--rep-text:Inter,system-ui,sans-serif}
+.crm-main .crm-report-head h2,.crm-main .crm-part-title{font:var(--rep-section);letter-spacing:.01em;margin:0}
+.crm-main .crm-kpi h3,.crm-main .crm-chart-card h3,.crm-main .crm-chart-head h3{font:var(--rep-title);letter-spacing:.01em;margin:0;color:var(--ink,#edf2fa)}
+.crm-main .crm-kpi-value{font:700 34px/1.1 var(--rep-text)}
+.crm-main .crm-kpi .crm-note{font:400 14px/1.4 var(--rep-text);color:var(--muted)}
+.crm-main .crm-chart-card>.crm-note,.crm-main .crm-table-card>.crm-note,.crm-main .crm-report-badge .crm-note{font:400 13px/1.4 var(--rep-text);color:var(--muted)}
+.crm-main .crm-kpi-changes span,.crm-main .crm-kpi-changes small{font:400 12px/1.3 var(--rep-text)}
+.crm-main .crm-kpi-delta{font:700 22px/1.2 var(--rep-text)}
+.crm-main .crm-chart-axis{fill:var(--muted);font:400 12px var(--rep-text)}
+.crm-main .crm-chart-value,.crm-main .crm-chart-value-end{fill:var(--ink,#edf2fa);font:600 12px var(--rep-text)}
+.crm-main .crm-chart-seg{fill:#0b1422;font:600 12px var(--rep-text)}
+.crm-main .crm-chart-na{fill:var(--warning);font:400 12px var(--rep-text)}
+.crm-main .crm-legend{font:400 13px/1.3 var(--rep-text)}
+.crm-main .crm-chip{font:600 13px var(--rep-text)}
+.crm-main .crm-data-table thead th{font:600 12px var(--rep-text)}
+.crm-main .crm-data-table tbody th,.crm-main .crm-data-table td{font:400 14px var(--rep-text)}
+.crm-main .crm-data-table tbody th{font-weight:700}
+.crm-main .crm-metric-pick,.crm-main .crm-report-period-group label{font:400 14px var(--rep-text)}
+.crm-main .crm-report-tabs button,.crm-main .crm-segment button,.crm-main .crm-report-period-group select,.crm-main .crm-report-period-group input,.crm-main .crm-report-period-group button,.crm-main .crm-metric-pick select,.crm-main .crm-report-head button{font:500 15px var(--rep-text)}
+.crm-main .crm-chart-grid-3{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.crm-main .crm-chart-grid>.crm-chart-card{display:flex;flex-direction:column}
+.crm-main .crm-chart-grid>.crm-chart-card>.crm-chart{margin-top:auto}

@@ -4,8 +4,8 @@
 const SVG_NS='http://www.w3.org/2000/svg';
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 const WEEKDAYS=['Po','Ut','St','Št','Pi','So','Ne'];
-const DIMENSIONS=['DAY','ADMISSION','PRODUCT','SERVICE'];
-export const SERIES_COLORS={visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',cost:'#f5cb77',profit:'#64d8df'};
+const DIMENSIONS=['DAY','DAY_ADMISSION','ADMISSION','PRODUCT','SERVICE'];
+export const SERIES_COLORS={weekend:'#8f9aa8',visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',cost:'#f5cb77',profit:'#64d8df'};
 
 const nf=(max=0)=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:max});
 export const formatCount=v=>finite(v)?nf().format(v):'N/A';
@@ -30,21 +30,42 @@ export function weekModel(rows){
  return [...rows].sort((a,b)=>a.period_start<b.period_start?-1:1).map(r=>({week:r.week,label:'W'+r.week,period_start:r.period_start,period_end:r.period_end,visits:r.visits??null,membership:r.membership??null,single:r.single??null,multisport:r.multisport??null,sales:r.recorded_sales??null,multisportValue:r.multisport_receivable??null,total:r.report_value??null,cost:r.product_cost??null,profit:r.product_profit??null,productUnits:r.product_units??null,passUnits:r.pass_units??null,trainingUnits:r.training_units??null}));
 }
 export function sumKnown(weeks,key){return weeks.length&&weeks.every(w=>finite(w[key]))?weeks.reduce((n,w)=>n+w[key],0):null;}
-// Weekly change = latest week vs the one before; cumulative change = latest week vs the first included week.
-export function changes(weeks,key){
- if(weeks.length<2)return {weekly:null,cumulative:null,latest:weeks.at(-1)?.label??null,previous:null,first:null};
- const last=weeks.at(-1),prev=weeks.at(-2),first=weeks[0];
- return {weekly:percentChange(last[key],prev[key]),cumulative:percentChange(last[key],first[key]),latest:last.label,previous:prev.label,first:first.label};
+// Changes use the whole history, not only the selected weeks, so a single selected week still has something to compare to:
+// weekly = latest selected week vs the week before it in all data; cumulative = vs the first week of all data.
+export function changes(weeks,key,allWeeks=weeks){
+ const last=weeks.at(-1);
+ if(!last)return {weekly:null,cumulative:null,latest:null,previous:null,first:null};
+ const index=allWeeks.findIndex(w=>w.period_start===last.period_start),prev=index>0?allWeeks[index-1]:null,first=index>=0?allWeeks[0]:null;
+ return {weekly:prev?percentChange(last[key],prev[key]):null,cumulative:first?percentChange(last[key],first[key]):null,latest:last.label,previous:prev?.label??null,first:first?.label??null};
 }
 const weekdayIndex=date=>(new Date(date+'T00:00:00Z').getUTCDay()+6)%7;
 export function dailySeries(facts,weeks){
  const starts=new Set(weeks.map(w=>w.period_start));
  return facts.filter(f=>f.dimension==='DAY'&&starts.has(f.period_start)).sort((a,b)=>a.key<b.key?-1:1).map(f=>({date:f.key,label:f.label,value:f.units,weekend:weekdayIndex(f.key)>=5}));
 }
+// Entry mix per day (key "YYYY-MM-DD:CODE"). A missing type stays null; it is never treated as zero.
+const MIX_CODES={ENTITLEMENT:'membership',SINGLE_ENTRY:'single',MULTISPORT:'multisport'};
+export function dailyMix(facts,weeks){
+ const starts=new Set(weeks.map(w=>w.period_start)),byDate=new Map();
+ for(const f of facts){
+  if(f.dimension!=='DAY_ADMISSION'||!starts.has(f.period_start))continue;
+  const [date,code]=f.key.split(':'),field=MIX_CODES[code];
+  if(!field||!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+  const row=byDate.get(date)??{date,membership:null,single:null,multisport:null};row[field]=f.units;byDate.set(date,row);
+ }
+ return [...byDate.values()].sort((a,b)=>a.date<b.date?-1:1);
+}
 // Averages use only observed days: a day without a record is not a zero-visit day.
 export function weekdayAverages(daily){
  return WEEKDAYS.map((label,i)=>{const days=daily.filter(d=>weekdayIndex(d.date)===i&&finite(d.value));return {label,days:days.length,average:days.length?days.reduce((n,d)=>n+d.value,0)/days.length:null,weekend:i>=5};});
 }
+// Average visits per weekday for the chart: full and short names, one decimal, weekends in grey. Days without a record are not zeros.
+const WEEKDAY_FULL=['Pondelok','Utorok','Streda','Štvrtok','Piatok','Sobota','Nedeľa'];
+export function weekdayChartData(daily){
+ const avg=weekdayAverages(daily);
+ return {labels:WEEKDAY_FULL,shortLabels:avg.map(a=>a.label),values:avg.map(a=>a.average===null?null:Math.round(a.average*10)/10),colors:avg.map(a=>a.weekend?SERIES_COLORS.weekend:SERIES_COLORS.visits),days:avg.map(a=>a.days)};
+}
+export const formatOneDecimal=v=>finite(v)?new Intl.NumberFormat('sk-SK',{maximumFractionDigits:1}).format(v):'N/A';
 // ---- Time grain (days / weeks / months). Months follow the week-based convention: a week belongs to the month that
 // contains its Thursday (ISO style), because weekly sheets cannot be split across months.
 const MONTH_FORMAT=new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric',timeZone:'UTC'});
@@ -67,26 +88,42 @@ export function visitsSeries(weeks,daily,grain){
  return {labels:weeks.map(w=>w.label),values:weeks.map(w=>w.visits),bands:[]};
 }
 // Entry mix per day is not stored yet, so the day grain returns null (the UI disables it instead of guessing).
-export function mixSeries(weeks,grain){
- if(grain==='day')return null;
+export function mixSeries(weeks,grain,daily=[]){
+ if(grain==='day'){
+  if(!daily.length)return null;
+  return {labels:daily.map(d=>d.date.slice(8,10)+'.'+d.date.slice(5,7)),membership:daily.map(d=>d.membership),single:daily.map(d=>d.single),multisport:daily.map(d=>d.multisport),bands:daily.flatMap((d,i)=>weekdayIndex(d.date)>=5?[i]:[])};
+ }
  const rows=grain==='month'?aggregateByMonth(weeks):weeks;
  return {labels:rows.map(r=>r.label),membership:rows.map(r=>r.membership),single:rows.map(r=>r.single),multisport:rows.map(r=>r.multisport)};
 }
 // ---- Data table under the charts. Same time grain as the charts; the two change columns refer to the chosen metric.
 export const TABLE_METRICS=[{key:'visits',label:'Návštevy'},{key:'total',label:'Predaj + MultiSport'},{key:'productUnits',label:'Produkty ks'},{key:'trainingUnits',label:'Tréningy'},{key:'passUnits',label:'Permanentky'}];
+// Per day only visits and, when stored, the entry mix exist; sales, products and trainings are weekly figures.
+const DAY_MIX_COLUMNS=[{key:'membershipEntries',label:'S permanentkou'},{key:'singleEntries',label:'Jednorazové'},{key:'multisportEntries',label:'MultiSport'}];
+export function tableMetricsFor(grain,hasDailyMix=false){return grain==='day'?[TABLE_METRICS[0],...(hasDailyMix?DAY_MIX_COLUMNS:[])]:TABLE_METRICS;}
 const GRAIN_WORDS={day:{adj:'denná',dative:'dňu'},week:{adj:'týždenná',dative:'týždňu'},month:{adj:'mesačná',dative:'mesiacu'}};
 const WEEKDAY_SHORT=['Po','Ut','St','Št','Pi','So','Ne'];
-export function tableModel(weeks,daily,grain,metric){
- let rows;
- if(grain==='day')rows=daily.map(d=>({label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,total:null,productUnits:null,trainingUnits:null,passUnits:null}));
- else if(grain==='month')rows=aggregateByMonth(weeks);
- else rows=weeks.map(w=>({label:w.label,visits:w.visits,total:w.total,productUnits:w.productUnits,trainingUnits:w.trainingUnits,passUnits:w.passUnits}));
- // Per day only visits are stored, so the change columns always follow visits there.
- const metricKey=grain==='day'||!TABLE_METRICS.some(m=>m.key===metric)?'visits':metric;
- const columns=grain==='day'?TABLE_METRICS.slice(0,1):TABLE_METRICS;
- const out=rows.map((r,i)=>({label:r.label,values:Object.fromEntries(columns.map(c=>[c.key,r[c.key]??null])),changePrev:i===0?null:percentChange(r[metricKey],rows[i-1][metricKey]),changeFirst:rows.length?percentChange(r[metricKey],rows[0][metricKey]):null}));
+// context = {weeks, daily, dailyMix} of the whole history: change columns of the shown rows are computed against the neighbouring rows of the
+// full series (so a single shown week still gets its change); months only use the selected weeks.
+export function tableModel(weeks,daily,grain,metric,dailyMixRows=[],context={}){
+ const allWeeks=context.weeks?.length?context.weeks:weeks,allDaily=context.daily?.length?context.daily:daily,allMix=context.dailyMix?.length?context.dailyMix:dailyMixRows;
+ const mixByDate=new Map(allMix.map(r=>[r.date,r]));
+ let full,shown;
+ if(grain==='day'){
+  full=allDaily.map(d=>{const m=mixByDate.get(d.date);return {id:d.date,label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,membershipEntries:m?.membership??null,singleEntries:m?.single??null,multisportEntries:m?.multisport??null};});
+  shown=new Set(daily.map(d=>d.date));
+ }else if(grain==='month'){
+  full=aggregateByMonth(weeks).map(r=>({...r,id:r.key}));shown=new Set(full.map(r=>r.id));
+ }else{
+  full=allWeeks.map(w=>({id:w.period_start,label:w.label,visits:w.visits,total:w.total,productUnits:w.productUnits,trainingUnits:w.trainingUnits,passUnits:w.passUnits}));
+  shown=new Set(weeks.map(w=>w.period_start));
+ }
+ const columns=tableMetricsFor(grain,allMix.length>0);
+ const metricKey=columns.some(m=>m.key===metric)?metric:'visits';
+ const out=[];
+ full.forEach((r,i)=>{if(!shown.has(r.id))return;out.push({label:r.label,values:Object.fromEntries(columns.map(c=>[c.key,r[c.key]??null])),changePrev:i===0?null:percentChange(r[metricKey],full[i-1][metricKey]),changeFirst:percentChange(r[metricKey],full[0][metricKey])});});
  const words=GRAIN_WORDS[grain]??GRAIN_WORDS.week;
- return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(rows[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:rows[0]?.label??null};
+ return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(full[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:full[0]?.label??null};
 }
 export function productRanking(facts,weeks,metric){
  const starts=new Set(weeks.map(w=>w.period_start)),by=new Map();
@@ -122,49 +159,70 @@ export function kpiCard({title,value,note,hint,change,neutral=false}){
  return card;
 }
 
-// Generic column chart. series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
-export function columnChart({labels,series,stacked=false,format=formatCount,axisFormat,bands=[],ariaLabel,height=240,size='normal'}){
- const wrap=node('div',undefined,'crm-chart');
+// Charts are drawn at the real pixel width of their container (ResizeObserver), so text keeps a constant 12 px
+// whatever the card width is, and value labels are shown whenever they fit without overlapping.
+const CHAR_W=7; // average glyph width in px at 12 px Inter (digits)
+const LABEL_CHAR_W=6.4; // letters are narrower than digits
+export const formatNumberRound=v=>finite(v)?nf().format(Math.round(v)):'N/A';
+// Short form for small charts: 64, 153, 1,5k, 2,2k.
+export const formatCompactNumber=v=>!finite(v)?'N/A':Math.abs(v)>=1000?new Intl.NumberFormat('sk-SK',{maximumFractionDigits:1}).format(Math.round(v/100)/10)+'k':nf().format(Math.round(v));
+function responsive(wrap,baseWidth,draw){
+ draw(baseWidth);
+ if(typeof ResizeObserver!=='function')return;
+ let last=baseWidth,frame=0;
+ // Redraw on the next animation frame: drawing inside the observer callback changes the observed element in the same frame,
+ // which WebKit reports as "ResizeObserver loop completed with undelivered notifications".
+ new ResizeObserver(entries=>{const width=Math.floor(entries[0].contentRect.width);if(width>=160&&Math.abs(width-last)>=2){last=width;cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>draw(width));}}).observe(wrap);
+}
+// series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
+export function columnChart({labels,shortLabels,series,stacked=false,format=formatCount,axisFormat,valueFormat,bands=[],ariaLabel,size='normal'}){
+ const compact=size==='compact',wrap=node('div',undefined,'crm-chart'),H=compact?170:270,vf=valueFormat??format;
  const legend=node('ul',undefined,'crm-legend');for(const s of series){const li=node('li');const sw=node('i');sw.style.background=s.color;li.append(sw,s.name);legend.append(li);}
- if(series.length>1)wrap.append(legend);
- const compact=size==='compact',narrow=typeof window!=='undefined'&&window.innerWidth<=560,W=compact?360:narrow?340:640,H=compact?150:narrow?Math.min(height,220):height;
- const all=series.flatMap(s=>s.values.filter(finite)),sums=stacked?labels.map((_,i)=>series.every(s=>finite(s.values[i]))?series.reduce((n,s)=>n+s.values[i],0):null).filter(finite):[];
- const scale=niceScale(all.length?Math.min(...all):0,Math.max(1,...sums,...all)),min=scale.min,span=(scale.max-scale.min)||1;
- const ticks=[];for(let v=scale.min;v<=scale.max+scale.step/2;v+=scale.step)ticks.push(Math.round(v*100)/100);
- const tickText=ticks.map(v=>(axisFormat??format)(v)),padL=Math.max(30,Math.max(...tickText.map(t=>t.length))*6+12),padR=8,padT=10,padB=28,innerW=W-padL-padR,innerH=H-padT-padB,y=v=>padT+innerH-((v-min)/span)*innerH;
- const svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg',preserveAspectRatio:'xMidYMid meet'});
- ticks.forEach((v,i)=>{const yy=y(v);svg.append(svgNode('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'crm-chart-grid'}),svgNode('text',{x:padL-6,y:yy+4,'text-anchor':'end',class:'crm-chart-axis'},tickText[i]));});
- const slot=innerW/Math.max(labels.length,1),every=Math.max(1,Math.ceil(44/slot)),group=stacked?1:series.length,bar=Math.max(2,Math.min(48,slot*0.72/group));
- labels.forEach((label,i)=>{
-  const x0=padL+slot*i+slot/2;
-  if(bands.includes(i))svg.append(svgNode('rect',{x:padL+slot*i,y:padT,width:slot,height:innerH,class:'crm-chart-band'}));
-  let stack=0;
-  series.forEach((s,k)=>{
-   const v=s.values[i],x=stacked?x0-bar/2:x0-(group*bar)/2+k*bar;
-   if(!finite(v)){svg.append(svgNode('text',{x:x+bar/2,y:y(0)-4,'text-anchor':'middle',class:'crm-chart-na'},'N/A'));return;}
-   const top=stacked?stack+v:v,base=stacked?stack:0,yTop=y(Math.max(top,base)),yBase=y(Math.min(top,base));
-   const rect=svgNode('rect',{x,y:yTop,width:bar,height:Math.max(1,yBase-yTop),rx:3,fill:s.color});rect.append(svgNode('title',{},label+' · '+s.name+': '+format(v)));svg.append(rect);
-   if(stacked)stack+=v;
+ const all=series.flatMap(s=>s.values.filter(finite)),sums=stacked?labels.map((_,i)=>series.every(s=>finite(s.values[i]))?series.reduce((n,s)=>n+s.values[i],0):null):[];
+ const scale=niceScale(all.length?Math.min(...all):0,Math.max(1,...sums.filter(finite),...all)),min=scale.min,span=(scale.max-scale.min)||1;
+ const ticks=[];for(let t=scale.min;t<=scale.max+scale.step/2;t+=scale.step)ticks.push(Math.round(t*100)/100);
+ const tickText=ticks.map(t=>(axisFormat??format)(t)),padL=Math.max(30,Math.max(...tickText.map(t=>t.length))*CHAR_W+12),padR=8,padT=24,padB=28,innerH=H-padT-padB,y=t=>padT+innerH-((t-min)/span)*innerH;
+ const draw=W=>{
+  const innerW=W-padL-padR,svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
+  ticks.forEach((t,i)=>{const yy=y(t);svg.append(svgNode('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'crm-chart-grid'}),svgNode('text',{x:padL-6,y:yy+4,'text-anchor':'end',class:'crm-chart-axis'},tickText[i]));});
+  const slot=innerW/Math.max(labels.length,1),useShort=shortLabels&&Math.max(...labels.map(l=>String(l).length))*LABEL_CHAR_W+8>slot,shown=useShort?shortLabels:labels,labelW=Math.max(...shown.map(l=>String(l).length))*LABEL_CHAR_W+8,every=Math.max(1,Math.ceil(labelW/slot)),group=stacked?1:series.length,bar=Math.max(2,Math.min(56,slot*0.7/group));
+  const fits=(text,room)=>text.length*CHAR_W+2<=room;
+  labels.forEach((label,i)=>{
+   const x0=padL+slot*i+slot/2;
+   if(bands.includes(i))svg.append(svgNode('rect',{x:padL+slot*i,y:padT,width:slot,height:innerH,class:'crm-chart-band'}));
+   let stack=0;
+   series.forEach((s,k)=>{
+    const val=s.values[i],x=stacked?x0-bar/2:x0-(group*bar)/2+k*bar;
+    if(!finite(val)){svg.append(svgNode('text',{x:x+bar/2,y:y(0)-4,'text-anchor':'middle',class:'crm-chart-na'},'N/A'));return;}
+    const top=stacked?stack+val:val,base=stacked?stack:0,yTop=y(Math.max(top,base)),yBase=y(Math.min(top,base)),h=Math.max(1,yBase-yTop);
+    const rect=svgNode('rect',{x,y:yTop,width:bar,height:h,rx:3,fill:s.colors?.[i]??s.color});rect.append(svgNode('title',{},label+' · '+s.name+': '+format(val)));svg.append(rect);
+    const text=vf(val);
+    if(stacked){if(h>=16&&fits(text,bar))svg.append(svgNode('text',{x:x+bar/2,y:yTop+h/2+4,'text-anchor':'middle',class:'crm-chart-seg'},text));stack+=val;}
+    else if(fits(text,group===1?slot-2:bar))svg.append(svgNode('text',{x:x+bar/2,y:val<0?yBase+14:yTop-6,'text-anchor':'middle',class:'crm-chart-value'},text));
+   });
+   if(stacked&&finite(sums[i])){const text=vf(sums[i]);if(fits(text,slot-2))svg.append(svgNode('text',{x:x0,y:y(sums[i])-6,'text-anchor':'middle',class:'crm-chart-value'},text));}
+   if(i%every===0)svg.append(svgNode('text',{x:x0,y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},shown[i]));
   });
-  if(i%every===0)svg.append(svgNode('text',{x:x0,y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},label));
- });
- wrap.append(svg);
+  wrap.replaceChildren(...(series.length>1?[legend]:[]),svg);
+ };
+ responsive(wrap,compact?300:600,draw);
  return wrap;
 }
 
 export function rankingChart({rows,format=formatEuro,color=SERIES_COLORS.sales,ariaLabel}){
- const wrap=node('div',undefined,'crm-chart');
- const narrow=typeof window!=='undefined'&&window.innerWidth<=560,rowH=30,W=narrow?340:640,padL=narrow?120:190,padR=narrow?64:76,H=Math.max(rows.length,1)*rowH+8;
- const svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
- const max=Math.max(1,...rows.map(r=>r.value));
- rows.forEach((r,i)=>{
-  const yy=4+i*rowH,w=Math.max(2,(W-padL-padR)*r.value/max);
-  const cut=narrow?16:26,label=r.label.length>cut?r.label.slice(0,cut-1)+'…':r.label;
-  svg.append(svgNode('text',{x:padL-8,y:yy+rowH/2+4,'text-anchor':'end',class:'crm-chart-axis'},label));
-  const rect=svgNode('rect',{x:padL,y:yy+4,width:w,height:rowH-10,rx:3,fill:color});rect.append(svgNode('title',{},r.label+': '+format(r.value)));svg.append(rect);
-  svg.append(svgNode('text',{x:padL+w+6,y:yy+rowH/2+4,class:'crm-chart-axis'},format(r.value)));
- });
- wrap.append(svg);return wrap;
+ const wrap=node('div',undefined,'crm-chart'),rowH=32,H=Math.max(rows.length,1)*rowH+8,max=Math.max(1,...rows.map(r=>r.value)),valueW=Math.max(...rows.map(r=>format(r.value).length),1)*CHAR_W+12;
+ const draw=W=>{
+  const padL=Math.min(210,Math.max(110,Math.round(W*0.34))),chars=Math.floor((padL-12)/CHAR_W),svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
+  rows.forEach((r,i)=>{
+   const yy=4+i*rowH,w=Math.max(2,(W-padL-valueW)*r.value/max),label=r.label.length>chars?r.label.slice(0,chars-1)+'…':r.label;
+   svg.append(svgNode('text',{x:padL-8,y:yy+rowH/2+4,'text-anchor':'end',class:'crm-chart-axis'},label));
+   const rect=svgNode('rect',{x:padL,y:yy+5,width:w,height:rowH-12,rx:3,fill:color});rect.append(svgNode('title',{},r.label+': '+format(r.value)));svg.append(rect);
+   svg.append(svgNode('text',{x:padL+w+6,y:yy+rowH/2+4,class:'crm-chart-value-end'},format(r.value)));
+  });
+  wrap.replaceChildren(svg);
+ };
+ responsive(wrap,560,draw);
+ return wrap;
 }
 
 export function chartCard(title,body,note,actions){

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor,formatCompactNumber,weekdayChartData,formatOneDecimal,SERIES_COLORS} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -130,4 +130,89 @@ test('unknown values keep their changes unknown',()=>{
  const model=tableModel(weeks,[],'week','passUnits');
  assert.equal(model.rows[1].changePrev,null);assert.equal(model.rows[1].changeFirst,null);
  assert.equal(TABLE_METRICS.length,5);
+});
+
+const mixFact=(date,code,units,start='2026-10-26')=>({period_start:start,dimension:'DAY_ADMISSION',key:date+':'+code,label:code,units,value_eur:null,cost_eur:null});
+
+test('daily mix is read from DAY_ADMISSION facts and never fills a missing type with zero',()=>{
+ const weeks=weekModel([row(44,'2026-10-26')]);
+ const facts=normalizeFacts({facts:[mixFact('2026-10-27','ENTITLEMENT',20),mixFact('2026-10-27','SINGLE_ENTRY',10),mixFact('2026-10-27','MULTISPORT',13),mixFact('2026-10-26','ENTITLEMENT',30),mixFact('2026-11-09','ENTITLEMENT',5,'2026-11-09')]});
+ assert.equal(facts.length,5);
+ const mix=dailyMix(facts,weeks);
+ assert.deepEqual(mix,[{date:'2026-10-26',membership:30,single:null,multisport:null},{date:'2026-10-27',membership:20,single:10,multisport:13}]);
+ assert.deepEqual(dailyMix([],weeks),[]);
+ assert.equal(normalizeFacts({facts:[{...mixFact('2026-10-27','ENTITLEMENT',1),dimension:'DAY_MIX'}]}).length,0);
+});
+
+test('mix series per day carries weekend bands; without daily data the day grain stays unavailable',()=>{
+ const weeks=weekModel([row(44,'2026-10-26')]);
+ const mix=[{date:'2026-10-30',membership:20,single:10,multisport:10},{date:'2026-10-31',membership:8,single:7,multisport:5}];
+ const day=mixSeries(weeks,'day',mix);
+ assert.deepEqual(day.labels,['30.10','31.10']);assert.deepEqual(day.membership,[20,8]);assert.deepEqual(day.bands,[1]);
+ assert.equal(mixSeries(weeks,'day',[]),null);assert.equal(mixSeries(weeks,'day'),null);
+ assert.equal(mixSeries(weeks,'week').labels.length,1);
+});
+
+test('day-grain table gains the three entry types and lets the change follow any of them',()=>{
+ const weeks=weekModel([row(44,'2026-10-26')]);
+ const daily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-10-27',label:'27.10.2026',value:43,weekend:false}];
+ const mix=[{date:'2026-10-26',membership:30,single:15,multisport:6},{date:'2026-10-27',membership:20,single:15,multisport:8}];
+ assert.deepEqual(tableMetricsFor('day',false).map(m=>m.key),['visits']);
+ assert.deepEqual(tableMetricsFor('day',true).map(m=>m.key),['visits','membershipEntries','singleEntries','multisportEntries']);
+ assert.equal(tableMetricsFor('week').length,5);
+ const model=tableModel(weeks,daily,'day','membershipEntries',mix);
+ assert.equal(model.metricKey,'membershipEntries');
+ assert.deepEqual(model.rows[1].values,{visits:43,membershipEntries:20,singleEntries:15,multisportEntries:8});
+ assert.equal(Math.round(model.rows[1].changePrev*100)/100,-33.33);
+ assert.equal(tableModel(weeks,daily,'day','membershipEntries').metricKey,'visits');   // without daily mix only visits exist
+});
+
+test('a single selected week is compared with the history: previous week and the first week of all data',()=>{
+ const all=weekModel(sheet.concat([row(45,'2026-11-02',{visits:285,report_value:2110.3,product_units:16,training_units:42,pass_units:10})]));
+ const selected=all.slice(-1);
+ const c=changes(selected,'visits',all);
+ assert.equal(Math.round(c.weekly*100)/100,Math.round((285-234)/234*10000)/100);
+ assert.equal(Math.round(c.cumulative*100)/100,Math.round((285-216)/216*10000)/100);
+ assert.deepEqual([c.latest,c.previous,c.first],['W45','W44','W40']);
+ // the first week of all data has no previous week; a week that is not in the history gets no change at all
+ assert.equal(changes(all.slice(0,1),'visits',all).weekly,null);
+ assert.equal(changes([{...all[1],period_start:'2030-01-01'}],'visits',all).cumulative,null);
+ assert.deepEqual(changes([],'visits',all),{weekly:null,cumulative:null,latest:null,previous:null,first:null});
+});
+
+test('table rows of a short selection still get their change from the full history',()=>{
+ const all=weekModel(sheet.concat([row(45,'2026-11-02',{visits:285,report_value:2110.3,product_units:16,training_units:42,pass_units:10})]));
+ const only45=tableModel(all.slice(-1),[],'week','visits',[],{weeks:all});
+ assert.deepEqual(only45.rows.map(r=>r.label),['W45']);
+ assert.equal(Math.round(only45.rows[0].changePrev*100)/100,Math.round((285-234)/234*10000)/100);
+ assert.equal(Math.round(only45.rows[0].changeFirst*100)/100,Math.round((285-216)/216*10000)/100);
+ assert.match(only45.note,/Zmena kum = oproti W40/);
+ const w42to44=tableModel(all.slice(2,5),[],'week','passUnits',[],{weeks:all});
+ assert.deepEqual(w42to44.rows.map(r=>r.label),['W42','W43','W44']);
+ assert.equal(Math.round(w42to44.rows[0].changePrev*100)/100,12.5);          // W42 vs W41, although W41 is not shown
+ assert.equal(Math.round(w42to44.rows[0].changeFirst*100)/100,63.64);        // vs W40
+ const fullDaily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-10-27',label:'27.10.2026',value:43,weekend:false},{date:'2026-10-28',label:'28.10.2026',value:38,weekend:false}];
+ const day=tableModel(all,fullDaily.slice(1,3),'day','visits',[],{weeks:all,daily:fullDaily});
+ assert.deepEqual(day.rows.map(r=>r.label),['Ut 27.10','St 28.10']);
+ assert.equal(Math.round(day.rows[0].changePrev*100)/100,Math.round((43-51)/51*10000)/100);
+ assert.equal(Math.round(day.rows[1].changeFirst*100)/100,Math.round((38-51)/51*10000)/100);
+});
+
+test('compact number format keeps small chart labels short',()=>{
+ assert.equal(formatCompactNumber(63.76),'64');
+ assert.equal(formatCompactNumber(152.9),'153');
+ assert.equal(formatCompactNumber(999.4),'999');
+ assert.equal(formatCompactNumber(1472.5).replace(/\s/g,''),'1,5k');
+ assert.equal(formatCompactNumber(2234.9).replace(/\s/g,''),'2,2k');
+ assert.equal(formatCompactNumber(null),'N/A');
+});
+
+test('weekday chart data: full and short names, one decimal, weekend colour, unknown days stay null',()=>{
+ const daily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-11-02',label:'02.11.2026',value:58,weekend:false},{date:'2026-10-31',label:'31.10.2026',value:20,weekend:true},{date:'2026-10-27',label:'27.10.2026',value:43,weekend:false}];
+ const d=weekdayChartData(daily);
+ assert.equal(d.labels.length,7);assert.equal(d.labels[0],'Pondelok');assert.equal(d.shortLabels[6],'Ne');
+ assert.deepEqual(d.values,[54.5,43,null,null,null,20,null]);          // Monday average of 51 and 58; no record = null
+ assert.equal(d.colors[0],SERIES_COLORS.visits);assert.equal(d.colors[5],SERIES_COLORS.weekend);assert.equal(d.colors[6],SERIES_COLORS.weekend);
+ assert.deepEqual(d.days,[2,1,0,0,0,1,0]);
+ assert.equal(formatOneDecimal(54.5),'54,5');assert.equal(formatOneDecimal(null),'N/A');
 });
