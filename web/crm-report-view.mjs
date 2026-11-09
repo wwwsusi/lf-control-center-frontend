@@ -169,8 +169,10 @@ export const formatCompactNumber=v=>!finite(v)?'N/A':Math.abs(v)>=1000?new Intl.
 function responsive(wrap,baseWidth,draw){
  draw(baseWidth);
  if(typeof ResizeObserver!=='function')return;
- let last=baseWidth;
- new ResizeObserver(entries=>{const width=Math.floor(entries[0].contentRect.width);if(width>=160&&Math.abs(width-last)>=2){last=width;draw(width);}}).observe(wrap);
+ let last=baseWidth,frame=0;
+ // Redraw on the next animation frame: drawing inside the observer callback changes the observed element in the same frame,
+ // which WebKit reports as "ResizeObserver loop completed with undelivered notifications".
+ new ResizeObserver(entries=>{const width=Math.floor(entries[0].contentRect.width);if(width>=160&&Math.abs(width-last)>=2){last=width;cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>draw(width));}}).observe(wrap);
 }
 // series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
 export function columnChart({labels,shortLabels,series,stacked=false,format=formatCount,axisFormat,valueFormat,bands=[],ariaLabel,size='normal'}){
