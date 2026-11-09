@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor,formatCompactNumber} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor,formatCompactNumber,weekdayChartData,formatOneDecimal,SERIES_COLORS} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -205,4 +205,14 @@ test('compact number format keeps small chart labels short',()=>{
  assert.equal(formatCompactNumber(1472.5).replace(/\s/g,''),'1,5k');
  assert.equal(formatCompactNumber(2234.9).replace(/\s/g,''),'2,2k');
  assert.equal(formatCompactNumber(null),'N/A');
+});
+
+test('weekday chart data: full and short names, one decimal, weekend colour, unknown days stay null',()=>{
+ const daily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-11-02',label:'02.11.2026',value:58,weekend:false},{date:'2026-10-31',label:'31.10.2026',value:20,weekend:true},{date:'2026-10-27',label:'27.10.2026',value:43,weekend:false}];
+ const d=weekdayChartData(daily);
+ assert.equal(d.labels.length,7);assert.equal(d.labels[0],'Pondelok');assert.equal(d.shortLabels[6],'Ne');
+ assert.deepEqual(d.values,[54.5,43,null,null,null,20,null]);          // Monday average of 51 and 58; no record = null
+ assert.equal(d.colors[0],SERIES_COLORS.visits);assert.equal(d.colors[5],SERIES_COLORS.weekend);assert.equal(d.colors[6],SERIES_COLORS.weekend);
+ assert.deepEqual(d.days,[2,1,0,0,0,1,0]);
+ assert.equal(formatOneDecimal(54.5),'54,5');assert.equal(formatOneDecimal(null),'N/A');
 });

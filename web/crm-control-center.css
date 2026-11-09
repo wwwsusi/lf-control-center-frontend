@@ -259,3 +259,6 @@
 .crm-main .crm-data-table tbody th{font-weight:700}
 .crm-main .crm-metric-pick,.crm-main .crm-report-period-group label{font:400 14px var(--rep-text)}
 .crm-main .crm-report-tabs button,.crm-main .crm-segment button,.crm-main .crm-report-period-group select,.crm-main .crm-report-period-group input,.crm-main .crm-report-period-group button,.crm-main .crm-metric-pick select,.crm-main .crm-report-head button{font:500 15px var(--rep-text)}
+.crm-main .crm-chart-grid-3{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.crm-main .crm-chart-grid>.crm-chart-card{display:flex;flex-direction:column}
+.crm-main .crm-chart-grid>.crm-chart-card>.crm-chart{margin-top:auto}

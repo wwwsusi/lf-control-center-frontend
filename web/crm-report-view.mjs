@@ -5,7 +5,7 @@ const SVG_NS='http://www.w3.org/2000/svg';
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 const WEEKDAYS=['Po','Ut','St','Št','Pi','So','Ne'];
 const DIMENSIONS=['DAY','DAY_ADMISSION','ADMISSION','PRODUCT','SERVICE'];
-export const SERIES_COLORS={visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',cost:'#f5cb77',profit:'#64d8df'};
+export const SERIES_COLORS={weekend:'#8f9aa8',visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',cost:'#f5cb77',profit:'#64d8df'};
 
 const nf=(max=0)=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:max});
 export const formatCount=v=>finite(v)?nf().format(v):'N/A';
@@ -59,6 +59,13 @@ export function dailyMix(facts,weeks){
 export function weekdayAverages(daily){
  return WEEKDAYS.map((label,i)=>{const days=daily.filter(d=>weekdayIndex(d.date)===i&&finite(d.value));return {label,days:days.length,average:days.length?days.reduce((n,d)=>n+d.value,0)/days.length:null,weekend:i>=5};});
 }
+// Average visits per weekday for the chart: full and short names, one decimal, weekends in grey. Days without a record are not zeros.
+const WEEKDAY_FULL=['Pondelok','Utorok','Streda','Štvrtok','Piatok','Sobota','Nedeľa'];
+export function weekdayChartData(daily){
+ const avg=weekdayAverages(daily);
+ return {labels:WEEKDAY_FULL,shortLabels:avg.map(a=>a.label),values:avg.map(a=>a.average===null?null:Math.round(a.average*10)/10),colors:avg.map(a=>a.weekend?SERIES_COLORS.weekend:SERIES_COLORS.visits),days:avg.map(a=>a.days)};
+}
+export const formatOneDecimal=v=>finite(v)?new Intl.NumberFormat('sk-SK',{maximumFractionDigits:1}).format(v):'N/A';
 // ---- Time grain (days / weeks / months). Months follow the week-based convention: a week belongs to the month that
 // contains its Thursday (ISO style), because weekly sheets cannot be split across months.
 const MONTH_FORMAT=new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric',timeZone:'UTC'});
@@ -155,6 +162,7 @@ export function kpiCard({title,value,note,hint,change,neutral=false}){
 // Charts are drawn at the real pixel width of their container (ResizeObserver), so text keeps a constant 12 px
 // whatever the card width is, and value labels are shown whenever they fit without overlapping.
 const CHAR_W=7; // average glyph width in px at 12 px Inter (digits)
+const LABEL_CHAR_W=6.4; // letters are narrower than digits
 export const formatNumberRound=v=>finite(v)?nf().format(Math.round(v)):'N/A';
 // Short form for small charts: 64, 153, 1,5k, 2,2k.
 export const formatCompactNumber=v=>!finite(v)?'N/A':Math.abs(v)>=1000?new Intl.NumberFormat('sk-SK',{maximumFractionDigits:1}).format(Math.round(v/100)/10)+'k':nf().format(Math.round(v));
@@ -165,7 +173,7 @@ function responsive(wrap,baseWidth,draw){
  new ResizeObserver(entries=>{const width=Math.floor(entries[0].contentRect.width);if(width>=160&&Math.abs(width-last)>=2){last=width;draw(width);}}).observe(wrap);
 }
 // series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
-export function columnChart({labels,series,stacked=false,format=formatCount,axisFormat,valueFormat,bands=[],ariaLabel,size='normal'}){
+export function columnChart({labels,shortLabels,series,stacked=false,format=formatCount,axisFormat,valueFormat,bands=[],ariaLabel,size='normal'}){
  const compact=size==='compact',wrap=node('div',undefined,'crm-chart'),H=compact?170:270,vf=valueFormat??format;
  const legend=node('ul',undefined,'crm-legend');for(const s of series){const li=node('li');const sw=node('i');sw.style.background=s.color;li.append(sw,s.name);legend.append(li);}
  const all=series.flatMap(s=>s.values.filter(finite)),sums=stacked?labels.map((_,i)=>series.every(s=>finite(s.values[i]))?series.reduce((n,s)=>n+s.values[i],0):null):[];
@@ -175,7 +183,7 @@ export function columnChart({labels,series,stacked=false,format=formatCount,axis
  const draw=W=>{
   const innerW=W-padL-padR,svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
   ticks.forEach((t,i)=>{const yy=y(t);svg.append(svgNode('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'crm-chart-grid'}),svgNode('text',{x:padL-6,y:yy+4,'text-anchor':'end',class:'crm-chart-axis'},tickText[i]));});
-  const slot=innerW/Math.max(labels.length,1),labelW=Math.max(...labels.map(l=>String(l).length))*CHAR_W+10,every=Math.max(1,Math.ceil(labelW/slot)),group=stacked?1:series.length,bar=Math.max(2,Math.min(56,slot*0.7/group));
+  const slot=innerW/Math.max(labels.length,1),useShort=shortLabels&&Math.max(...labels.map(l=>String(l).length))*LABEL_CHAR_W+8>slot,shown=useShort?shortLabels:labels,labelW=Math.max(...shown.map(l=>String(l).length))*LABEL_CHAR_W+8,every=Math.max(1,Math.ceil(labelW/slot)),group=stacked?1:series.length,bar=Math.max(2,Math.min(56,slot*0.7/group));
   const fits=(text,room)=>text.length*CHAR_W+2<=room;
   labels.forEach((label,i)=>{
    const x0=padL+slot*i+slot/2;
@@ -185,13 +193,13 @@ export function columnChart({labels,series,stacked=false,format=formatCount,axis
     const val=s.values[i],x=stacked?x0-bar/2:x0-(group*bar)/2+k*bar;
     if(!finite(val)){svg.append(svgNode('text',{x:x+bar/2,y:y(0)-4,'text-anchor':'middle',class:'crm-chart-na'},'N/A'));return;}
     const top=stacked?stack+val:val,base=stacked?stack:0,yTop=y(Math.max(top,base)),yBase=y(Math.min(top,base)),h=Math.max(1,yBase-yTop);
-    const rect=svgNode('rect',{x,y:yTop,width:bar,height:h,rx:3,fill:s.color});rect.append(svgNode('title',{},label+' · '+s.name+': '+format(val)));svg.append(rect);
+    const rect=svgNode('rect',{x,y:yTop,width:bar,height:h,rx:3,fill:s.colors?.[i]??s.color});rect.append(svgNode('title',{},label+' · '+s.name+': '+format(val)));svg.append(rect);
     const text=vf(val);
     if(stacked){if(h>=16&&fits(text,bar))svg.append(svgNode('text',{x:x+bar/2,y:yTop+h/2+4,'text-anchor':'middle',class:'crm-chart-seg'},text));stack+=val;}
     else if(fits(text,group===1?slot-2:bar))svg.append(svgNode('text',{x:x+bar/2,y:val<0?yBase+14:yTop-6,'text-anchor':'middle',class:'crm-chart-value'},text));
    });
    if(stacked&&finite(sums[i])){const text=vf(sums[i]);if(fits(text,slot-2))svg.append(svgNode('text',{x:x0,y:y(sums[i])-6,'text-anchor':'middle',class:'crm-chart-value'},text));}
-   if(i%every===0)svg.append(svgNode('text',{x:x0,y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},label));
+   if(i%every===0)svg.append(svgNode('text',{x:x0,y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},shown[i]));
   });
   wrap.replaceChildren(...(series.length>1?[legend]:[]),svg);
  };
