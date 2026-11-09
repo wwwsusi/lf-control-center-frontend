@@ -1,7 +1,5 @@
 // New reconstruction: transient state; every mutation requires an explicit click.
 const text=(tag,value)=>{const el=document.createElement(tag);el.textContent=String(value);return el;};
-const cents=value=>{if(!/^\d+\.\d{2}$/.test(value))throw Error('MONEY');return BigInt(value.replace('.',''));};
-const money=value=>`${value/100n}.${String(value%100n).padStart(2,'0')}`;
 const eur=value=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR',maximumFractionDigits:4}).format(Number(value));
 const quantity=value=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:3}).format(Number(value));
 export function purchaseCustomerReference(customer,anonymous=false){
@@ -15,7 +13,7 @@ export function purchaseLine(item,kind,count,identity,activationMode){
  if(monthly?(!identity?.customer_id||!item.requires_customer||!item.activation_choices.includes(activationMode)):activationMode!==undefined)throw Error('Invalid activation choice');
  return {[kind==='products'?'product_id':'service_id']:item.id,quantity:String(count),catalogue_fingerprint:item.catalogue_fingerprint,...(monthly?{activation_mode:activationMode}:{})};
 }
-export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},onPaymentConfirmed=()=>{},saved=false,customer=null,anonymous=false}){
+export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},saved=false,customer=null,anonymous=false}){
  const identity=saved?null:purchaseCustomerReference(customer,anonymous);
  let live=true,generation=0,busy=false,pending=null,saleId=null,current=null,notice='',items=[],next=null,catalogueKind='products';
  const cart=new Map(),controller=new AbortController();
@@ -31,7 +29,7 @@ export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},onP
   if(data.operation?.state==='REJECTED'){pending=null;notice='Operácia bola zamietnutá. Skontroluj uložený predaj.';return;}
   if(data.operation?.state!=='COMPLETED'||!data.projection)throw Error('UNVERIFIED');
   if(pending.type==='CREATE_SALE'){saleId=data.projection.id;cart.clear();}
-  const confirmed=pending.type==='CONFIRM_SALE',paid=pending.type==='CONFIRM_PAYMENT';pending=null;await loadSale(saleId);if(live&&confirmed)onSaleConfirmed();if(live&&paid)onPaymentConfirmed();
+  const confirmed=pending.type==='CONFIRM_SALE';pending=null;await loadSale(saleId);if(live&&confirmed)onSaleConfirmed();
  }
  async function mutate(type,payload){
   if(!live||busy||pending)return;
@@ -48,10 +46,10 @@ export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},onP
  function render(){
   if(!live)return;root.replaceChildren(text('h2',saleId?'Uložený predaj':customer?'Nákup · '+customer.name:'Nákup bez klienta'));
   if(notice)root.append(text('p',notice));
-  if(pending){root.append(text('p','Nevytváraj nový predaj ani platbu. Najprv over výsledok pôvodnej operácie.'),button('Overiť tú istú operáciu',verify));return;}
+  if(pending){root.append(text('p','Nevytváraj nový nákup. Najprv over výsledok pôvodnej operácie.'),button('Overiť tú istú operáciu',verify));return;}
   if(saleId){
    if(!current){root.append(button('Obnoviť uložený predaj',()=>loadSale(saleId)));return;}
-   const {sale,payment,catalogue,resume_blocked}=current;root.append(text('p',sale.customer_id?'Klientka: '+sale.customer_name:'Bez identifikovanej klientky'));root.append(text('p',`Spolu ${eur(sale.total)} · Prijaté ${eur(sale.paid)}`));
+   const {sale,catalogue,resume_blocked}=current;root.append(text('p',sale.customer_id?'Klientka: '+sale.customer_name:'Bez identifikovanej klientky'));root.append(text('p',`Hodnota nákupu ${eur(sale.total)}`));
    const list=document.createElement('ul');for(const line of sale.lines)list.append(text('li',`${line.display_name_at_sale} · ${quantity(line.quantity)} ${line.unit_at_sale} · ${eur(line.line_total)}${line.activation_mode_at_sale?' · '+({PURCHASE_DATE:'Aktivácia dňom nákupu',FIRST_USE:'Aktivácia prvým vstupom'}[line.activation_mode_at_sale]||'Aktivácia na kontrolu'):''}`));root.append(list);
    if(sale.status==='CANCELLED'){root.append(text('p','Predaj bol stornovaný.'));return;}
    if(resume_blocked){root.append(text('p','Predaj vyžaduje kontrolu vlastníka. Zmenili sa údaje alebo katalóg.'),button('Obnoviť uložený predaj',()=>loadSale(saleId)));return;}
@@ -59,13 +57,9 @@ export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},onP
     const confirm=button('Potvrdiť predaj',()=>mutate('CONFIRM_SALE',{sale_id:sale.id,expected_revision:sale.revision,customer_revision:sale.customer_id?sale.customer_revision:null,line_fingerprint:sale.line_fingerprint,catalogue}));confirm.disabled=busy||!catalogue.length;root.append(confirm);return;
    }
    if(sale.status!=='CONFIRMED'){root.append(text('p','Nákup zatiaľ nie je potvrdený.'));return;}
-   if(payment){root.append(text('p',`Existujúca platba ${eur(payment.amount)} · ${{CASH:'Hotovosť',CARD:'Karta'}[payment.method]||'Na kontrolu'}`),text('p',payment.method==='CARD'?'Potvrď iba úspešnú platbu na termináli. CRM platbu kartou nevykonáva.':'Potvrď až po skutočnom prevzatí hotovosti.'),button('Potvrdiť prijatie platby',()=>mutate('CONFIRM_PAYMENT',{payment_id:payment.id,expected_revision:payment.revision,sale_revision:sale.revision})));return;}
-   let outstanding;try{outstanding=cents(sale.total)-cents(sale.paid);}catch{root.append(text('p','Suma vyžaduje kontrolu.'));return;}
-   if(outstanding<0n){root.append(text('p','Zaznamenané úhrady prevyšujú cenu predaja. Potrebná je kontrola majiteľky.'));return;}
-   if(outstanding>0n){const label=text('label','Spôsob platby'),select=document.createElement('select');for(const [value,name]of [['CASH','Hotovosť'],['CARD','Karta']]){const o=text('option',name);o.value=value;select.append(o);}select.disabled=busy;label.append(select);root.append(text('p',`Zostáva prijať ${eur(money(outstanding))}`),label,button('Zaznamenať platbu',()=>mutate('CREATE_PAYMENT',{sale_id:sale.id,sale_revision:sale.revision,method:select.value,amount:money(outstanding)})));return;}
-   root.append(text('p','Predaj a prijatie platby sú potvrdené.'));
+   root.append(text('p','Nákup je zaznamenaný. Platbu vybavuje pokladňa mimo CRM.'));
    if(identity)root.append(button('Ďalší nákup',()=>{saleId=null;current=null;notice='';loadCatalogue();}));
-   else root.append(text('p','Pre ďalší nákup znovu vyber klientku alebo nákup bez identifikácie v úvodnej ponuke.'));return;
+   else root.append(text('p','Pre ďalší nákup vyber klientku alebo anonymný nákup v úvodnej ponuke.'));return;
   }
   root.append(text('p',customer?'Nákup sa uloží ku klientke '+customer.name+'. Jej existujúca permanentka zostáva zachovaná.':'Predaj bez identifikovanej klientky. Nevytvára návštevu ani permanentku.'));
   const tabs=document.createElement('div');tabs.className='crm-catalogue-tabs';
