@@ -4,7 +4,7 @@
 const SVG_NS='http://www.w3.org/2000/svg';
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 const WEEKDAYS=['Po','Ut','St','Št','Pi','So','Ne'];
-const DIMENSIONS=['DAY','ADMISSION','PRODUCT','SERVICE'];
+const DIMENSIONS=['DAY','DAY_ADMISSION','ADMISSION','PRODUCT','SERVICE'];
 export const SERIES_COLORS={visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',cost:'#f5cb77',profit:'#64d8df'};
 
 const nf=(max=0)=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:max});
@@ -41,6 +41,18 @@ export function dailySeries(facts,weeks){
  const starts=new Set(weeks.map(w=>w.period_start));
  return facts.filter(f=>f.dimension==='DAY'&&starts.has(f.period_start)).sort((a,b)=>a.key<b.key?-1:1).map(f=>({date:f.key,label:f.label,value:f.units,weekend:weekdayIndex(f.key)>=5}));
 }
+// Entry mix per day (key "YYYY-MM-DD:CODE"). A missing type stays null; it is never treated as zero.
+const MIX_CODES={ENTITLEMENT:'membership',SINGLE_ENTRY:'single',MULTISPORT:'multisport'};
+export function dailyMix(facts,weeks){
+ const starts=new Set(weeks.map(w=>w.period_start)),byDate=new Map();
+ for(const f of facts){
+  if(f.dimension!=='DAY_ADMISSION'||!starts.has(f.period_start))continue;
+  const [date,code]=f.key.split(':'),field=MIX_CODES[code];
+  if(!field||!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+  const row=byDate.get(date)??{date,membership:null,single:null,multisport:null};row[field]=f.units;byDate.set(date,row);
+ }
+ return [...byDate.values()].sort((a,b)=>a.date<b.date?-1:1);
+}
 // Averages use only observed days: a day without a record is not a zero-visit day.
 export function weekdayAverages(daily){
  return WEEKDAYS.map((label,i)=>{const days=daily.filter(d=>weekdayIndex(d.date)===i&&finite(d.value));return {label,days:days.length,average:days.length?days.reduce((n,d)=>n+d.value,0)/days.length:null,weekend:i>=5};});
@@ -67,23 +79,29 @@ export function visitsSeries(weeks,daily,grain){
  return {labels:weeks.map(w=>w.label),values:weeks.map(w=>w.visits),bands:[]};
 }
 // Entry mix per day is not stored yet, so the day grain returns null (the UI disables it instead of guessing).
-export function mixSeries(weeks,grain){
- if(grain==='day')return null;
+export function mixSeries(weeks,grain,daily=[]){
+ if(grain==='day'){
+  if(!daily.length)return null;
+  return {labels:daily.map(d=>d.date.slice(8,10)+'.'+d.date.slice(5,7)),membership:daily.map(d=>d.membership),single:daily.map(d=>d.single),multisport:daily.map(d=>d.multisport),bands:daily.flatMap((d,i)=>weekdayIndex(d.date)>=5?[i]:[])};
+ }
  const rows=grain==='month'?aggregateByMonth(weeks):weeks;
  return {labels:rows.map(r=>r.label),membership:rows.map(r=>r.membership),single:rows.map(r=>r.single),multisport:rows.map(r=>r.multisport)};
 }
 // ---- Data table under the charts. Same time grain as the charts; the two change columns refer to the chosen metric.
 export const TABLE_METRICS=[{key:'visits',label:'Návštevy'},{key:'total',label:'Predaj + MultiSport'},{key:'productUnits',label:'Produkty ks'},{key:'trainingUnits',label:'Tréningy'},{key:'passUnits',label:'Permanentky'}];
+// Per day only visits and, when stored, the entry mix exist; sales, products and trainings are weekly figures.
+const DAY_MIX_COLUMNS=[{key:'membershipEntries',label:'S permanentkou'},{key:'singleEntries',label:'Jednorazové'},{key:'multisportEntries',label:'MultiSport'}];
+export function tableMetricsFor(grain,hasDailyMix=false){return grain==='day'?[TABLE_METRICS[0],...(hasDailyMix?DAY_MIX_COLUMNS:[])]:TABLE_METRICS;}
 const GRAIN_WORDS={day:{adj:'denná',dative:'dňu'},week:{adj:'týždenná',dative:'týždňu'},month:{adj:'mesačná',dative:'mesiacu'}};
 const WEEKDAY_SHORT=['Po','Ut','St','Št','Pi','So','Ne'];
-export function tableModel(weeks,daily,grain,metric){
+export function tableModel(weeks,daily,grain,metric,dailyMixRows=[]){
  let rows;
- if(grain==='day')rows=daily.map(d=>({label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,total:null,productUnits:null,trainingUnits:null,passUnits:null}));
+ const mixByDate=new Map(dailyMixRows.map(r=>[r.date,r]));
+ if(grain==='day')rows=daily.map(d=>{const m=mixByDate.get(d.date);return {label:WEEKDAY_SHORT[weekdayIndex(d.date)]+' '+d.label.slice(0,5),visits:d.value,membershipEntries:m?.membership??null,singleEntries:m?.single??null,multisportEntries:m?.multisport??null};});
  else if(grain==='month')rows=aggregateByMonth(weeks);
  else rows=weeks.map(w=>({label:w.label,visits:w.visits,total:w.total,productUnits:w.productUnits,trainingUnits:w.trainingUnits,passUnits:w.passUnits}));
- // Per day only visits are stored, so the change columns always follow visits there.
- const metricKey=grain==='day'||!TABLE_METRICS.some(m=>m.key===metric)?'visits':metric;
- const columns=grain==='day'?TABLE_METRICS.slice(0,1):TABLE_METRICS;
+ const columns=tableMetricsFor(grain,dailyMixRows.length>0);
+ const metricKey=columns.some(m=>m.key===metric)?metric:'visits';
  const out=rows.map((r,i)=>({label:r.label,values:Object.fromEntries(columns.map(c=>[c.key,r[c.key]??null])),changePrev:i===0?null:percentChange(r[metricKey],rows[i-1][metricKey]),changeFirst:rows.length?percentChange(r[metricKey],rows[0][metricKey]):null}));
  const words=GRAIN_WORDS[grain]??GRAIN_WORDS.week;
  return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(rows[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:rows[0]?.label??null};

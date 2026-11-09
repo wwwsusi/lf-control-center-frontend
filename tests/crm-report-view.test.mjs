@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -130,4 +130,39 @@ test('unknown values keep their changes unknown',()=>{
  const model=tableModel(weeks,[],'week','passUnits');
  assert.equal(model.rows[1].changePrev,null);assert.equal(model.rows[1].changeFirst,null);
  assert.equal(TABLE_METRICS.length,5);
+});
+
+const mixFact=(date,code,units,start='2026-10-26')=>({period_start:start,dimension:'DAY_ADMISSION',key:date+':'+code,label:code,units,value_eur:null,cost_eur:null});
+
+test('daily mix is read from DAY_ADMISSION facts and never fills a missing type with zero',()=>{
+ const weeks=weekModel([row(44,'2026-10-26')]);
+ const facts=normalizeFacts({facts:[mixFact('2026-10-27','ENTITLEMENT',20),mixFact('2026-10-27','SINGLE_ENTRY',10),mixFact('2026-10-27','MULTISPORT',13),mixFact('2026-10-26','ENTITLEMENT',30),mixFact('2026-11-09','ENTITLEMENT',5,'2026-11-09')]});
+ assert.equal(facts.length,5);
+ const mix=dailyMix(facts,weeks);
+ assert.deepEqual(mix,[{date:'2026-10-26',membership:30,single:null,multisport:null},{date:'2026-10-27',membership:20,single:10,multisport:13}]);
+ assert.deepEqual(dailyMix([],weeks),[]);
+ assert.equal(normalizeFacts({facts:[{...mixFact('2026-10-27','ENTITLEMENT',1),dimension:'DAY_MIX'}]}).length,0);
+});
+
+test('mix series per day carries weekend bands; without daily data the day grain stays unavailable',()=>{
+ const weeks=weekModel([row(44,'2026-10-26')]);
+ const mix=[{date:'2026-10-30',membership:20,single:10,multisport:10},{date:'2026-10-31',membership:8,single:7,multisport:5}];
+ const day=mixSeries(weeks,'day',mix);
+ assert.deepEqual(day.labels,['30.10','31.10']);assert.deepEqual(day.membership,[20,8]);assert.deepEqual(day.bands,[1]);
+ assert.equal(mixSeries(weeks,'day',[]),null);assert.equal(mixSeries(weeks,'day'),null);
+ assert.equal(mixSeries(weeks,'week').labels.length,1);
+});
+
+test('day-grain table gains the three entry types and lets the change follow any of them',()=>{
+ const weeks=weekModel([row(44,'2026-10-26')]);
+ const daily=[{date:'2026-10-26',label:'26.10.2026',value:51,weekend:false},{date:'2026-10-27',label:'27.10.2026',value:43,weekend:false}];
+ const mix=[{date:'2026-10-26',membership:30,single:15,multisport:6},{date:'2026-10-27',membership:20,single:15,multisport:8}];
+ assert.deepEqual(tableMetricsFor('day',false).map(m=>m.key),['visits']);
+ assert.deepEqual(tableMetricsFor('day',true).map(m=>m.key),['visits','membershipEntries','singleEntries','multisportEntries']);
+ assert.equal(tableMetricsFor('week').length,5);
+ const model=tableModel(weeks,daily,'day','membershipEntries',mix);
+ assert.equal(model.metricKey,'membershipEntries');
+ assert.deepEqual(model.rows[1].values,{visits:43,membershipEntries:20,singleEntries:15,multisportEntries:8});
+ assert.equal(Math.round(model.rows[1].changePrev*100)/100,-33.33);
+ assert.equal(tableModel(weeks,daily,'day','membershipEntries').metricKey,'visits');   // without daily mix only visits exist
 });

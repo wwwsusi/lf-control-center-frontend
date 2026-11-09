@@ -1,4 +1,4 @@
-import {kpiCard,columnChart,rankingChart,chartCard,unavailable,segmentControl,TABLE_METRICS,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,SERIES_COLORS} from './crm-report-view.mjs';
+import {kpiCard,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,SERIES_COLORS} from './crm-report-view.mjs';
 import {selectHistoricalPeriods,liveReportingRanges,mergeLiveReports,historicalPeriods} from './crm-report-history.mjs';
 // Owner-only live CRM reporting. The backend independently enforces OWNER_ADMIN and UAT denial.
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
@@ -117,13 +117,13 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
    const daily=dailySeries(facts,weeks),grains=[{key:'day',label:'Dni'},{key:'week',label:'Týždne'},{key:'month',label:'Mesiace'}];
    if(timeGrain==='day'&&!daily.length)timeGrain='week';
    const head=node('div',undefined,'crm-part-head');head.append(node('h3','Vývoj v čase','crm-part-title'),segmentControl({options:grains.map(g=>({...g,disabled:g.key==='day'&&!daily.length,title:'Denný rozpis návštev zatiaľ nie je dostupný.'})),value:timeGrain,onPick:g=>{timeGrain=g;draw();},ariaLabel:'Časové zobrazenie grafov a tabuľky'}));root.append(head);
-   const vs=visitsSeries(weeks,daily,timeGrain),ms=mixSeries(weeks,timeGrain),forms={day:'dňoch',week:'týždňoch',month:'mesiacoch'},monthNote='Mesiac = týždne podľa štvrtka; týždeň sa nedelí medzi mesiace.';
+   const mixDaily=dailyMix(facts,weeks),vs=visitsSeries(weeks,daily,timeGrain),ms=mixSeries(weeks,timeGrain,mixDaily),forms={day:'dňoch',week:'týždňoch',month:'mesiacoch'},monthNote='Mesiac = týždne podľa štvrtka; týždeň sa nedelí medzi mesiace.';
    charts.append(
     chartCard('Návštevy',columnChart({labels:vs.labels,series:[{name:'Návštevy',color:SERIES_COLORS.visits,values:vs.values}],bands:vs.bands,ariaLabel:'Návštevy po '+forms[timeGrain]}),timeGrain==='month'?monthNote:timeGrain==='day'?'Víkendy sú zvýraznené.':undefined),
-    ms?chartCard('Mix vstupov po '+forms[timeGrain],columnChart({labels:ms.labels,stacked:true,series:[{name:'Permanentky',color:SERIES_COLORS.membership,values:ms.membership},{name:'Jednorazové vstupy',color:SERIES_COLORS.single,values:ms.single},{name:'MultiSport',color:SERIES_COLORS.multisport,values:ms.multisport}],ariaLabel:'Mix vstupov po '+forms[timeGrain]}),timeGrain==='month'?monthNote:undefined):Object.assign(chartCard('Mix vstupov',unavailable('Rozpis vstupov po dňoch zatiaľ nemáme. Vyber týždne alebo mesiace.')),{className:'crm-chart-card crm-chart-card-empty'}));
-   const model=tableModel(weeks,daily,timeGrain,tableMetric),pick=node('label',undefined,'crm-metric-pick'),metricSelect=node('select');
-   metricSelect.setAttribute('aria-label','Ukazovateľ, ku ktorému sa vzťahujú stĺpce zmien');for(const m of TABLE_METRICS){const o=node('option',m.label);o.value=m.key;metricSelect.append(o);}
-   metricSelect.value=model.metricKey;metricSelect.disabled=timeGrain==='day';if(timeGrain==='day')metricSelect.title='Po dňoch máme len návštevy.';metricSelect.onchange=()=>{tableMetric=metricSelect.value;draw();};
+    ms?chartCard('Mix vstupov po '+forms[timeGrain],columnChart({labels:ms.labels,stacked:true,bands:ms.bands??[],series:[{name:'Permanentky',color:SERIES_COLORS.membership,values:ms.membership},{name:'Jednorazové vstupy',color:SERIES_COLORS.single,values:ms.single},{name:'MultiSport',color:SERIES_COLORS.multisport,values:ms.multisport}],ariaLabel:'Mix vstupov po '+forms[timeGrain]}),timeGrain==='month'?monthNote:undefined):Object.assign(chartCard('Mix vstupov',unavailable('Rozpis vstupov po dňoch zatiaľ nemáme. Vyber týždne alebo mesiace.')),{className:'crm-chart-card crm-chart-card-empty'}));
+   const model=tableModel(weeks,daily,timeGrain,tableMetric,mixDaily),pick=node('label',undefined,'crm-metric-pick'),metricSelect=node('select');
+   metricSelect.setAttribute('aria-label','Ukazovateľ, ku ktorému sa vzťahujú stĺpce zmien');for(const m of model.columns){const o=node('option',m.label);o.value=m.key;metricSelect.append(o);}
+   metricSelect.value=model.metricKey;metricSelect.disabled=model.columns.length<2;if(model.columns.length<2)metricSelect.title='Po dňoch máme len návštevy.';metricSelect.onchange=()=>{tableMetric=metricSelect.value;draw();};
    pick.append(node('span','Zmena podľa'),metricSelect);
    overviewTable=chartCard('Tabuľka',reportTable(model,{rowHeader:timeGrain==='day'?'Deň':timeGrain==='month'?'Mesiac':'Týždeň'}),model.note,pick);overviewTable.classList.add('crm-table-card');
   }else if(section==='attendance'){
