@@ -212,3 +212,11 @@
 .crm-main .crm-report-head button{min-height:40px;padding-top:0;padding-bottom:0}
 .crm-main .crm-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 @media (max-width:760px){.crm-main .crm-report-period-group .crm-report-period{display:grid;grid-template-columns:1fr 1fr;width:100%}.crm-main .crm-report-period-group .crm-report-period label{display:grid;gap:4px;flex:none}.crm-main .crm-report-period-group .crm-report-period input[type=date]{width:100%}.crm-main .crm-report-period-group .crm-report-period button,.crm-main .crm-report-period-group .crm-report-period .crm-error{grid-column:1/-1}.crm-main .crm-report-period-group>label{width:100%}}
+/* Overview part 1: each KPI box with the chart of the same metric under it; part 2: larger charts with a time-grain switch. */
+.crm-main .crm-kpi-col{display:grid;gap:8px;align-content:start;min-width:0}
+.crm-main .crm-mini-chart{padding:8px 10px 4px}
+.crm-main .crm-chart-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;margin:0 0 6px}
+.crm-main .crm-chart-head h3{margin:0}
+.crm-main .crm-chart-head .crm-segment{margin:0}
+.crm-main .crm-segment button:disabled{opacity:.45;cursor:not-allowed}
+.crm-main .crm-part-title{margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line);font-size:20px}

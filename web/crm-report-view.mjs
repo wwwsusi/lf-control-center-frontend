@@ -44,6 +44,33 @@ export function dailySeries(facts,weeks){
 export function weekdayAverages(daily){
  return WEEKDAYS.map((label,i)=>{const days=daily.filter(d=>weekdayIndex(d.date)===i&&finite(d.value));return {label,days:days.length,average:days.length?days.reduce((n,d)=>n+d.value,0)/days.length:null,weekend:i>=5};});
 }
+// ---- Time grain (days / weeks / months). Months follow the week-based convention: a week belongs to the month that
+// contains its Thursday (ISO style), because weekly sheets cannot be split across months.
+const MONTH_FORMAT=new Intl.DateTimeFormat('sk-SK',{month:'long',year:'numeric',timeZone:'UTC'});
+export function monthKeyOfWeek(periodStart){
+ const date=new Date(Date.parse(periodStart+'T00:00:00Z')+3*86400000);
+ return Number.isFinite(date.getTime())?date.toISOString().slice(0,7):null;
+}
+export function monthLabel(key){return MONTH_FORMAT.format(new Date(key+'-01T00:00:00Z'));}
+export function aggregateByMonth(weeks){
+ const groups=new Map();
+ for(const w of weeks){const key=monthKeyOfWeek(w.period_start);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(w);}
+ return [...groups.entries()].sort(([a],[b])=>a<b?-1:1).map(([key,rows])=>{
+  const sum=name=>rows.every(r=>finite(r[name]))?rows.reduce((n,r)=>n+r[name],0):null;
+  return {key,label:monthLabel(key),weeks:rows.length,visits:sum('visits'),membership:sum('membership'),single:sum('single'),multisport:sum('multisport')};
+ });
+}
+export function visitsSeries(weeks,daily,grain){
+ if(grain==='day')return daily.length?{labels:daily.map(d=>d.label.slice(0,5)),values:daily.map(d=>d.value),bands:daily.flatMap((d,i)=>d.weekend?[i]:[])}:null;
+ if(grain==='month'){const m=aggregateByMonth(weeks);return {labels:m.map(r=>r.label),values:m.map(r=>r.visits),bands:[]};}
+ return {labels:weeks.map(w=>w.label),values:weeks.map(w=>w.visits),bands:[]};
+}
+// Entry mix per day is not stored yet, so the day grain returns null (the UI disables it instead of guessing).
+export function mixSeries(weeks,grain){
+ if(grain==='day')return null;
+ const rows=grain==='month'?aggregateByMonth(weeks):weeks;
+ return {labels:rows.map(r=>r.label),membership:rows.map(r=>r.membership),single:rows.map(r=>r.single),multisport:rows.map(r=>r.multisport)};
+}
 export function productRanking(facts,weeks,metric){
  const starts=new Set(weeks.map(w=>w.period_start)),by=new Map();
  for(const f of facts){if(!['PRODUCT','SERVICE'].includes(f.dimension)||!starts.has(f.period_start))continue;const row=by.get(f.key)??{key:f.key,label:f.label,units:0,value:0,cost:0,costKnown:true,valueKnown:true};row.units+=f.units??0;if(finite(f.value_eur))row.value+=f.value_eur;else row.valueKnown=false;if(finite(f.cost_eur))row.cost+=f.cost_eur;else row.costKnown=false;by.set(f.key,row);}
@@ -79,11 +106,11 @@ export function kpiCard({title,value,note,hint,change,neutral=false}){
 }
 
 // Generic column chart. series: [{name,color,values:[number|null]}]; stacked stacks them; bands marks weekend columns.
-export function columnChart({labels,series,stacked=false,format=formatCount,axisFormat,bands=[],ariaLabel,height=240}){
+export function columnChart({labels,series,stacked=false,format=formatCount,axisFormat,bands=[],ariaLabel,height=240,size='normal'}){
  const wrap=node('div',undefined,'crm-chart');
  const legend=node('ul',undefined,'crm-legend');for(const s of series){const li=node('li');const sw=node('i');sw.style.background=s.color;li.append(sw,s.name);legend.append(li);}
  if(series.length>1)wrap.append(legend);
- const narrow=typeof window!=='undefined'&&window.innerWidth<=560,W=narrow?340:640,H=narrow?Math.min(height,220):height;
+ const compact=size==='compact',narrow=typeof window!=='undefined'&&window.innerWidth<=560,W=compact?360:narrow?340:640,H=compact?150:narrow?Math.min(height,220):height;
  const all=series.flatMap(s=>s.values.filter(finite)),sums=stacked?labels.map((_,i)=>series.every(s=>finite(s.values[i]))?series.reduce((n,s)=>n+s.values[i],0):null).filter(finite):[];
  const scale=niceScale(all.length?Math.min(...all):0,Math.max(1,...sums,...all)),min=scale.min,span=(scale.max-scale.min)||1;
  const ticks=[];for(let v=scale.min;v<=scale.max+scale.step/2;v+=scale.step)ticks.push(Math.round(v*100)/100);
@@ -123,9 +150,16 @@ export function rankingChart({rows,format=formatEuro,color=SERIES_COLORS.sales,a
  wrap.append(svg);return wrap;
 }
 
-export function chartCard(title,body,note){
- const card=node('section',undefined,'crm-chart-card');card.append(node('h3',title));
+export function chartCard(title,body,note,actions){
+ const card=node('section',undefined,'crm-chart-card');const head=node('div',undefined,'crm-chart-head');head.append(node('h3',title));if(actions)head.append(actions);card.append(head);
  if(note)card.append(node('p',note,'crm-note'));
  card.append(body);return card;
 }
 export function unavailable(text){return node('p',text,'crm-note crm-chart-empty');}
+
+// Small segmented switch (days / weeks / months). A disabled option explains why it is unavailable.
+export function segmentControl({options,value,onPick,ariaLabel}){
+ const wrap=node('div',undefined,'crm-segment');wrap.setAttribute('role','group');wrap.setAttribute('aria-label',ariaLabel);
+ for(const o of options){const b=node('button',o.label);b.type='button';b.setAttribute('aria-pressed',String(o.key===value));if(o.disabled){b.disabled=true;b.title=o.title??'';}else b.addEventListener('click',()=>onPick(o.key));wrap.append(b);}
+ return wrap;
+}

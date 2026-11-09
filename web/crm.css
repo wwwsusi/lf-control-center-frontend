@@ -76,3 +76,11 @@
 .crm-session-bar .crm-idle-timer[data-state=danger]{color:#ff9ca8}
 .crm-session-bar button{font:inherit;font-size:15px;min-height:44px;padding:0 16px;white-space:nowrap;color:var(--text);background:#192a40;border:1px solid #607087;border-radius:8px;cursor:pointer}.crm-session-bar button:hover{border-color:var(--pink)}.crm-session-bar button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media (max-width:640px){.crm-header-right{width:100%;justify-content:flex-start}.crm-session-bar{width:100%;justify-content:space-between;padding:10px 12px}}
+/* Compact page head: smaller logo and heading, tighter status and toolbar spacing. */
+.home-header{margin-bottom:6px}
+.home-header .brand{padding:6px 12px}
+.home-header .brand img{width:112px}
+.crm-main .eyebrow{display:none}
+.crm-main h1{display:inline-block;font-size:clamp(26px,3.2vw,34px);line-height:1.15;margin:0 14px 0 0;vertical-align:baseline}
+.crm-status{display:inline-block;margin:0;font-size:13px;vertical-align:baseline}
+.crm-toolbar{margin:8px 0 8px}

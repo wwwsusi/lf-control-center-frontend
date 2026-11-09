@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -61,4 +61,32 @@ test('product ranking hides profit that depends on an unknown cost',()=>{
  assert.deepEqual(productRanking(facts,weeks,'sales').map(r=>r.key),['LF-PROD-003','LF-SVC-001','LF-PROD-014']);
  assert.deepEqual(productRanking(facts,weeks,'profit').map(r=>[r.key,r.value]),[['LF-PROD-003',22.5]]);
  assert.deepEqual(productRanking(facts,[],'sales'),[]);
+});
+
+test('a week belongs to the month that contains its Thursday',()=>{
+ assert.equal(monthKeyOfWeek('2026-09-28'),'2026-10');
+ assert.equal(monthKeyOfWeek('2026-10-26'),'2026-10');
+ assert.equal(monthKeyOfWeek('2026-11-02'),'2026-11');
+ assert.equal(monthKeyOfWeek('2026-12-28'),'2026-12');
+ assert.equal(monthKeyOfWeek('nope'),null);
+});
+
+test('month aggregation sums whole weeks and keeps unknown sums unknown',()=>{
+ const weeks=weekModel([row(40,'2026-09-28',{visits:216,membership:126,single:59,multisport:31}),row(44,'2026-10-26',{visits:234,membership:131,single:72,multisport:31}),row(45,'2026-11-02',{visits:285,membership:154,single:96,multisport:35})]);
+ const months=aggregateByMonth(weeks);
+ assert.deepEqual(months.map(m=>[m.key,m.weeks,m.visits,m.membership]),[['2026-10',2,450,257],['2026-11',1,285,154]]);
+ const unknown=aggregateByMonth(weekModel([row(41,'2026-10-05',{visits:null}),row(42,'2026-10-12')]));
+ assert.equal(unknown[0].visits,null);
+});
+
+test('visit and mix series follow the chosen grain; mix per day is not offered',()=>{
+ const weeks=weekModel([row(44,'2026-10-26',{visits:234}),row(45,'2026-11-02',{visits:285})]);
+ const daily=[{date:'2026-10-31',label:'31.10.2026',value:20,weekend:true},{date:'2026-11-02',label:'02.11.2026',value:58,weekend:false}];
+ assert.deepEqual(visitsSeries(weeks,daily,'week'),{labels:['W44','W45'],values:[234,285],bands:[]});
+ assert.deepEqual(visitsSeries(weeks,daily,'day'),{labels:['31.10','02.11'],values:[20,58],bands:[0]});
+ assert.equal(visitsSeries(weeks,[],'day'),null);
+ assert.deepEqual(visitsSeries(weeks,daily,'month').values,[234,285]);
+ assert.equal(mixSeries(weeks,'day'),null);
+ assert.deepEqual(mixSeries(weeks,'week').labels,['W44','W45']);
+ assert.equal(mixSeries(weeks,'month').labels.length,2);
 });
