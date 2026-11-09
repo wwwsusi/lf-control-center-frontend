@@ -64,8 +64,8 @@ export function niceScale(min,max,ticks=4){
 const node=(tag,text,className)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(className)e.className=className;return e;};
 const svgNode=(tag,attrs={},text)=>{const e=document.createElementNS(SVG_NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));if(text!==undefined)e.textContent=String(text);return e;};
 
-export function kpiCard({title,value,note,change,neutral=false}){
- const card=node('article',undefined,'crm-card crm-kpi');card.append(node('h3',title),node('p',value,'crm-kpi-value'),node('p',note,'crm-note'));
+export function kpiCard({title,value,note,hint,change,neutral=false}){
+ const card=node('article',undefined,'crm-card crm-kpi');if(hint)card.title=hint;card.append(node('h3',title),node('p',value,'crm-kpi-value'),node('p',note,'crm-note'));
  if(change){
   const row=node('div',undefined,'crm-kpi-changes');
   for(const [label,pct,basis] of [['Zmena týždenná',change.weekly,change.latest&&change.previous?change.latest+' / '+change.previous:''],['Zmena kum',change.cumulative,change.latest&&change.first?change.latest+' / '+change.first:'']]){

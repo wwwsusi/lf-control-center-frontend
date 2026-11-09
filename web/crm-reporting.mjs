@@ -41,7 +41,7 @@ export function validateHistoricalSnapshot(snapshot){
 }
 export function mountReporting({root,api,onAuthFailure,onBack}){
  let live=true,loaded=null,snapshot=null,history=null,sequence=0,controller=null;
- function heading(){root.replaceChildren(node('h2','Reporting'));if(onBack)root.append(button('Späť na prehľad',onBack));}
+ function heading(){const head=node('div',undefined,'crm-report-head');head.append(node('h2','Reporting'));if(onBack)head.append(button('Späť na prehľad',onBack));root.replaceChildren(head);}
  async function load(){
   const version=++sequence;controller?.abort();controller=new AbortController();const signal=controller.signal;
   heading();root.append(node('p','Načítavam súhrn za zvolené obdobie…','crm-note'));
@@ -60,30 +60,34 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   if(!live||!loaded)return;heading();
   const rows=history.included,hasHistory=rows.length>0,hasLive=Number(loaded.coverage.recorded_days)>0,sales=loaded.sales;
   const weeks=weekModel(rows),facts=normalizeFacts(snapshot),allWeeks=historicalPeriods(snapshot);
-  // Controls: one period selector (all weeks / a single week / custom range) like the original weekly report.
-  const controls=node('div',undefined,'crm-report-controls'),selectLabel=node('label','Obdobie'),select=node('select');select.setAttribute('aria-label','Obdobie reportu');
+  // One compact bar: section tabs on the left, period controls on the right (wraps on narrow screens).
+  const bar=node('div',undefined,'crm-report-bar');
+  const nav=node('nav',undefined,'crm-report-tabs');nav.setAttribute('aria-label','Sekcie reportingu');for(const [key,label] of [['overview','Prehľad'],['attendance','Návštevnosť'],['sales','Predaj a zisk'],['catalogue','Produkty a služby']]){const tab=button(label,()=>{selectedSection=key;draw();});if(key===selectedSection)tab.setAttribute('aria-current','page');nav.append(tab);}
+  const period=node('div',undefined,'crm-report-period-group'),selectLabel=node('label'),select=node('select');select.setAttribute('aria-label','Obdobie reportu');selectLabel.append(node('span','Obdobie','crm-sr-only'));
   const optionFor=(value,text)=>{const o=node('option',text);o.value=value;return o;};
   const first=allWeeks[0],isAll=range.from===first.period_start&&range.to>=allWeeks.at(-1).period_end;
   const single=allWeeks.find(w=>w.period_start===range.from&&w.period_end===range.to);
   select.append(optionFor('all','Všetky týždne'),...allWeeks.map(w=>optionFor('w'+w.week,'W'+w.week+' · '+historicalPeriodLabel(w.period_start,w.period_end))),optionFor('month','Tento mesiac'),optionFor('custom','Vlastné obdobie'));
   select.value=isAll?'all':single?'w'+single.week:'custom';
   select.onchange=()=>{const v=select.value;if(v==='all'){range={from:first.period_start,to:currentMonth().to};load();}else if(v==='month'){range=currentMonth();load();}else if(v==='custom'){root.querySelector('.crm-report-period input')?.focus();}else{const w=allWeeks.find(x=>'w'+x.week===v);range={from:w.period_start,to:w.period_end};load();}};
-  selectLabel.append(select);controls.append(selectLabel);root.append(controls);
-  const custom=node('div',undefined,'crm-report-custom');
+  selectLabel.append(select);
   const form=node('form',undefined,'crm-report-period'),fromLabel=node('label','Od'),from=node('input'),toLabel=node('label','Do'),to=node('input'),submit=node('button','Zobraziť obdobie'),notice=node('p',undefined,'crm-error');
-  for(const [input,value,label] of [[from,range.from,fromLabel],[to,range.to,toLabel]]){input.type='date';input.required=true;input.value=value;label.append(input);}submit.type='submit';notice.setAttribute('role','alert');form.append(fromLabel,toLabel,submit,notice);form.onsubmit=event=>{event.preventDefault();const error=reportingPeriodError(from.value,to.value);if(error){notice.textContent=error;return;}range={from:from.value,to:to.value};load();};custom.append(form);root.append(custom);
+  for(const [input,value,label] of [[from,range.from,fromLabel],[to,range.to,toLabel]]){input.type='date';input.required=true;input.value=value;label.append(input);}submit.type='submit';notice.setAttribute('role','alert');form.append(fromLabel,toLabel,submit,notice);form.onsubmit=event=>{event.preventDefault();const error=reportingPeriodError(from.value,to.value);if(error){notice.textContent=error;return;}range={from:from.value,to:to.value};load();};
+  period.append(selectLabel,form);bar.append(nav,period);root.append(bar);
   const sources=new Map((snapshot.week_sources??[]).map(s=>[s.week,s.source_kind]));
-  const badge=node('p',undefined,'crm-report-badge');badge.append(node('span','Historické záznamy · CRM','crm-chip'),node('span',hasHistory&&weeks.length?'Údaje '+dateLabel(weeks[0].period_start)+' – '+dateLabel(weeks.at(-1).period_end)+' · '+weeks.length+' '+(weeks.length===1?'týždeň':weeks.length<5?'týždne':'týždňov'):'Bez týždenných súhrnov','crm-note'));
-  if(hasHistory&&[...sources.values()].some(v=>v==='CRM'))badge.append(node('span','Týždne zo zdroja CRM: '+weeks.filter(w=>sources.get(w.week)==='CRM').map(w=>w.label).join(', '),'crm-note'));
-  root.append(badge);
-  const nav=node('nav',undefined,'crm-report-tabs');nav.setAttribute('aria-label','Sekcie reportingu');for(const [key,label] of [['overview','Prehľad'],['attendance','Návštevnosť'],['sales','Predaj a zisk'],['catalogue','Produkty a služby']]){const tab=button(label,()=>{selectedSection=key;draw();});if(key===selectedSection)tab.setAttribute('aria-current','page');nav.append(tab);}root.append(nav,node('p','Obdobie '+dateLabel(range.from)+' – '+dateLabel(range.to),'crm-note'));
+  // Explanatory notes live in the tooltip of one short status chip instead of paragraphs above the data.
+  const info=node('p',undefined,'crm-report-badge'),recordedDays=Number(loaded.coverage.recorded_days);
+  const chip=node('span',hasLive?'CRM · '+count(recordedDays)+' dní':'CRM · zatiaľ bez záznamov','crm-chip');chip.tabIndex=0;
+  chip.title=reportingCoverageMessage(loaded.coverage)+(hasHistory?' Zahrnuté sú '+rows.length+' anonymné týždenné súhrny bez priradenia ku klientkam; CRM záznamy sa za tieto týždne nepripočítavajú druhýkrát.':'')+(weeks.length>1?' Zmena: '+weeks.at(-1).label+' oproti '+weeks.at(-2).label+'. Zmena kum: '+weeks.at(-1).label+' oproti '+weeks[0].label+'. N/A znamená chýbajúci alebo nulový základ.':'');
+  chip.setAttribute('aria-label',chip.title);
+  info.append(chip,node('span',hasHistory&&weeks.length?'Údaje '+dateLabel(weeks[0].period_start)+' – '+dateLabel(weeks.at(-1).period_end)+' · '+weeks.length+' '+(weeks.length===1?'týždeň':weeks.length<5?'týždne':'týždňov'):'Bez týždenných súhrnov','crm-note'));
+  if(hasHistory&&[...sources.values()].some(v=>v==='CRM'))info.append(node('span','Týždne zo zdroja CRM: '+weeks.filter(w=>sources.get(w.week)==='CRM').map(w=>w.label).join(', '),'crm-note'));
+  root.append(info);
   if(history.partial.length)root.append(node('p','Výber obsahuje iba časť týždňa '+history.partial.map(r=>'W'+r.week).join(', ')+'. Jeho súhrn nie je započítaný: denné rozdelenie nemáme. Vyber celý týždeň, aby sa zahrnul.','crm-error'));
-  root.append(node('p',reportingCoverageMessage(loaded.coverage),'crm-note'));
   const sum=key=>rows.every(r=>Number.isFinite(r[key]))?rows.reduce((n,r)=>n+r[key],0):null;
   const money=value=>value===null?'Neúplné údaje':euro(Number(value).toFixed(2));
   const total=(key,liveKey)=>sum(key)===null?null:sum(key)+(hasLive?Number(sales[liveKey]??0):0);
   const chg=key=>changes(weeks,key);
-  if(weeks.length>1)root.append(node('p','Zmena: posledný vybraný týždeň '+weeks.at(-1).label+' oproti '+weeks.at(-2).label+'. Zmena kum: '+weeks.at(-1).label+' oproti '+weeks[0].label+'. Hlavné hodnoty sú súčty za vybrané obdobie; N/A znamená chýbajúci alebo nulový základ.','crm-note'));
   const cards=node('div',undefined,'crm-kpi-grid');
   const visitsTotal=hasHistory||hasLive?(sum('visits')??0)+(hasLive?loaded.attendance.reduce((n,r)=>n+Number(r.visit_count),0):0):null;
   const noData='Bez evidencie';
@@ -91,13 +95,13 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   const msTotal=hasHistory||hasLive?total('multisport_receivable','multisport_receipts_eur'):null;
   const bothTotal=hasHistory||hasLive?(total('report_value','confirmed_sales_eur')===null?null:total('report_value','confirmed_sales_eur')+(hasLive?Number(sales.multisport_receipts_eur??0):0)):null;
   const section=selectedSection;
-  if(section==='overview'||section==='attendance')cards.append(kpiCard({title:'Návštevy',value:visitsTotal===null?noData:count(visitsTotal),note:'Počet vstupov, nie unikátne klientky',change:chg('visits')}));
-  if(section==='attendance')for(const [key,label,code] of [['membership','Permanentky','ENTITLEMENT'],['single','Jednorazové vstupy','SINGLE_ENTRY'],['multisport','MultiSport','MULTISPORT']])cards.append(kpiCard({title:label,value:hasHistory||hasLive?count((sum(key)??0)+(hasLive?Number(loaded.attendance.find(r=>r.code===code)?.visit_count??0):0)):noData,note:'Týždenné súhrny bez klientky; CRM podľa evidovaného typu vstupu.',change:chg(key)}));
+  if(section==='overview'||section==='attendance')cards.append(kpiCard({title:'Návštevy',value:visitsTotal===null?noData:count(visitsTotal),note:'Vstupy, nie unikátne klientky',change:chg('visits')}));
+  if(section==='attendance')for(const [key,label,code] of [['membership','Permanentky','ENTITLEMENT'],['single','Jednorazové vstupy','SINGLE_ENTRY'],['multisport','MultiSport','MULTISPORT']])cards.append(kpiCard({title:label,value:hasHistory||hasLive?count((sum(key)??0)+(hasLive?Number(loaded.attendance.find(r=>r.code===code)?.visit_count??0):0)):noData,note:'Podľa typu vstupu',hint:'Týždenné súhrny bez klientky; CRM podľa evidovaného typu vstupu.',change:chg(key)}));
   if(section==='overview'||section==='sales'){
-   cards.append(kpiCard({title:'Predaj a MultiSport',value:bothTotal===null?noData:money(bothTotal),note:'Predaj uhradený podľa potvrdenia majiteľa; nejde automaticky o potvrdený peňažný tok.',change:chg('total')}));
-   if(section==='sales'){cards.append(kpiCard({title:'Zaznamenaný predaj',value:salesTotal===null?noData:money(salesTotal),note:'Bez MultiSport úhrad; sám osebe nepotvrdzuje prijatie platby.',change:chg('sales')}),kpiCard({title:'MultiSport',value:msTotal===null?noData:money(msTotal),note:'Zahrnutý raz podľa obdobia vstupu; neskoršie vyúčtovanie sa nepripočítava.',change:chg('multisportValue')}));}
-   cards.append(kpiCard({title:'Priame náklady',value:hasHistory?money(sum('product_cost')):noData,note:'Len zahrnuté týždenné súhrny; CRM náklady nie sú prepojené.',change:chg('cost'),neutral:true}),kpiCard({title:'Hrubý zisk',value:hasHistory?money(sum('product_profit')):noData,note:'Modelovaný hrubý zisk produktov. Nezahŕňa nájom, mzdy ani energie; nejde o čistý zisk.',change:chg('profit')}));
-   if(section==='sales')cards.append(kpiCard({title:'Potvrdené CRM platby po refundáciách',value:hasLive?euro(sales.net_confirmed_payments_eur):noData,note:'Len CRM obdobia. Platby zo súhrnov nemožno bez dokladov označiť za potvrdené.'}));
+   cards.append(kpiCard({title:'Predaj a MultiSport',value:bothTotal===null?noData:money(bothTotal),note:'Uhradený predaj',hint:'Predaj uhradený podľa potvrdenia majiteľa; nejde automaticky o potvrdený peňažný tok.',change:chg('total')}));
+   if(section==='sales'){cards.append(kpiCard({title:'Zaznamenaný predaj',value:salesTotal===null?noData:money(salesTotal),note:'Bez MultiSport',hint:'Bez MultiSport úhrad; sám osebe nepotvrdzuje prijatie platby.',change:chg('sales')}),kpiCard({title:'MultiSport',value:msTotal===null?noData:money(msTotal),note:'Započítaný raz',hint:'Zahrnutý raz podľa obdobia vstupu; neskoršie vyúčtovanie sa nepripočítava.',change:chg('multisportValue')}));}
+   cards.append(kpiCard({title:'Priame náklady',value:hasHistory?money(sum('product_cost')):noData,note:'Produkty, zo súhrnov',hint:'Len zahrnuté týždenné súhrny; CRM náklady nie sú prepojené.',change:chg('cost'),neutral:true}),kpiCard({title:'Hrubý zisk',value:hasHistory?money(sum('product_profit')):noData,note:'Produkty, nie čistý zisk',hint:'Modelovaný hrubý zisk produktov. Nezahŕňa nájom, mzdy ani energie; nejde o čistý zisk.',change:chg('profit')}));
+   if(section==='sales')cards.append(kpiCard({title:'Potvrdené CRM platby po refundáciách',value:hasLive?euro(sales.net_confirmed_payments_eur):noData,note:'Len CRM obdobia',hint:'Len CRM obdobia. Platby zo súhrnov nemožno bez dokladov označiť za potvrdené.'}));
   }
   if(cards.children.length)root.append(cards);
   const labels=weeks.map(w=>w.label),charts=node('div',undefined,'crm-chart-grid');
@@ -127,7 +131,6 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
    root.append(rankBox);
    root.append(node('h3','Predané produkty a služby v CRM'));const list=node('ul',undefined,'crm-list');for(const row of loaded.items){const li=node('li');li.append(node('strong',row.name),node('p',quantity(row.quantity)+' '+row.unit+' · '+euro(row.sales_eur)));list.append(li);}if(!loaded.items.length)list.append(node('li','V CRM časti obdobia nie sú potvrdené položkové predaje.'));root.append(list);if(hasHistory)root.append(node('p','Anonymné týždenné súhrny: '+count(sum('product_units'))+' produktov, '+count(sum('pass_units'))+' permanentiek, '+count(sum('training_units'))+' tréningov. Dostupný súhrn neobsahuje jednotlivé nákupy ani priradenie ku klientkam.','crm-note'));
   }
-  if(hasHistory)root.append(node('p','Zahrnuté sú '+rows.length+' anonymné týždenné súhrny bez priradenia ku klientkam. Za tieto týždne sa CRM záznamy nepripočítavajú druhýkrát.','crm-note'));
   if(hasHistory){const details=node('details'),title=node('summary','Zdrojové týždenné súhrny a pôvod údajov');details.append(title);const table=node('table',undefined,'crm-report-table');table.setAttribute('aria-label','Týždenné súhrny');const head=node('thead'),tr=node('tr');for(const label of ['Týždeň','Obdobie','Zdroj','Návštevy','Predaj a MultiSport'])tr.append(node('th',label));head.append(tr);const body=node('tbody');for(const row of rows){const tr=node('tr');for(const value of ['W'+row.week,historicalPeriodLabel(row.period_start,row.period_end),sources.get(row.week)==='CRM'?'CRM':'Ručný záznam',count(row.visits),money(row.report_value)])tr.append(node('td',value));body.append(tr);}table.append(head,body);const wrap=node('div',undefined,'crm-table-scroll');wrap.append(table);details.append(wrap,node('p','Podklad vytvorený '+dateLabel(snapshot.generated_at.slice(0,10))+'. Údaje zostávajú súhrnmi, nevytvárajú jednotlivé transakcie.','crm-note'));root.append(details);}
   if(loaded.limitations.multisport_receipts==='PARTIAL_RATE_COVERAGE')root.append(node('p','Niektorým CRM MultiSport vstupom chýba platná sadzba; suma je neúplná.','crm-error'));
  }
