@@ -84,3 +84,8 @@
 .crm-main h1{display:inline-block;font-size:clamp(26px,3.2vw,34px);line-height:1.15;margin:0 14px 0 0;vertical-align:baseline}
 .crm-status{display:inline-block;margin:0;font-size:13px;vertical-align:baseline}
 .crm-toolbar{margin:8px 0 8px}
+
+.crm-pin{display:grid;gap:12px;margin-top:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18)}
+.crm-pin-dots{margin:0;text-align:center;font-size:1.75rem;letter-spacing:.5em;min-height:2.2rem}
+.crm-pin-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.crm-pin-keys button{min-height:64px;font-size:1.4rem}
