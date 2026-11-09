@@ -282,3 +282,39 @@
 .crm-main .crm-control-center .ux-calendar-more summary,.crm-main .crm-control-center .ux-agenda-day summary{font:500 13px/1.3 var(--rep-text)}
 .crm-main .crm-control-center .ux-mobile-day-count{font:600 12px/1.3 var(--rep-text)}
 .crm-main .crm-control-center .status-legend,.crm-main .crm-control-center .status-legend .dash-badge,.crm-main .crm-control-center .status-legend>strong{font-size:12px}
+
+/* Colored panel titles (palette of the status legend) */
+.crm-control-center .dash-group[class*=tone-]{--tone-fg:var(--ink);border-left:3px solid var(--tone-fg)}
+.crm-control-center .dash-group.tone-pink{--tone-fg:var(--pink)}
+.crm-control-center .dash-group.tone-info{--tone-fg:var(--info)}
+.crm-control-center .dash-group.tone-warning{--tone-fg:var(--warning)}
+.crm-control-center .dash-group.tone-danger{--tone-fg:var(--danger)}
+.crm-control-center .dash-group.tone-success{--tone-fg:var(--success)}
+.crm-control-center .dash-group.tone-neutral{--tone-fg:var(--neutral)}
+.crm-main .crm-control-center .dash-group[class*=tone-]>h3{color:var(--tone-fg)}
+/* Compact task / launch rows: title, id and meta on one line */
+.crm-main .crm-control-center .ux-item{display:flex;flex-wrap:wrap;align-items:center;gap:.1rem .6rem;padding:.4rem 0}
+.crm-main .crm-control-center .ux-item .table-title{flex:1 1 55%;min-width:0;font:600 14px/1.3 var(--rep-text)}
+.crm-main .crm-control-center .ux-item small.table-id{display:inline;margin:0;order:2;font-size:12px}
+.crm-main .crm-control-center .ux-item-meta{margin:0;gap:.35rem .5rem;order:3;flex:0 1 auto}
+.crm-main .crm-control-center .ux-item .ux-long-text{flex:1 1 100%;order:4}
+/* Workload table */
+.crm-main .crm-control-center .ux-load-table{width:100%;border-collapse:collapse;font:400 14px/1.3 var(--rep-text)}
+.crm-main .crm-control-center .ux-load-table th,.crm-main .crm-control-center .ux-load-table td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.crm-main .crm-control-center .ux-load-table th:first-child{text-align:left;font-weight:500}
+.crm-main .crm-control-center .ux-load-table thead th{font:600 12px/1.3 var(--rep-text);color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.crm-main .crm-control-center .ux-load-table td{font-weight:700}
+
+/* Kalendár: same palette as the other tabs (due = warning, launch = info, today = pink) */
+.crm-main .crm-control-center .ux-calendar-toolbar h4{color:var(--pink);text-transform:capitalize}
+.crm-main .crm-control-center .ux-calendar thead th{background:var(--subtle);color:var(--muted);font:600 12px/1.3 var(--rep-text);text-transform:uppercase;letter-spacing:.4px}
+.crm-main .crm-control-center .ux-calendar thead th:nth-child(n+6){color:var(--pink)}
+.crm-main .crm-control-center .ux-calendar td:nth-child(n+6):not(.ux-outside){background:rgba(255,99,152,.05)}
+.crm-main .crm-control-center .ux-calendar .ux-today{background:rgba(255,99,152,.12)}
+.crm-main .crm-control-center .ux-calendar-event{border-left:3px solid var(--neutral);border-radius:6px}
+.crm-main .crm-control-center .ux-calendar-event[data-event=due]{border-left-color:var(--warning);background:var(--warning-bg)}
+.crm-main .crm-control-center .ux-calendar-event[data-event=launch]{border-left-color:var(--info);background:var(--info-bg)}
+.crm-main .crm-control-center .ux-calendar-event[data-event=due] .ux-calendar-event-title{color:var(--warning)}
+.crm-main .crm-control-center .ux-calendar-event[data-event=launch] .ux-calendar-event-title{color:var(--info)}
+.crm-main .crm-control-center .ux-calendar-more summary{color:var(--info)}
+.crm-main .crm-control-center .ux-mobile-agenda h4{color:var(--pink)}
