@@ -318,3 +318,9 @@
 .crm-main .crm-control-center .ux-calendar-event[data-event=launch] .ux-calendar-event-title{color:var(--info)}
 .crm-main .crm-control-center .ux-calendar-more summary{color:var(--info)}
 .crm-main .crm-control-center .ux-mobile-agenda h4{color:var(--pink)}
+
+/* Produkty a služby: full-width sales chart, readable filter rows */
+.crm-main .crm-chart-grid.crm-chart-grid-1{grid-template-columns:1fr}
+.crm-main .crm-chart-card>h3+.crm-segment{margin-top:10px}
+.crm-main .crm-chart-card>.crm-segment{margin:0 10px 12px 0;display:inline-flex;vertical-align:top}
+.crm-main .crm-chart-card>.crm-segment+.crm-segment{margin-left:0}

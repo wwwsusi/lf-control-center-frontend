@@ -5,7 +5,7 @@ const SVG_NS='http://www.w3.org/2000/svg';
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 const WEEKDAYS=['Po','Ut','St','Št','Pi','So','Ne'];
 const DIMENSIONS=['DAY','DAY_ADMISSION','ADMISSION','PRODUCT','SERVICE'];
-export const SERIES_COLORS={weekend:'#8f9aa8',visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',cost:'#f5cb77',profit:'#64d8df'};
+export const SERIES_COLORS={weekend:'#8f9aa8',visits:'#ff6398',membership:'#64d8df',single:'#b9a1ff',multisport:'#f5cb77',sales:'#82d5ad',services:'#b0b0b0',products:'#a9cbff',cost:'#f5cb77',profit:'#64d8df'};
 
 const nf=(max=0)=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:max});
 export const formatCount=v=>finite(v)?nf().format(v):'N/A';
@@ -125,15 +125,29 @@ export function tableModel(weeks,daily,grain,metric,dailyMixRows=[],context={}){
  const words=GRAIN_WORDS[grain]??GRAIN_WORDS.week;
  return {rows:out,columns,metricKey,headers:{prev:'Zmena '+words.adj,first:'Zmena kum'},note:'Zmena '+words.adj+' = oproti predchádzajúcemu '+(grain==='month'?'mesiacu':grain==='day'?'dňu':'týždňu')+'; Zmena kum = oproti '+(full[0]?.label??'prvému riadku')+'. Oba stĺpce sa vzťahujú na ukazovateľ vybraný nad tabuľkou. N/A = chýbajúci alebo nulový základ.',firstLabel:full[0]?.label??null};
 }
-export function productRanking(facts,weeks,metric){
+export function productRanking(facts,weeks,metric,kind='all'){
  const starts=new Set(weeks.map(w=>w.period_start)),by=new Map();
- for(const f of facts){if(!['PRODUCT','SERVICE'].includes(f.dimension)||!starts.has(f.period_start))continue;const row=by.get(f.key)??{key:f.key,label:f.label,units:0,value:0,cost:0,costKnown:true,valueKnown:true};row.units+=f.units??0;if(finite(f.value_eur))row.value+=f.value_eur;else row.valueKnown=false;if(finite(f.cost_eur))row.cost+=f.cost_eur;else row.costKnown=false;by.set(f.key,row);}
+ for(const f of facts){if(!(kind==='all'?['PRODUCT','SERVICE']:[kind]).includes(f.dimension)||!starts.has(f.period_start))continue;const row=by.get(f.key)??{key:f.key,label:f.label,units:0,value:0,cost:0,costKnown:true,valueKnown:true};row.units+=f.units??0;if(finite(f.value_eur))row.value+=f.value_eur;else row.valueKnown=false;if(finite(f.cost_eur))row.cost+=f.cost_eur;else row.costKnown=false;by.set(f.key,row);}
  // Profit is shown only when every contributing value and cost is known.
  const rows=[...by.values()].map(r=>({...r,profit:r.costKnown&&r.valueKnown?r.value-r.cost:null}));
  const pick=metric==='profit'?r=>r.profit:r=>r.valueKnown?r.value:null;
  return rows.filter(r=>pick(r)!==null).sort((a,b)=>pick(b)-pick(a)).slice(0,10).map(r=>({label:r.label,key:r.key,value:pick(r),units:r.units}));
 }
 
+// Sales of services vs products per period (EUR). Weekly facts only: day grain returns null (there is no per-day item split).
+export function salesSplitSeries(facts,weeks,grain){
+ if(grain==='day')return null;
+ const sumFor=(week,dimension)=>{const rows=facts.filter(f=>f.dimension===dimension&&f.period_start===week.period_start);return rows.length&&rows.every(r=>finite(r.value_eur))?rows.reduce((n,r)=>n+r.value_eur,0):null;};
+ const perWeek=weeks.map(w=>({...w,services:sumFor(w,'SERVICE'),products:sumFor(w,'PRODUCT')}));
+ if(!perWeek.some(w=>w.services!==null||w.products!==null))return null;
+ if(grain==='month'){
+  const groups=new Map();for(const w of perWeek){const key=monthKeyOfWeek(w.period_start);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(w);}
+  const sum=(rows,k)=>rows.every(r=>finite(r[k]))?rows.reduce((n,r)=>n+r[k],0):null;
+  const months=[...groups.entries()].sort(([a],[b])=>a<b?-1:1);
+  return {labels:months.map(([k])=>monthLabel(k)),services:months.map(([,r])=>sum(r,'services')),products:months.map(([,r])=>sum(r,'products'))};
+ }
+ return {labels:perWeek.map(w=>w.label),services:perWeek.map(w=>w.services),products:perWeek.map(w=>w.products)};
+}
 // Axis with round tick values (1, 2, 2.5, 5 x 10^n) so labels are readable.
 export function niceScale(min,max,ticks=4){
  const lo=Math.min(0,min),hi=Math.max(max,lo+1),raw=(hi-lo)/ticks,pow=10**Math.floor(Math.log10(raw)),f=raw/pow;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor,formatCompactNumber,weekdayChartData,formatOneDecimal,SERIES_COLORS} from '../web/crm-report-view.mjs';
+import {percentChange,formatPercent,formatEuro,formatCount,normalizeFacts,weekModel,sumKnown,changes,dailySeries,weekdayAverages,productRanking,salesSplitSeries,monthKeyOfWeek,aggregateByMonth,visitsSeries,mixSeries,tableModel,TABLE_METRICS,dailyMix,tableMetricsFor,formatCompactNumber,weekdayChartData,formatOneDecimal,SERIES_COLORS} from '../web/crm-report-view.mjs';
 
 const row=(week,start,extra={})=>({week,period_start:start,period_end:start,visits:100,membership:50,single:40,multisport:10,recorded_sales:500,report_value:550,multisport_receivable:50,product_cost:null,product_profit:null,...extra});
 
@@ -215,4 +215,18 @@ test('weekday chart data: full and short names, one decimal, weekend colour, unk
  assert.equal(d.colors[0],SERIES_COLORS.visits);assert.equal(d.colors[5],SERIES_COLORS.weekend);assert.equal(d.colors[6],SERIES_COLORS.weekend);
  assert.deepEqual(d.days,[2,1,0,0,0,1,0]);
  assert.equal(formatOneDecimal(54.5),'54,5');assert.equal(formatOneDecimal(null),'N/A');
+});
+
+test('sales split: services vs products per week and month, day grain unavailable, unknown values stay null',()=>{
+ const weeks=weekModel([row(40,'2026-09-28'),row(41,'2026-10-05'),row(45,'2026-11-02')]);
+ const f=(period_start,dimension,key,value_eur)=>({dimension,period_start,key,label:key,units:1,value_eur,cost_eur:null});
+ const facts=[f('2026-09-28','SERVICE','S1',100),f('2026-09-28','SERVICE','S2',50),f('2026-09-28','PRODUCT','P1',20),f('2026-10-05','SERVICE','S1',70),f('2026-10-05','PRODUCT','P1',null),f('2026-11-02','SERVICE','S1',10),f('2026-11-02','PRODUCT','P1',5)];
+ assert.equal(salesSplitSeries(facts,weeks,'day'),null);
+ const w=salesSplitSeries(facts,weeks,'week');
+ assert.deepEqual(w.labels,['W40','W41','W45']);assert.deepEqual(w.services,[150,70,10]);assert.deepEqual(w.products,[20,null,5]);
+ const m=salesSplitSeries(facts,weeks,'month');
+ assert.deepEqual(m.services,[220,10]);assert.deepEqual(m.products,[null,5]);
+ assert.equal(salesSplitSeries([],weeks,'week'),null);
+ assert.deepEqual(productRanking(facts,weeks,'sales','SERVICE').map(r=>r.key),['S1','S2']);
+ assert.deepEqual(productRanking(facts,weeks,'sales','PRODUCT').map(r=>r.key),[]); // P1 has an unknown week, so it is not ranked
 });
