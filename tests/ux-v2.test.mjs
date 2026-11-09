@@ -155,3 +155,10 @@ test('board explicit tasks files dedupe bounded lists no unrelated links and acc
  assert.equal(descendants(card).filter(n=>n.tagName==='A').length,4);
  const bad=item('bad','asset',{});bad.related_ids=['c1'];bad.links=[{url:'javascript:alert(1)'},{url:'https://evil.example/file'}];data.items.push(bad);assert.equal(campaignRelations(data,c).files.find(x=>x.asset.id==='bad').url,null);
 });
+
+test('the six canonical task categories (2026-11-09) map to the intended groups',()=>{
+ const expected={'Facebook kampane':'campaigns','Marketing ostatné':'campaigns','CRM a Control Center':'it','IT, dáta a audit':'it','Manažment a prevádzka':'management','Produkty a predaj':'other'};
+ for(const [category,group] of Object.entries(expected))assert.equal(taskGroup(item('c','task',{category})),group,category);
+ assert.equal(taskGroup(item('c','task',{category:'  facebook kampane '})),'campaigns','trim and case-insensitive like the legacy names');
+ assert.equal(taskGroup(item('c','task',{category:'Neznáma kategória'})),'other');
+});
