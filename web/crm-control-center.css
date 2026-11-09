@@ -262,3 +262,23 @@
 .crm-main .crm-chart-grid-3{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
 .crm-main .crm-chart-grid>.crm-chart-card{display:flex;flex-direction:column}
 .crm-main .crm-chart-grid>.crm-chart-card>.crm-chart{margin-top:auto}
+
+/* Prehľad, Úlohy, Kalendár: typography scale shared with CRM Reporting (colors and layout stay from control-center.html) */
+.crm-main .crm-control-center{--rep-section:600 24px/1.2 Oswald,system-ui,sans-serif;--rep-title:600 18px/1.25 Oswald,system-ui,sans-serif;--rep-text:Inter,system-ui,sans-serif;font-family:var(--rep-text);font-size:14px}
+.crm-main .crm-control-center button,.crm-main .crm-control-center input,.crm-main .crm-control-center select{font-family:var(--rep-text);font-size:14px}
+.crm-main .crm-control-tabs button{font:500 15px/1.2 var(--rep-text);min-height:40px}
+.crm-main .crm-control-center .dash-group>h3,.crm-main .crm-control-center .ux-campaign-kpis h3,.crm-main .crm-control-center .campaign-column-header h3{font:var(--rep-title);letter-spacing:.01em}
+.crm-main .crm-control-center .ux-calendar-toolbar h4,.crm-main .crm-control-center .ux-mobile-agenda h4{font:var(--rep-title);margin:.5rem 0}
+.crm-main .crm-control-center .ux-counts dd{font:700 34px/1.1 var(--rep-text)}
+.crm-main .crm-control-center .section-note,.crm-main .crm-control-center .empty-row{font:400 13px/1.4 var(--rep-text)}
+.crm-main .crm-control-center .report-table{font-size:14px}
+.crm-main .crm-control-center .report-table th{font:600 12px/1.3 var(--rep-text);letter-spacing:.4px}
+.crm-main .crm-control-center .table-title{font:600 14px/1.35 var(--rep-text)}
+.crm-main .crm-control-center .table-id,.crm-main .crm-control-center .report-table td p,.crm-main .crm-control-center .conflict-label{font:400 12px/1.4 var(--rep-text)}
+.crm-main .crm-control-center .dash-badge{font:600 12px/1.4 var(--rep-text);padding:2px 8px}
+.crm-main .crm-control-center .ux-calendar time{font:600 13px/1.2 var(--rep-text)}
+.crm-main .crm-control-center .ux-calendar-event{font:400 12px/1.3 var(--rep-text);padding:.35rem}
+.crm-main .crm-control-center .ux-calendar-status{font:600 12px/1.2 var(--rep-text)}
+.crm-main .crm-control-center .ux-calendar-more summary,.crm-main .crm-control-center .ux-agenda-day summary{font:500 13px/1.3 var(--rep-text)}
+.crm-main .crm-control-center .ux-mobile-day-count{font:600 12px/1.3 var(--rep-text)}
+.crm-main .crm-control-center .status-legend,.crm-main .crm-control-center .status-legend .dash-badge,.crm-main .crm-control-center .status-legend>strong{font-size:12px}
