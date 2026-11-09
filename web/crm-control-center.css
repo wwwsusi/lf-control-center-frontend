@@ -161,8 +161,8 @@
 .crm-main .crm-report-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 .crm-main .crm-report-controls label{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted)}
 .crm-main .crm-report-controls select{min-height:48px;min-width:220px;max-width:100%}
-.crm-main .crm-report-custom{margin:0 0 12px;border:1px solid var(--line);border-radius:14px;padding:10px 16px;background:var(--paper)}
-.crm-main .crm-report-custom summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--muted)}
+.crm-main .crm-report-custom{margin:0 0 12px;border:1px solid var(--line);border-radius:14px;padding:12px 16px;background:var(--paper)}
+.crm-main .crm-report-custom .crm-report-period{margin:0}
 .crm-main .crm-report-badge{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 12px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 .crm-main .crm-report-badge .crm-note{margin:0}
 .crm-main .crm-chip{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--info-bg);color:var(--info);font-weight:600}
