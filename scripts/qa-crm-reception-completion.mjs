@@ -46,7 +46,7 @@ try{
    }else if(body.operation_type==='CONFIRM_PAYMENT'){
     paid=true;payment={...payment,revision:'2',status:'CONFIRMED'};target='payment';projection=payment;
    }else if(body.operation_type==='CHECK_IN'){
-    assert.equal(paid,true);consumed++;target='visit';projection={id:id(8),revision:'1',status:'POSTED'};
+    consumed++;target='visit';projection={id:id(8),revision:'1',status:'POSTED'};
    }else throw Error('Unexpected mutation '+body.operation_type);
    const result={operation:{state:'COMPLETED',target_type:target},projection};operations.set(body.request_id,result);
    if(body.operation_type==='UPDATE_CUSTOMER'&&lostCorrection){lostCorrection=false;return json({code:'READBACK_UNAVAILABLE'},503);}
@@ -65,17 +65,13 @@ try{
   const checkout=page.getByRole('region',{name:'Nákup klientky'});
   await checkout.getByRole('button',{name:'Služby',exact:true}).click();await checkout.getByRole('button',{name:'Pridať Synthetic 10 vstupov',exact:true}).click();
   await checkout.getByRole('button',{name:'Uložiť rozpracovaný predaj',exact:true}).click();await checkout.getByRole('button',{name:'Potvrdiť predaj',exact:true}).click();
-  await expect(page.getByText('Niektoré permanentky čakajú na úplné potvrdenie platby.',{exact:false})).toBeVisible();
-  await expect(page.getByRole('button',{name:/Použiť permanentku/})).toHaveCount(0);
-  await checkout.locator('select').selectOption('CARD');await checkout.getByRole('button',{name:'Zaznamenať platbu',exact:true}).click();
-  await expect(checkout.getByText('Potvrď iba úspešnú platbu na termináli.',{exact:false})).toBeVisible();
-  await expect(page.getByRole('button',{name:/Použiť permanentku/})).toHaveCount(0);
-  await checkout.getByRole('button',{name:'Potvrdiť prijatie platby',exact:true}).click();
+  await expect(checkout.getByText('Nákup je zaznamenaný.',{exact:false})).toBeVisible();
+  assert.equal(writes.some(w=>w.operation_type.includes('PAYMENT')),false);
   await page.getByRole('button',{name:/Použiť permanentku · čerpané 0 \/ 10/}).click();
   await expect(page.getByText('Čerpané: 1 / 10',{exact:true})).toBeVisible();
-  assert.deepEqual(writes.map(w=>w.operation_type),['UPDATE_CUSTOMER','CREATE_SALE','CONFIRM_SALE','CREATE_PAYMENT','CONFIRM_PAYMENT','CHECK_IN']);
+  assert.deepEqual(writes.map(w=>w.operation_type),['UPDATE_CUSTOMER','CREATE_SALE','CONFIRM_SALE','CHECK_IN']);
   assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.close();
  }
- console.log('PASS: full synthetic client workspace at 1440/820/375px; lost correction readback/navigation guard, current revision, pending/full CARD payment, paid-only redemption and immediate balance refresh; no browser storage or external calls.');
+ console.log('PASS: full synthetic client workspace at 1440/820/375px; lost correction readback/navigation guard, current revision, recorded purchase without payment, immediate redemption and immediate balance refresh; no browser storage or external calls.');
 }finally{await browser.close();}
