@@ -53,3 +53,7 @@ test('historical snapshot rejects personal fields, duplicate weeks and unsafe nu
  assert.throws(()=>validateHistoricalSnapshot({...snapshot,weekly:snapshot.weekly.map((r,i)=>i===1?{...r,week:40}:r)}));
  assert.throws(()=>validateHistoricalSnapshot({...snapshot,weekly:snapshot.weekly.map((r,i)=>i===0?{...r,visits:'0'}:r)}));
 });
+
+test('reporting accepts W45 without duplicating or discarding the original five weeks',async()=>{
+ const {historyFixture}=await import('./fixtures/report-history.mjs');const s=historyFixture();const before=structuredClone(s.weekly);s.weekly.push({...s.weekly[4],week:45,period_start:'2026-11-02',period_end:'2026-11-08'});s.snapshot_period.weeks.push(45);assert.equal(validateHistoricalSnapshot(s),s);assert.deepEqual(s.weekly.slice(0,5),before);assert.throws(()=>validateHistoricalSnapshot({...s,snapshot_period:{weeks:[40,41,42,43,44]}}));
+});
