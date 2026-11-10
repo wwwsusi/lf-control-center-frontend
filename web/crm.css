@@ -118,7 +118,7 @@
 .crm-main .crm-choice strong{font:var(--rc-box)}
 .crm-main .crm-choice span{font:var(--rc-text);color:var(--muted,#a4b2c6)}
 .crm-main .crm-choice:hover{background:#192a40}
-.crm-main .crm-choice[data-tone=pink]{--tile-accent:#ff83ad}.crm-main .crm-choice[data-tone=cyan]{--tile-accent:#64d8df}.crm-main .crm-choice[data-tone=amber]{--tile-accent:#f5cb77}
+.crm-main .crm-choice{--tile-accent:#64d8df}
 /* Guidance line and numbered steps */
 .crm-main .crm-guide{margin:8px 0 16px;padding:16px 20px;border:1px solid var(--line,#304056);border-left:4px solid var(--pink,#ff6398);border-radius:10px;background:#192a40;font:var(--rc-text)}
 .crm-client-workspace{counter-reset:step}
@@ -153,22 +153,13 @@
 
 /* Colour hierarchy: every counter screen has one accent (--mode). Title white with an accent bar, box titles and key values in the
    accent, body text light grey, secondary text muted. Pink = permanentka, cyan = jednorazový vstup, amber = MultiSport. */
-.crm-main #crm-content[data-mode=pink]{--mode:#ff83ad;--mode-bg:#34202f;--mode-bg-hover:#42283b}
-.crm-main #crm-content[data-mode=cyan]{--mode:#64d8df;--mode-bg:#16323a;--mode-bg-hover:#1c404a}
-.crm-main #crm-content[data-mode=amber]{--mode:#f5cb77;--mode-bg:#352f1e;--mode-bg-hover:#443c26}
+.crm-main #crm-content[data-mode]{--mode:#64d8df;--mode-bg:#16323a;--mode-bg-hover:#1c404a}
 .crm-main .crm-big h2{color:#fff}
 .crm-main .crm-big p,.crm-main .crm-big li,.crm-main .crm-big label,.crm-main .crm-big dd,.crm-main .crm-big dt{color:#c7d2e3}
-.crm-main #crm-content[data-mode]>h2{display:inline-block;padding-bottom:10px;border-bottom:4px solid var(--mode)}
 .crm-main #crm-content[data-mode] h3{color:var(--mode)}
 .crm-main #crm-content[data-mode] .crm-guide{border-left-color:var(--mode)}
 .crm-main #crm-content[data-mode] .crm-price-btn{border-left-color:var(--mode)}
 .crm-main #crm-content[data-mode] .crm-price-btn strong{color:var(--mode)}
 .crm-main .crm-mode-box{margin:12px 0}
-.crm-main .crm-action-tile{display:flex;flex-direction:column;align-items:flex-start;gap:10px;width:100%;min-height:170px;padding:26px 30px;text-align:left;border:1px solid var(--line,#304056);border-left:8px solid var(--mode,#b2bfd0);border-radius:14px;background:var(--mode-bg,#142238);color:var(--ink,#edf2fa);cursor:pointer}
-.crm-main .crm-action-tile strong{font:var(--rc-price);font-size:38px;color:var(--mode,#edf2fa)}
-.crm-main .crm-action-tile span{font:var(--rc-text);color:#c7d2e3}
-.crm-main .crm-big .crm-action-tile:hover:not(:disabled){background:var(--mode-bg-hover,#192a40)}
-.crm-main .crm-action-tile:disabled{opacity:.55;cursor:progress}
-.crm-main .crm-big .crm-action-tile{min-height:170px;padding:26px 30px;background:var(--mode-bg,#142238);font:inherit}
 .crm-main .crm-big .crm-price-btn{min-height:170px;padding:26px 30px;font:inherit}
 .crm-main .crm-big .crm-choice{min-height:180px;padding:26px 28px;font:inherit}

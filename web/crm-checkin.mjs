@@ -54,7 +54,7 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
   if(state.pending){root.append(el('p','Rozpracovaný zápis návštevy. Ďalší vstup je zablokovaný do overenia výsledku.'),button('Overiť ten istý zápis',writer.verify),button('Zopakovať ten istý zápis',writer.retry));return;}
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admissions.length)root.append(el('p','Nie sú dostupné schválené možnosti vstupu.'));
-  if(quick){for(const a of admissions.filter(x=>x.code==='MULTISPORT')){const b=button('',()=>writer.submit(visitPayload(a,customer)));b.className='crm-action-tile';b.setAttribute('aria-label','Zapísať MultiSport vstup');b.append(el('strong','Zapísať MultiSport vstup'),el('span','Návšteva sa zapíše bez mena.'));root.append(b);}return;}
+  if(quick){for(const a of admissions.filter(x=>x.code==='MULTISPORT')){const b=button('',()=>writer.submit(visitPayload(a,customer)));b.className='crm-price-btn';b.setAttribute('aria-label','Zapísať MultiSport vstup');b.append(el('span','MultiSport'),el('strong','Zapísať vstup'));root.append(b);}return;}
   for(const a of admissions){const card=el('article');card.className='crm-card';card.append(el('h3',a.label_sk));
    if(a.code==='MULTISPORT')card.append(button('Zapísať MultiSport vstup',()=>writer.submit(visitPayload(a,customer))));
    else if(a.code==='ENTITLEMENT'){
