@@ -1,3 +1,4 @@
+import {showToast} from './crm-toast.mjs';
 // Visit intent stays in memory. A pending result cannot create another operation.
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const rev=v=>typeof v==='string'&&/^[1-9][0-9]{0,17}$/.test(v);
@@ -13,6 +14,19 @@ export function entryMembershipLabel(e){
  const count='Použiť permanentku · čerpané '+e.consumed+' / '+(e.included_units_at_purchase??'neurčené');
  if(e.validity_value_at_purchase===6&&e.validity_unit_at_purchase==='MONTH')return count+' · '+(!e.activated_on?'Platnosť 6 mesiacov od prvého vstupu':membershipValidityLabel(e));
  return count+(e.expires_on?' · '+membershipValidityLabel(e):'');
+}
+// One tile design for every way of entering: name, optional detail (price), one action line. Used by single entry and MultiSport.
+export function entryTile({name,detail=null,note=null,action='Zapísať vstup',label=null,onClick,disabled=false}){
+ const b=document.createElement('button');b.type='button';b.className='crm-price-btn';b.disabled=disabled;if(label)b.setAttribute('aria-label',label);
+ const n=document.createElement('span');n.textContent=name;b.append(n);
+ if(detail){const d=document.createElement('span');d.className='crm-tile-detail';d.textContent=detail;b.append(d);}
+ if(note){const m=document.createElement('span');m.textContent=note;b.append(m);}
+ const a=document.createElement('strong');a.textContent=action;b.append(a);b.addEventListener('click',onClick);return b;
+}
+export function entitlementDetail(e){
+ if(e.type_at_purchase==='TIME_ACCESS')return {detail:membershipValidityLabel(e),note:null};
+ const total=Number(e.included_units_at_purchase),used=Number(e.consumed);
+ return {detail:Number.isFinite(total)&&Number.isFinite(used)?'Zostáva '+(total-used)+' z '+total+' vstupov':'Čerpané '+e.consumed+' vstupov',note:e.expires_on?membershipValidityLabel(e):null};
 }
 export function visitPayload(admission,customer=null,entitlement=null,purchase=null){
  if(!uuid(admission?.id)||!rev(admission?.revision))throw Error('INVALID_ADMISSION');
@@ -40,42 +54,54 @@ export function createVisitWriter(api,{signal,onChange=()=>{},onSuccess=()=>{},o
  }
  return {submit(payload){if(!live||busy||pending||done)return;pending={request_id:newId(),operation_type:'CHECK_IN',payload:structuredClone(payload)};return send();},verify:()=>send(true),retry:()=>send(),dispose(){live=false;pending=null;}};
 }
-export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisitConfirmed=()=>{}}){
- let live=true,generation=0,admissions=[],entitlements=[],loading=true,message='',entryPurchases=new Map(),state={busy:false,pending:false,done:false};const controller=new AbortController();
+export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisitConfirmed=()=>{},only=null,title=null,backLabel='Späť',doneMs=4000,quick=false,onDone=null}){
+ let doneTimer=0,toast=null;const backNow=()=>{clearTimeout(doneTimer);doneTimer=0;onBack();};let live=true,generation=0,admissions=[],entitlements=[],loading=true,message='',entryPurchases=new Map(),state={busy:false,pending:false,done:false};const controller=new AbortController();
  const el=(tag,value)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);return x;};
  const button=(label,action)=>{const x=el('button',label);x.type='button';x.disabled=state.busy;x.addEventListener('click',action);return x;};
- const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';try{onVisitConfirmed();}catch{}},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
+ const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';try{onVisitConfirmed();}catch{}if(onDone)toast=showToast({text:message,ms:3000,onClose:()=>{toast=null;if(live)onDone();}});},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
  function render(){
-  if(!live)return;root.replaceChildren(el('h2',customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky'));
+  if(!live)return;root.replaceChildren(...(quick?[]:[el('h2',title??(customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky'))]));
   if(message){const p=el('p',message);p.setAttribute('role','status');root.append(p);}
-  if(state.done){root.append(button('Späť',onBack));return;}
+  if(state.done&&onDone)return;
+  if(state.done){const b=el('div',undefined,'crm-banner');b.dataset.kind='ok';b.setAttribute('role','status');b.append(el('strong',message||'Návšteva bola uložená a overená.'));root.replaceChildren(el('h2',title??(customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky')),b,button(backLabel,backNow));if(!doneTimer)doneTimer=setTimeout(()=>{doneTimer=0;if(live)onBack();},doneMs);return;}
   if(state.pending){root.append(el('p','Rozpracovaný zápis návštevy. Ďalší vstup je zablokovaný do overenia výsledku.'),button('Overiť ten istý zápis',writer.verify),button('Zopakovať ten istý zápis',writer.retry));return;}
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admissions.length)root.append(el('p','Nie sú dostupné schválené možnosti vstupu.'));
+  if(quick){
+   const grid=el('div');grid.className='crm-price-grid';
+   for(const a of admissions){
+    if(a.code==='MULTISPORT')grid.append(entryTile({name:'MultiSport',label:'Zapísať MultiSport vstup',disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer))}));
+    else if(a.code==='ENTITLEMENT'&&customer){
+     for(const e of entitlements.filter(x=>x.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(x.type_at_purchase)))grid.append(entryTile({name:e.type_at_purchase==='TIME_ACCESS'?'Mesačná permanentka':'Permanentka na vstupy',...entitlementDetail(e),label:'Zapísať vstup · '+(e.type_at_purchase==='TIME_ACCESS'?'mesačná permanentka':'permanentka na vstupy'),disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer,e))}));
+    }
+   }
+   if(grid.children.length)root.append(grid);
+   else root.append(el('p',customer?'Klientka nemá platnú permanentku. Kúp novú nižšie.':'Nie sú dostupné schválené možnosti vstupu.','crm-lead'));
+   return;}
   for(const a of admissions){const card=el('article');card.className='crm-card';card.append(el('h3',a.label_sk));
-   if(a.code==='MULTISPORT')card.append(button('Potvrdiť MultiSport vstup',()=>writer.submit(visitPayload(a,customer))));
+   if(a.code==='MULTISPORT')card.append(button('Zapísať MultiSport vstup',()=>writer.submit(visitPayload(a,customer))));
    else if(a.code==='ENTITLEMENT'){
     if(!customer)card.append(el('p','Najprv vyber klientku v zozname klientov.'));
     const eligible=entitlements.filter(e=>e.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(e.type_at_purchase));
     for(const e of eligible)card.append(button(e.type_at_purchase==='TIME_ACCESS'?'Použiť mesačnú permanentku · '+membershipValidityLabel(e):entryMembershipLabel(e),()=>writer.submit(visitPayload(a,customer,e))));
-    if(customer&&!eligible.length)card.append(el('p','Klientka nemá zobrazenú dostupnú permanentku.'));
+    if(customer&&!eligible.length)card.append(el('p','Klientka nemá platnú permanentku. Ak chce pokračovať, kúp novú v kroku 1.'));
    }else if(a.code==='SINGLE_ENTRY'){
     const page=entryPurchases.get(a.id);
     card.append(el('p','Vyber nepoužitý vstup z potvrdeného nákupu.'));
     if(!page)card.append(el('p','Predaje pre tento vstup nie sú dostupné.'));
     else{for(const item of page.items)card.append(button('Použiť vstup · '+item.display_name_at_sale+' · '+item.business_date+' · '+item.actual_unit_price+' EUR',()=>writer.submit(visitPayload(a,customer,null,item))));
-     if(!page.items.length)card.append(el('p','Nie sú dostupné nepoužité potvrdené predaje. Najprv zaznamenaj nákup.'));
+     if(!page.items.length)card.append(el('p','Zatiaľ nie je čo použiť. Najprv kúp vstup v kroku 1 a potvrď nákup.'));
      if(page.next)card.append(button('Ďalšie predaje',()=>loadEntries(a,page.next)));}
    }else card.append(el('p','Tento typ vstupu zatiaľ nie je podporovaný.'));
    root.append(card);
   }
-  root.append(el('p','Oprávnenosť a zostávajúce vstupy overí server pri zápise.'),button('Späť',onBack));
+  root.append(el('p','Oprávnenosť a zostávajúce vstupy overí server pri zápise.'),button(backLabel,onBack));
  }
  async function loadEntries(a,after,version=generation){try{const page=await api('/api/crm/read',{body:{view:'ENTRY_PURCHASES',admission_id:a.id,...(customer?{customer_id:customer.id}:{}),...(after?{after}:{})},signal:controller.signal});if(live&&version===generation){entryPurchases.set(a.id,page);render();}}catch(error){if(!live||version!==generation||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))onAuthFailure(error.code);else{message='Predaje pre tento vstup sa nepodarilo načítať.';render();}}}
  async function load(){const version=++generation;try{
-  const a=await api('/api/crm/read',{body:{view:'ADMISSIONS'},signal:controller.signal});if(!live||version!==generation)return;admissions=a.items;
+  const a=await api('/api/crm/read',{body:{view:'ADMISSIONS'},signal:controller.signal});if(!live||version!==generation)return;admissions=only?a.items.filter(x=>only.includes(x.code)):a.items;
   if(customer){const c=await api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:customer.id},signal:controller.signal});if(!live||version!==generation)return;customer=c.customer;entitlements=c.entitlements;if(c.entitlements_truncated)message='Zobrazených je prvých 20 permanentiek; zoznam nie je úplný.';}
   for(const a of admissions.filter(a=>a.code==='SINGLE_ENTRY'))await loadEntries(a,undefined,version);
  }catch(error){if(!live||version!==generation||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))onAuthFailure(error.code);else message='Možnosti vstupu sa nepodarilo načítať.';}finally{if(live&&version===generation){loading=false;render();}}}
- render();load();return {hasPending:()=>state.busy||state.pending,refresh(){if(!live||state.busy||state.pending)return false;loading=true;message='';render();load();return true;},dispose(){live=false;generation++;writer.dispose();controller.abort();root.replaceChildren();}};
+ render();load();return {hasPending:()=>state.busy||state.pending,refresh(){if(!live||state.busy||state.pending)return false;loading=true;message='';render();load();return true;},dispose(){live=false;clearTimeout(doneTimer);toast?.close(true);generation++;writer.dispose();controller.abort();root.replaceChildren();}};
 }

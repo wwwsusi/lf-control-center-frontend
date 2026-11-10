@@ -89,3 +89,119 @@
 .crm-pin-dots{margin:0;text-align:center;font-size:1.75rem;letter-spacing:.5em;min-height:2.2rem}
 .crm-pin-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .crm-pin-keys button{min-height:64px;font-size:1.4rem}
+
+/* ===== Reception type standard (counter screens: laptop and tablet) =====
+   Every reception box takes its type from these tokens; nothing on a counter screen is below 18 px.
+   Page title  --rc-page   Oswald 600 34px      screen headings (Recepcia, Jednorazový vstup)
+   Box title   --rc-box    Oswald 600 28px      card titles, choice titles, section titles
+   Body text   --rc-text   Inter 400 20px       descriptions, lists, forms, hints
+   Detail      --rc-meta   Inter 400 18px       secondary notes (smallest allowed size)
+   Button      --rc-btn    Inter 600 22px       min height 68px
+   Nav button  --rc-nav    Inter 600 18px       min height 52px
+   Price       --rc-price  Oswald 600 44px      amounts on price buttons */
+.home-shell,.crm-main{--rc-page:600 34px/1.2 Oswald,system-ui,sans-serif;--rc-box:600 28px/1.25 Oswald,system-ui,sans-serif;--rc-text:400 20px/1.5 Inter,system-ui,sans-serif;--rc-meta:400 18px/1.5 Inter,system-ui,sans-serif;--rc-btn:600 22px/1.3 Inter,system-ui,sans-serif;--rc-nav:600 18px/1.3 Inter,system-ui,sans-serif;--rc-price:600 44px/1.1 Oswald,system-ui,sans-serif}
+.crm-main .crm-big{font:var(--rc-text)}
+.crm-main .crm-big h2{font:var(--rc-page);margin:8px 0 16px}
+.crm-main .crm-big h3{font:var(--rc-box);margin:0 0 10px}
+.crm-main .crm-big p,.crm-main .crm-big li,.crm-main .crm-big label,.crm-main .crm-big dd,.crm-main .crm-big dt,.crm-main .crm-big input,.crm-main .crm-big select{font:var(--rc-text)}
+.crm-main .crm-big small,.crm-main .crm-big .crm-note{font:var(--rc-meta)}
+.crm-main .crm-big button{font:var(--rc-btn);min-height:68px;padding:14px 24px}
+.crm-main .crm-big .crm-nav button,.crm-main .crm-nav button{font:var(--rc-nav);min-height:52px}
+.crm-main .crm-big .crm-card{padding:22px}
+.crm-main .crm-big .crm-lead{color:var(--muted,#a4b2c6);margin:0 0 16px}
+.crm-main .crm-reception-grid>.crm-card{min-height:240px;padding:24px}
+.crm-main .crm-reception-grid .crm-card p{margin:0 0 18px}
+.crm-main .crm-reception-grid .crm-card button{margin-top:auto}
+/* Choice cards (Ako vstupuje?) */
+.crm-main .crm-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin:12px 0}
+.crm-main .crm-choice{display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-height:180px;padding:26px 28px;text-align:left;border:1px solid var(--line,#304056);border-left:6px solid var(--tile-accent,#b2bfd0);border-radius:14px;background:#142238;color:var(--ink,#edf2fa);cursor:pointer}
+.crm-main .crm-choice strong{font:var(--rc-box)}
+.crm-main .crm-choice span{font:var(--rc-text);color:var(--muted,#a4b2c6)}
+.crm-main .crm-choice:hover{background:#192a40}
+.crm-main .crm-choice{--tile-accent:#64d8df}
+/* Guidance line and numbered steps */
+.crm-main .crm-guide{margin:8px 0 16px;padding:16px 20px;border:1px solid var(--line,#304056);border-left:4px solid var(--pink,#ff6398);border-radius:10px;background:#192a40;font:var(--rc-text)}
+.crm-client-workspace{counter-reset:step}
+.crm-client-workspace>section::before{counter-increment:step;content:'Krok ' counter(step);display:inline-block;margin-bottom:8px;padding:3px 14px;border-radius:999px;background:var(--pink,#ff6398);color:#fff;font:700 18px/1.4 Inter,system-ui,sans-serif;letter-spacing:.4px;text-transform:uppercase}
+/* Price buttons (Jednorazový vstup) */
+.crm-main .crm-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;margin:12px 0}
+.crm-main .crm-price-btn{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:160px;padding:24px 26px;text-align:left;border:1px solid var(--line,#304056);border-left:6px solid #64d8df;border-radius:14px;background:#142238;color:var(--ink,#edf2fa);cursor:pointer}
+.crm-main .crm-price-btn span{font:var(--rc-text);color:var(--muted,#a4b2c6)}
+.crm-main .crm-price-btn strong{font:var(--rc-price);font-size:36px}
+.crm-main .crm-price-btn .crm-tile-detail{font:600 32px/1.2 Inter,system-ui,sans-serif;color:#fff}
+.crm-main .crm-price-btn:disabled{opacity:.55;cursor:progress}
+/* Messages */
+.crm-main .crm-banner{display:flex;flex-direction:column;gap:4px;margin:12px 0;padding:18px 22px;border-radius:12px;border:1px solid}
+.crm-main .crm-banner strong{font:600 24px/1.3 Inter,system-ui,sans-serif}
+.crm-main .crm-banner span{font:var(--rc-meta)}
+.crm-main .crm-banner[data-kind=ok]{background:#203a34;border-color:#4fb98a;color:#9ae1c0}
+.crm-main .crm-banner[data-kind=error]{background:#422532;border-color:#ff7f90;color:#ff9ca8}
+.crm-main .crm-recovery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:12px 0}
+.crm-main .crm-leftover{margin-top:24px;padding:18px 22px;border:1px solid #f3ce89;border-radius:12px;background:#3a3124}
+/* Success toast: top centre of the screen, outside the page flow */
+.crm-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:4px;min-width:min(92vw,520px);max-width:92vw;padding:20px 28px;border:2px solid #4fb98a;border-radius:14px;background:#203a34;color:#9ae1c0;text-align:center;box-shadow:0 12px 36px rgba(0,0,0,.45);font-family:Inter,system-ui,sans-serif;cursor:pointer;animation:crm-toast-in .25s ease-out}
+.crm-toast strong{font:600 28px/1.3 Inter,system-ui,sans-serif}
+.crm-toast span{font:400 20px/1.4 Inter,system-ui,sans-serif}
+@keyframes crm-toast-in{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.crm-toast{animation:none}}
+
+/* Header controls: session bar, refresh and back link share one style (reception nav token) */
+.crm-header-right{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px 12px}
+.crm-header-right button,.crm-header-right .crm-back{font:var(--rc-nav);min-height:52px;display:inline-flex;align-items:center;justify-content:center;margin:0;padding:0 18px;border:1px solid #304056;border-radius:10px;background:#142238;color:#edf2fa;text-decoration:none;cursor:pointer}
+.crm-header-right button:hover,.crm-header-right .crm-back:hover{background:#192a40}
+.crm-session-bar .crm-idle{font-size:18px}.crm-session-bar .crm-idle-timer{font-size:22px}
+.crm-session-bar .crm-identity{font-size:18px}
+
+/* Colour hierarchy: every counter screen has one accent (--mode). Title white with an accent bar, box titles and key values in the
+   accent, body text light grey, secondary text muted. Pink = permanentka, cyan = jednorazový vstup, amber = MultiSport. */
+.crm-main #crm-content[data-mode]{--mode:#64d8df;--mode-bg:#16323a;--mode-bg-hover:#1c404a}
+.crm-main .crm-big h2{color:#fff}
+.crm-main .crm-big p,.crm-main .crm-big li,.crm-main .crm-big label,.crm-main .crm-big dd,.crm-main .crm-big dt{color:#c7d2e3}
+.crm-main #crm-content[data-mode] h3{color:var(--mode)}
+.crm-main #crm-content[data-mode] .crm-guide{border-left-color:var(--mode)}
+.crm-main #crm-content[data-mode] .crm-price-btn{border-left-color:var(--mode)}
+.crm-main #crm-content[data-mode] .crm-price-btn strong{color:var(--mode)}
+.crm-main .crm-mode-box{margin:12px 0}
+.crm-main .crm-big .crm-price-btn{min-height:170px;padding:26px 30px;font:inherit}
+.crm-main .crm-big .crm-choice{min-height:180px;padding:26px 28px;font:inherit}
+.crm-main .crm-big .crm-sub{margin:0 0 6px;color:var(--muted,#a4b2c6)}
+.crm-main .crm-mode-box>.crm-lead{margin:0}
+.crm-main #crm-content.crm-big>button{margin:12px 12px 0 0}
+
+/* Client list: search first, cards side by side */
+.crm-main .crm-screen-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:4px 0 12px}
+.crm-main .crm-screen-head h2{margin:0}
+.crm-main .crm-search{display:grid;grid-template-columns:minmax(260px,2fr) minmax(200px,1fr) auto;gap:14px;align-items:end;margin:8px 0 6px}
+.crm-main .crm-search label{display:grid;gap:6px;color:#c7d2e3}
+.crm-main .crm-search input,.crm-main .crm-search select{min-height:64px;padding:0 16px;font:var(--rc-text);border-radius:10px}
+.crm-main .crm-client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin:16px 0}
+.crm-main .crm-client-card{display:flex;flex-direction:column;gap:14px;padding:22px;border:1px solid var(--line,#304056);border-left:6px solid #64d8df;border-radius:14px;background:#142238}
+.crm-main .crm-client-card h3{margin:0;color:#fff}
+.crm-main .crm-kv-group{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--line,#304056)}
+.crm-main .crm-kv{display:flex;justify-content:space-between;gap:12px;font:var(--rc-meta)}
+.crm-main .crm-kv span{color:var(--muted,#a4b2c6)}
+.crm-main .crm-kv strong{font:600 20px/1.4 Inter,system-ui,sans-serif;color:#fff;text-align:right}
+.crm-main .crm-kv-title{margin:0 0 4px;font:600 20px/1.3 Inter,system-ui,sans-serif;color:#64d8df}
+.crm-main .crm-chip-status{align-self:flex-start;padding:4px 14px;border-radius:999px;font:600 18px/1.4 Inter,system-ui,sans-serif;border:1px solid}
+.crm-main .crm-chip-status[data-tone=success]{background:#203a34;border-color:#4fb98a;color:#9ae1c0}
+.crm-main .crm-chip-status[data-tone=warning]{background:#3a3124;border-color:#d9a94b;color:#f3ce89}
+.crm-main .crm-chip-status[data-tone=danger]{background:#422532;border-color:#ff7f90;color:#ff9ca8}
+.crm-main .crm-chip-status[data-tone=neutral]{background:#283246;border-color:#4b5a73;color:#c0c7da}
+.crm-main .crm-client-card>button{margin-top:auto}
+@media(max-width:800px){.crm-main .crm-search{grid-template-columns:1fr}}
+.crm-main .crm-kv span{white-space:nowrap}
+.crm-main .crm-kv strong{min-width:0;overflow-wrap:anywhere}
+.crm-main .crm-big .crm-kv-title{color:#64d8df}
+.crm-main .crm-kv-stack{flex-direction:column;gap:0}.crm-main .crm-kv-stack strong{text-align:left;font-size:19px}
+/* Contact lines: same two-line layout in every card, regular weight, smallest allowed size, always inside the box */
+.crm-main .crm-client-grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+.crm-main .crm-contact .crm-kv-stack{gap:0}
+.crm-main .crm-contact .crm-kv-stack span{font:400 18px/1.4 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
+.crm-main .crm-contact .crm-kv-stack strong{font:400 18px/1.4 Inter,system-ui,sans-serif;color:#c7d2e3;min-width:0;max-width:100%;overflow-wrap:anywhere}
+
+/* Cenník keeps its own price-card scale (large amounts); the counter standard must not shrink it */
+.crm-main .crm-big .crm-price-value{font:600 clamp(36px,3.5vw,48px)/1.1 Inter,sans-serif}
+.crm-main .crm-big .crm-price-unknown{font:600 23px/1.4 Inter,sans-serif}
+.crm-main .crm-big .crm-price-audience{font:400 17px/1.45 Inter,sans-serif}
+.crm-main .crm-big .crm-price-unit{font:400 15px/1.4 Inter,sans-serif}
+@media(max-width:600px){.crm-main .crm-big .crm-price-value{font-size:44px}}
