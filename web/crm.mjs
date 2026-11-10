@@ -32,8 +32,37 @@ function button(text,action){const el=node('button',text);el.type='button';el.ad
 function heading(text,mode){content.classList.add('crm-big');if(mode)content.dataset.mode=mode;else delete content.dataset.mode;content.replaceChildren(node('h2',text));}
 async function read(body,render){if(!active)return;const version=++epoch;controller?.abort();controller=new AbortController();status.textContent='Načítavam CRM údaje…';try{const data=await api('/api/crm/read',{body,signal:controller.signal});if(version!==epoch||!active)return;render(data);status.textContent='CRM · pripojené';}catch(error){if(error.name==='AbortError'||version!==epoch)return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){wipe(labels[error.code]);return;}content.replaceChildren(node('p',labels[error.code]||'Načítanie zlyhalo. Obnov údaje.','crm-error'));status.textContent='Údaje nie sú dostupné.';}}
 function listing(items,render,next,more){const list=node('ul',undefined,'crm-list');for(const item of items)list.append(render(item));content.append(list);if(!items.length)content.append(node('p','V tomto pohľade nie sú záznamy. Nula neznamená potvrdenú úplnosť dňa.','crm-note'));if(next)content.append(button('Ďalšie záznamy',()=>more(next)));}
-function customerSearch(){if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}purchase?.dispose();purchase=null;heading('Zoznam klientov');content.append(button('Založiť novú klientku',()=>openCustomerForm()));content.append(node('p','Kontakt slúži na vyhľadanie, nie na automatické zlúčenie klientok.','crm-note'));const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';label.append(input);const modeLabel=node('label','Vyhľadávanie'),mode=node('select');for(const [value,text] of [['NAME','Začiatok mena'],['PHONE','Presné telefónne číslo'],['EMAIL','Presný e-mail']]){const option=node('option',text);option.value=value;mode.append(option);}modeLabel.append(mode);const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,modeLabel,submit);content.append(form);form.addEventListener('submit',e=>{e.preventDefault();if(!input.value.trim()&&mode.value!=='NAME'){input.setCustomValidity('Zadaj kontakt klientky.');input.reportValidity();input.setCustomValidity('');return;}if(form.reportValidity())results(input.value.trim(),mode.value);});results('', 'NAME',undefined,true);}
-function results(query,mode,after,keepSearch=false){read({view:'CUSTOMERS',query,mode,...(after?{after}:{})},data=>{if(!keepSearch){heading('Zoznam klientov');content.append(button('Nové vyhľadávanie',customerSearch),button('Založiť novú klientku',()=>openCustomerForm()));}listing(data.items,item=>{const li=node('li');li.append(node('strong',item.name),node('p',[item.phone,item.email].filter(Boolean).join(' · ')),node('p',stateLabel(item.status)),button('Otvoriť klientku',()=>customer(item.id)));return li;},data.next,next=>results(query,mode,next));});}
+const skDate=v=>{const d=typeof v==='string'&&/^\d{4}-\d{2}-\d{2}/.test(v)?new Date(v.slice(0,10)+'T12:00:00Z'):null;return d&&Number.isFinite(d.getTime())?new Intl.DateTimeFormat('sk-SK',{timeZone:'UTC'}).format(d):'—';};
+function membershipView(m,today=new Date().toISOString().slice(0,10)){
+ if(m===undefined)return {tone:'neutral',chip:'Údaje o permanentke nie sú v zozname',rows:[]};
+ if(m===null)return {tone:'neutral',chip:'Bez permanentky',rows:[]};
+ const time=m.type==='TIME_ACCESS',total=Number(m.included_units),used=Number(m.consumed),left=time?null:total-used,expired=typeof m.expires_on==='string'&&m.expires_on<today;
+ const soon=!expired&&typeof m.expires_on==='string'&&Date.parse(m.expires_on)-Date.parse(today)<=7*86400000;
+ const exhausted=!time&&Number.isFinite(left)&&left<=0,low=!time&&Number.isFinite(left)&&left>0&&left<=2;
+ const tone=expired||exhausted?'danger':soon||low?'warning':'success';
+ return {tone,chip:expired?'Neplatná · vypršala':exhausted?'Neplatná · vyčerpaná':soon||low?'Platná · končí čoskoro':'Platná',rows:[[time?'Mesačná permanentka':'Permanentka na vstupy',null],['Od',m.activated_on?skDate(m.activated_on):'Aktivuje sa prvým vstupom'],['Do',m.expires_on?skDate(m.expires_on):'—'],['Zostáva',time?'Bez limitu vstupov':Number.isFinite(left)?Math.max(left,0)+' z '+total+' vstupov':'—']]};
+}
+function clientCard(item){
+ const card=node('article',undefined,'crm-client-card'),view=membershipView(item.membership);card.append(node('h3',item.name));
+ const kv=(label,value,stack=false)=>{const row=node('div',undefined,stack?'crm-kv crm-kv-stack':'crm-kv');row.append(node('span',label),node('strong',value||'—'));return row;};
+ const contact=node('div',undefined,'crm-kv-group');contact.append(kv('Tel.',item.phone),kv('E-mail',item.email,true));card.append(contact);
+ const chip=node('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;card.append(chip);
+ if(view.rows.length){const group=node('div',undefined,'crm-kv-group');for(const [label,value] of view.rows)group.append(value===null?node('p',label,'crm-kv-title'):kv(label,value));card.append(group);}
+ card.append(kv('Naposledy',item.last_visit_on?skDate(item.last_visit_on):'—'));
+ card.append(button('Otvoriť klientku',()=>customer(item.id)));return card;
+}
+function customerSearch(){
+ if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}purchase?.dispose();purchase=null;
+ content.classList.add('crm-big');delete content.dataset.mode;content.replaceChildren();
+ const head=node('div',undefined,'crm-screen-head');head.append(node('h2','Zoznam klientov'),button('Založiť novú klientku',()=>openCustomerForm()));content.append(head);
+ const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';label.append(input);
+ const modeLabel=node('label','Hľadať podľa'),mode=node('select');for(const [value,text] of [['NAME','Začiatok mena'],['PHONE','Presné telefónne číslo'],['EMAIL','Presný e-mail']]){const option=node('option',text);option.value=value;mode.append(option);}modeLabel.append(mode);
+ const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,modeLabel,submit);content.append(form,node('p','Kontakt slúži na vyhľadanie, nie na automatické zlúčenie klientok.','crm-note'));
+ const grid=node('div',undefined,'crm-client-grid'),more=node('div');content.append(grid,more);let token=0;
+ function load(query,mode,after){const mine=after?token:++token;if(!after){grid.replaceChildren();more.replaceChildren();}read({view:'CUSTOMERS',query,mode,...(after?{after}:{})},data=>{if(mine!==token)return;for(const item of data.items)grid.append(clientCard(item));if(!data.items.length&&!after)more.replaceChildren(node('p','Nenašla sa žiadna klientka.','crm-note'));if(data.next)more.replaceChildren(button('Ďalšie klientky',()=>load(query,mode,data.next)));else if(after)more.replaceChildren();});}
+ form.addEventListener('submit',e=>{e.preventDefault();if(!input.value.trim()&&mode.value!=='NAME'){input.setCustomValidity('Zadaj kontakt klientky.');input.reportValidity();input.setCustomValidity('');return;}if(form.reportValidity())load(input.value.trim(),mode.value);});
+ load('','NAME');
+}
 function customer(id){if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}purchase?.dispose();purchase=null;read({view:'CUSTOMER',customer_id:id},data=>{
  if(visitFlow&&data.customer.status==='ACTIVE'){clientVisit(data);return;}
  heading(data.customer.name);content.append(node('p',[data.customer.phone,data.customer.email].filter(Boolean).join(' · ')),node('p','Zakúpené permanentky a spoločná obsluha klientky'));
