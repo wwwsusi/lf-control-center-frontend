@@ -198,3 +198,10 @@
 .crm-main .crm-contact .crm-kv-stack{gap:0}
 .crm-main .crm-contact .crm-kv-stack span{font:400 18px/1.4 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
 .crm-main .crm-contact .crm-kv-stack strong{font:400 18px/1.4 Inter,system-ui,sans-serif;color:#c7d2e3;min-width:0;max-width:100%;overflow-wrap:anywhere}
+
+/* Cenník keeps its own price-card scale (large amounts); the counter standard must not shrink it */
+.crm-main .crm-big .crm-price-value{font:600 clamp(36px,3.5vw,48px)/1.1 Inter,sans-serif}
+.crm-main .crm-big .crm-price-unknown{font:600 23px/1.4 Inter,sans-serif}
+.crm-main .crm-big .crm-price-audience{font:400 17px/1.45 Inter,sans-serif}
+.crm-main .crm-big .crm-price-unit{font:400 15px/1.4 Inter,sans-serif}
+@media(max-width:600px){.crm-main .crm-big .crm-price-value{font-size:44px}}
