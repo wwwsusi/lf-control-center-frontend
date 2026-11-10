@@ -45,7 +45,7 @@ function membershipView(m,today=new Date().toISOString().slice(0,10)){
 function clientCard(item){
  const card=node('article',undefined,'crm-client-card'),view=membershipView(item.membership);card.append(node('h3',item.name));
  const kv=(label,value,stack=false)=>{const row=node('div',undefined,stack?'crm-kv crm-kv-stack':'crm-kv');row.append(node('span',label),node('strong',value||'—'));return row;};
- const contact=node('div',undefined,'crm-kv-group');contact.append(kv('Tel.',item.phone),kv('E-mail',item.email,true));card.append(contact);
+ const contact=node('div',undefined,'crm-kv-group');contact.classList.add('crm-contact');contact.append(kv('Tel.',item.phone,true),kv('E-mail',item.email,true));card.append(contact);
  const chip=node('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;card.append(chip);
  if(view.rows.length){const group=node('div',undefined,'crm-kv-group');for(const [label,value] of view.rows)group.append(value===null?node('p',label,'crm-kv-title'):kv(label,value));card.append(group);}
  card.append(kv('Naposledy',item.last_visit_on?skDate(item.last_visit_on):'—'));

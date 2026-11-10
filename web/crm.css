@@ -193,3 +193,8 @@
 .crm-main .crm-kv strong{min-width:0;overflow-wrap:anywhere}
 .crm-main .crm-big .crm-kv-title{color:#64d8df}
 .crm-main .crm-kv-stack{flex-direction:column;gap:0}.crm-main .crm-kv-stack strong{text-align:left;font-size:19px}
+/* Contact lines: same two-line layout in every card, regular weight, smallest allowed size, always inside the box */
+.crm-main .crm-client-grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+.crm-main .crm-contact .crm-kv-stack{gap:0}
+.crm-main .crm-contact .crm-kv-stack span{font:400 18px/1.4 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
+.crm-main .crm-contact .crm-kv-stack strong{font:400 18px/1.4 Inter,system-ui,sans-serif;color:#c7d2e3;min-width:0;max-width:100%;overflow-wrap:anywhere}
