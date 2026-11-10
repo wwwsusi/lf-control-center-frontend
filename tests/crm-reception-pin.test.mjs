@@ -19,3 +19,10 @@ test('PIN error messages are specific and do not reveal account details',()=>{
  for(const code of ['AUTH_REQUIRED','RATE_LIMITED','POLICY_BLOCKED'])assert.ok(new RegExp(`pinLabels=\\{[^}]*${code}:`).test(js),code);
  assert.ok(!/recepcia-|@/.test(js.match(/const pinLabels=\{[^}]*\}/)[0]));
 });
+
+test('the Today view offers the day-opening button to owner and reception only in day mode',()=>{
+ const today=js.split('\n').find(l=>l.startsWith('function today('));
+ assert.ok(today.includes("if(role==='OWNER_ADMIN'||role==='RECEPTION'){purchase?.dispose();purchase=mountOwner({root:content,api,onAuthFailure:code=>wipe(labels[code]),mode:'day'"));
+ // the other owner modes stay owner-only
+ assert.ok(js.includes("function openOwner(mode){if(!active||role!=='OWNER_ADMIN')return;"));
+});
