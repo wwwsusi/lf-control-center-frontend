@@ -89,3 +89,13 @@
 .crm-pin-dots{margin:0;text-align:center;font-size:1.75rem;letter-spacing:.5em;min-height:2.2rem}
 .crm-pin-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .crm-pin-keys button{min-height:64px;font-size:1.4rem}
+
+/* Reception: big choice cards and a guided two-step client screen */
+.crm-main .crm-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;margin:12px 0}
+.crm-main .crm-choice{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:130px;padding:20px;text-align:left;border:1px solid var(--line,#304056);border-left:6px solid var(--tile-accent,#b2bfd0);border-radius:14px;background:#142238;color:var(--ink,#edf2fa);cursor:pointer}
+.crm-main .crm-choice strong{font:600 22px/1.2 Oswald,system-ui,sans-serif}
+.crm-main .crm-choice span{font:400 15px/1.4 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
+.crm-main .crm-choice:hover{background:#192a40}.crm-main .crm-choice[data-tone=pink]{--tile-accent:#ff83ad}.crm-main .crm-choice[data-tone=cyan]{--tile-accent:#64d8df}
+.crm-guide{margin:8px 0 14px;padding:12px 16px;border:1px solid var(--line,#304056);border-left:4px solid var(--pink,#ff6398);border-radius:10px;background:#192a40;font:400 15px/1.5 Inter,system-ui,sans-serif}
+.crm-client-workspace{counter-reset:step}
+.crm-client-workspace>section::before{counter-increment:step;content:'Krok ' counter(step);display:inline-block;margin-bottom:8px;padding:3px 12px;border-radius:999px;background:var(--pink,#ff6398);color:#fff;font:700 13px/1.4 Inter,system-ui,sans-serif;letter-spacing:.4px;text-transform:uppercase}
