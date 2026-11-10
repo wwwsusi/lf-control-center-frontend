@@ -3,6 +3,7 @@ import {chromium,webkit,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const module=await readFile(new URL('../web/crm-checkin.mjs',import.meta.url),'utf8');
+const toastModule=await readFile(new URL('../web/crm-toast.mjs',import.meta.url),'utf8');
 const id=n=>'80000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const browserType=process.env.LF_UX_BROWSER==='webkit'?webkit:chromium;
 const browser=await browserType.launch(process.env.LF_BROWSER_EXECUTABLE?{executablePath:process.env.LF_BROWSER_EXECUTABLE}:{});
@@ -13,6 +14,7 @@ try{
   await page.route('**/*',async route=>{
    const url=new URL(route.request().url());assert.equal(url.origin,'https://crm.test');
    if(url.pathname==='/crm-checkin.mjs')return route.fulfill({contentType:'text/javascript',body:module});
+   if(url.pathname==='/crm-toast.mjs')return route.fulfill({contentType:'text/javascript',body:toastModule});
    assert.equal(url.pathname,'/');
    await route.fulfill({contentType:'text/html',body:`<meta name="viewport" content="width=device-width"><main id="root"></main><script type="module">
     import {mountCheckin} from '/crm-checkin.mjs';

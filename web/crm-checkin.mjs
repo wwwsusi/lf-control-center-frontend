@@ -1,3 +1,4 @@
+import {showToast} from './crm-toast.mjs';
 // Visit intent stays in memory. A pending result cannot create another operation.
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const rev=v=>typeof v==='string'&&/^[1-9][0-9]{0,17}$/.test(v);
@@ -40,18 +41,20 @@ export function createVisitWriter(api,{signal,onChange=()=>{},onSuccess=()=>{},o
  }
  return {submit(payload){if(!live||busy||pending||done)return;pending={request_id:newId(),operation_type:'CHECK_IN',payload:structuredClone(payload)};return send();},verify:()=>send(true),retry:()=>send(),dispose(){live=false;pending=null;}};
 }
-export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisitConfirmed=()=>{},only=null,title=null,backLabel='Späť',doneMs=4000}){
- let doneTimer=0;const backNow=()=>{clearTimeout(doneTimer);doneTimer=0;onBack();};let live=true,generation=0,admissions=[],entitlements=[],loading=true,message='',entryPurchases=new Map(),state={busy:false,pending:false,done:false};const controller=new AbortController();
+export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisitConfirmed=()=>{},only=null,title=null,backLabel='Späť',doneMs=4000,quick=false,onDone=null}){
+ let doneTimer=0,toast=null;const backNow=()=>{clearTimeout(doneTimer);doneTimer=0;onBack();};let live=true,generation=0,admissions=[],entitlements=[],loading=true,message='',entryPurchases=new Map(),state={busy:false,pending:false,done:false};const controller=new AbortController();
  const el=(tag,value)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);return x;};
  const button=(label,action)=>{const x=el('button',label);x.type='button';x.disabled=state.busy;x.addEventListener('click',action);return x;};
- const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';try{onVisitConfirmed();}catch{}},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
+ const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';try{onVisitConfirmed();}catch{}if(onDone)toast=showToast({text:message,ms:3000,onClose:()=>{toast=null;if(live)onDone();}});},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
  function render(){
-  if(!live)return;root.replaceChildren(el('h2',title??(customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky')));
+  if(!live)return;root.replaceChildren(...(quick?[]:[el('h2',title??(customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky'))]));
   if(message){const p=el('p',message);p.setAttribute('role','status');root.append(p);}
+  if(state.done&&onDone)return;
   if(state.done){const b=el('div',undefined,'crm-banner');b.dataset.kind='ok';b.setAttribute('role','status');b.append(el('strong',message||'Návšteva bola uložená a overená.'));root.replaceChildren(el('h2',title??(customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky')),b,button(backLabel,backNow));if(!doneTimer)doneTimer=setTimeout(()=>{doneTimer=0;if(live)onBack();},doneMs);return;}
   if(state.pending){root.append(el('p','Rozpracovaný zápis návštevy. Ďalší vstup je zablokovaný do overenia výsledku.'),button('Overiť ten istý zápis',writer.verify),button('Zopakovať ten istý zápis',writer.retry));return;}
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admissions.length)root.append(el('p','Nie sú dostupné schválené možnosti vstupu.'));
+  if(quick){for(const a of admissions.filter(x=>x.code==='MULTISPORT')){const b=button('',()=>writer.submit(visitPayload(a,customer)));b.className='crm-action-tile';b.setAttribute('aria-label','Zapísať MultiSport vstup');b.append(el('strong','Zapísať MultiSport vstup'),el('span','Návšteva sa zapíše bez mena.'));root.append(b);}return;}
   for(const a of admissions){const card=el('article');card.className='crm-card';card.append(el('h3',a.label_sk));
    if(a.code==='MULTISPORT')card.append(button('Zapísať MultiSport vstup',()=>writer.submit(visitPayload(a,customer))));
    else if(a.code==='ENTITLEMENT'){
@@ -77,5 +80,5 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
   if(customer){const c=await api('/api/crm/read',{body:{view:'CUSTOMER',customer_id:customer.id},signal:controller.signal});if(!live||version!==generation)return;customer=c.customer;entitlements=c.entitlements;if(c.entitlements_truncated)message='Zobrazených je prvých 20 permanentiek; zoznam nie je úplný.';}
   for(const a of admissions.filter(a=>a.code==='SINGLE_ENTRY'))await loadEntries(a,undefined,version);
  }catch(error){if(!live||version!==generation||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))onAuthFailure(error.code);else message='Možnosti vstupu sa nepodarilo načítať.';}finally{if(live&&version===generation){loading=false;render();}}}
- render();load();return {hasPending:()=>state.busy||state.pending,refresh(){if(!live||state.busy||state.pending)return false;loading=true;message='';render();load();return true;},dispose(){live=false;clearTimeout(doneTimer);generation++;writer.dispose();controller.abort();root.replaceChildren();}};
+ render();load();return {hasPending:()=>state.busy||state.pending,refresh(){if(!live||state.busy||state.pending)return false;loading=true;message='';render();load();return true;},dispose(){live=false;clearTimeout(doneTimer);toast?.close(true);generation++;writer.dispose();controller.abort();root.replaceChildren();}};
 }

@@ -2,6 +2,7 @@
 // Every mutation has its own stable request_id, so a lost response is verified with a readback and never replayed as a new operation.
 import {purchaseLine} from './crm-purchase.mjs';
 import {visitPayload} from './crm-checkin.mjs';
+import {showToast} from './crm-toast.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'],DEFINITIVE=['VALIDATION_ERROR','POLICY_BLOCKED','REVISION_CONFLICT','BUSINESS_REJECTED'];
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
 const el=(tag,value,cls)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);if(cls)x.className=cls;return x;};
@@ -9,11 +10,10 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
  let live=true,busy=false,items=[],admission=null,leftovers=[],loading=true,ctx=null,notice=null,bannerTimer=0,toast=null,celebrating=false;
  const controller=new AbortController(),signal=controller.signal;
  const read=body=>api('/api/crm/read',{body,signal});
- function clearToast(){clearTimeout(bannerTimer);toast?.remove();toast=null;}
- function finish(){if(!live||!celebrating)return;celebrating=false;clearToast();onDone();}
+ function clearToast(){clearTimeout(bannerTimer);toast?.close(true);toast=null;}
+ function finish(){if(!live||!celebrating)return;celebrating=false;toast=null;onDone();}
  function say(kind,text,sub){
-  clearTimeout(bannerTimer);
-  if(kind==='ok'){celebrating=true;notice=null;toast?.remove();toast=el('div',undefined,'crm-toast');toast.setAttribute('role','status');toast.append(el('strong',text));if(sub)toast.append(el('span',sub));toast.addEventListener('click',finish);document.body.append(toast);bannerTimer=setTimeout(finish,bannerMs);return;}
+  if(kind==='ok'){celebrating=true;notice=null;toast?.close(true);toast=showToast({text,sub,ms:bannerMs,onClose:finish});return;}
   notice={kind,text,sub};
  }
  async function load(){
