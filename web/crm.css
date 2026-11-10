@@ -99,3 +99,17 @@
 .crm-guide{margin:8px 0 14px;padding:12px 16px;border:1px solid var(--line,#304056);border-left:4px solid var(--pink,#ff6398);border-radius:10px;background:#192a40;font:400 15px/1.5 Inter,system-ui,sans-serif}
 .crm-client-workspace{counter-reset:step}
 .crm-client-workspace>section::before{counter-increment:step;content:'Krok ' counter(step);display:inline-block;margin-bottom:8px;padding:3px 12px;border-radius:999px;background:var(--pink,#ff6398);color:#fff;font:700 13px/1.4 Inter,system-ui,sans-serif;letter-spacing:.4px;text-transform:uppercase}
+
+/* Reception counter mode: large touch targets for tablet and laptop */
+.crm-main .crm-choice-grid-3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.crm-main .crm-choice{min-height:170px;padding:26px 28px;gap:12px}
+.crm-main .crm-choice strong{font-size:30px}
+.crm-main .crm-choice span{font-size:19px;line-height:1.45}
+.crm-main .crm-choice[data-tone=amber]{--tile-accent:#f5cb77}
+.crm-main .crm-big{font-size:18px}
+.crm-main .crm-big h2{font-size:28px}
+.crm-main .crm-big h3{font-size:24px}
+.crm-main .crm-big p,.crm-main .crm-big li{font-size:18px;line-height:1.5}
+.crm-main .crm-big button{min-height:64px;font-size:20px;padding:14px 20px}
+.crm-main .crm-big .crm-card{padding:22px}
+.crm-main .crm-guide{font-size:18px;padding:16px 20px}

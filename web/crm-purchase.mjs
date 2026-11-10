@@ -13,9 +13,9 @@ export function purchaseLine(item,kind,count,identity,activationMode){
  if(monthly?(!identity?.customer_id||!item.requires_customer||!item.activation_choices.includes(activationMode)):activationMode!==undefined)throw Error('Invalid activation choice');
  return {[kind==='products'?'product_id':'service_id']:item.id,quantity:String(count),catalogue_fingerprint:item.catalogue_fingerprint,...(monthly?{activation_mode:activationMode}:{})};
 }
-export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},saved=false,customer=null,anonymous=false}){
+export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},saved=false,customer=null,anonymous=false,kinds=null,itemFilter=null,quick=false,title=null}){
  const identity=saved?null:purchaseCustomerReference(customer,anonymous);
- let live=true,generation=0,busy=false,pending=null,saleId=null,current=null,notice='',items=[],next=null,catalogueKind='products';
+ let live=true,generation=0,busy=false,pending=null,saleId=null,current=null,notice='',items=[],next=null,catalogueKind=kinds?.[0]??'products';
  const cart=new Map(),controller=new AbortController();
  const button=(label,fn)=>{const b=text('button',label);b.type='button';b.disabled=busy;b.addEventListener('click',fn);return b;};
  const fail=error=>{if(!live||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}notice=({POLICY_BLOCKED:'Tento postup čaká na schválené pravidlá.',REVISION_CONFLICT:'Údaje sa zmenili. Obnov uložený predaj.',BUSINESS_REJECTED:'Operácia nebola prijatá. Obnov uložený predaj.'})[error.code]||'Výsledok sa nepodarilo overiť.';};
@@ -44,7 +44,7 @@ export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},sav
   catch(error){fail(error);}finally{if(live){busy=false;render();}}
  }
  function render(){
-  if(!live)return;root.replaceChildren(text('h2',saleId?'Uložený predaj':customer?'Nákup · '+customer.name:'Nákup bez klienta'));
+  if(!live)return;root.replaceChildren(text('h2',saleId?'Uložený predaj':title??(customer?'Nákup · '+customer.name:'Nákup bez klienta')));
   if(notice)root.append(text('p',notice));
   if(pending){root.append(text('p','Nevytváraj nový nákup. Najprv over výsledok pôvodnej operácie.'),button('Overiť tú istú operáciu',verify));return;}
   if(saleId){
@@ -62,18 +62,18 @@ export function mountPurchase({root,api,onAuthFailure,onSaleConfirmed=()=>{},sav
    else root.append(text('p','Pre ďalší nákup vyber klientku alebo anonymný nákup v úvodnej ponuke.'));return;
   }
   root.append(text('p',customer?'Nákup sa uloží ku klientke '+customer.name+'. Jej existujúca permanentka zostáva zachovaná.':'Predaj bez identifikovanej klientky. Nevytvára návštevu ani permanentku.'));
-  const tabs=document.createElement('div');tabs.className='crm-catalogue-tabs';
-  for(const [kind,label]of [['products','Produkty'],['services','Služby']]){const tab=button(label,()=>loadCatalogue(undefined,kind));tab.setAttribute('aria-pressed',String(catalogueKind===kind));tabs.append(tab);}root.append(tabs);
+  const tabs=document.createElement('div');tabs.className='crm-catalogue-tabs';tabs.hidden=Boolean(kinds&&kinds.length===1);
+  for(const [kind,label]of [['products','Produkty'],['services','Služby']].filter(([kind])=>!kinds||kinds.includes(kind))){const tab=button(label,()=>loadCatalogue(undefined,kind));tab.setAttribute('aria-pressed',String(catalogueKind===kind));tabs.append(tab);}root.append(tabs);
   if(!items.length&&!busy)root.append(text('p','Žiadne dostupné položky v tomto katalógu.'));
-  for(const product of items){const card=document.createElement('article');card.className='crm-card';card.append(text('h3',product.name),text('p',`${eur(product.current_price_eur)} / ${product.unit}`));
+  for(const product of itemFilter?items.filter(itemFilter):items){const card=document.createElement('article');card.className='crm-card';card.append(text('h3',product.name),text('p',`${eur(product.current_price_eur)} / ${product.unit}`));
    if(product.category)card.append(text('p',product.category));const key=catalogueKind+':'+product.id;const requiresCustomer=catalogueKind==='services'&&product.requires_customer===true&&!identity.customer_id;
-   const add=button('Pridať '+product.name,()=>{if(cart.size>=25&&!cart.has(key))return;const line=cart.get(key);if((line?.quantity??0)>=999999999)return;cart.set(key,{product,kind:catalogueKind,quantity:(line?.quantity??0)+1,...(line?.activationMode?{activationMode:line.activationMode}:{})});render();});add.disabled=busy||requiresCustomer;if(requiresCustomer)card.append(text('p','Pre túto službu najprv vyber klientku.'));card.append(add);root.append(card);}
+   const quickable=quick&&!product.activation_choices&&!requiresCustomer;const add=button(quickable?'Vybrať · '+product.name+' · '+eur(product.current_price_eur):'Pridať '+product.name,quickable?()=>mutate('CREATE_SALE',{...identity,lines:[purchaseLine(product,catalogueKind,1,identity,undefined)]}):()=>{if(cart.size>=25&&!cart.has(key))return;const line=cart.get(key);if((line?.quantity??0)>=999999999)return;cart.set(key,{product,kind:catalogueKind,quantity:(line?.quantity??0)+1,...(line?.activationMode?{activationMode:line.activationMode}:{})});render();});add.disabled=busy||requiresCustomer;if(requiresCustomer)card.append(text('p','Pre túto službu najprv vyber klientku.'));card.append(add);root.append(card);}
   if(next)root.append(button('Ďalšie položky',()=>loadCatalogue(next,catalogueKind)));
   for(const [id,line]of cart){
    if(line.kind==='services'&&line.product.activation_choices){const activation=text('label',line.product.name+' · Aktivácia permanentky'),select=document.createElement('select');
     for(const [value,name]of [['','Vyber aktiváciu'],['PURCHASE_DATE','Platí od dnes'],['FIRST_USE','Aktivovať pri prvom vstupe']]){const option=text('option',name);option.value=value;select.append(option);}activation.className='crm-purchase-field';select.value=line.activationMode||'';select.disabled=busy;select.addEventListener('change',()=>{line.activationMode=select.value||undefined;render();});activation.append(select);root.append(activation);}
    const label=text('label',line.product.name+' · množstvo'),input=document.createElement('input');label.className='crm-purchase-field';input.type='number';input.min='1';input.max='999999999';input.step='1';input.value=String(line.quantity);input.disabled=busy;input.addEventListener('change',()=>{const n=Number(input.value);if(!Number.isSafeInteger(n)||n<1||n>999999999){input.value=String(line.quantity);return;}line.quantity=n;});label.append(input);root.append(label,button('Odobrať '+line.product.name,()=>{cart.delete(id);render();}));}
-  const save=button('Uložiť rozpracovaný predaj',()=>mutate('CREATE_SALE',{...identity,lines:[...cart.values()].map(({product,kind,quantity,activationMode})=>purchaseLine(product,kind,quantity,identity,activationMode))}));save.disabled=busy||cart.size===0||[...cart.values()].some(line=>line.product.activation_choices&&!line.activationMode);root.append(save);
+  if(quick)return;const save=button('Uložiť rozpracovaný predaj',()=>mutate('CREATE_SALE',{...identity,lines:[...cart.values()].map(({product,kind,quantity,activationMode})=>purchaseLine(product,kind,quantity,identity,activationMode))}));save.disabled=busy||cart.size===0||[...cart.values()].some(line=>line.product.activation_choices&&!line.activationMode);root.append(save);
  }
  async function loadCatalogue(after,kind=catalogueKind){
   if(!live||busy)return;busy=true;render();const version=++generation;
