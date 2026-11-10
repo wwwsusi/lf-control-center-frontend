@@ -134,3 +134,10 @@
 .crm-main .crm-banner[data-kind=error]{background:#422532;border-color:#ff7f90;color:#ff9ca8}
 .crm-main .crm-recovery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:12px 0}
 .crm-main .crm-leftover{margin-top:24px;padding:18px 22px;border:1px solid #f3ce89;border-radius:12px;background:#3a3124}
+
+/* Success toast: top centre of the screen, outside the page flow */
+.crm-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:4px;min-width:min(92vw,520px);max-width:92vw;padding:20px 28px;border:2px solid #4fb98a;border-radius:14px;background:#203a34;color:#9ae1c0;text-align:center;box-shadow:0 12px 36px rgba(0,0,0,.45);font-family:Inter,system-ui,sans-serif;cursor:pointer;animation:crm-toast-in .25s ease-out}
+.crm-toast strong{font:600 28px/1.3 Inter,system-ui,sans-serif}
+.crm-toast span{font:400 20px/1.4 Inter,system-ui,sans-serif}
+@keyframes crm-toast-in{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.crm-toast{animation:none}}

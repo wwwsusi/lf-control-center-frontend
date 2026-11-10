@@ -5,11 +5,17 @@ import {visitPayload} from './crm-checkin.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'],DEFINITIVE=['VALIDATION_ERROR','POLICY_BLOCKED','REVISION_CONFLICT','BUSINESS_REJECTED'];
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
 const el=(tag,value,cls)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);if(cls)x.className=cls;return x;};
-export function mountSingleEntry({root,api,onAuthFailure,bannerMs=5000}){
- let live=true,busy=false,items=[],admission=null,leftovers=[],loading=true,ctx=null,notice=null,bannerTimer=0;
+export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=3000}){
+ let live=true,busy=false,items=[],admission=null,leftovers=[],loading=true,ctx=null,notice=null,bannerTimer=0,toast=null,celebrating=false;
  const controller=new AbortController(),signal=controller.signal;
  const read=body=>api('/api/crm/read',{body,signal});
- function say(kind,text,sub){clearTimeout(bannerTimer);notice={kind,text,sub};if(kind==='ok')bannerTimer=setTimeout(()=>{if(live){notice=null;render();}},bannerMs);}
+ function clearToast(){clearTimeout(bannerTimer);toast?.remove();toast=null;}
+ function finish(){if(!live||!celebrating)return;celebrating=false;clearToast();onDone();}
+ function say(kind,text,sub){
+  clearTimeout(bannerTimer);
+  if(kind==='ok'){celebrating=true;notice=null;toast?.remove();toast=el('div',undefined,'crm-toast');toast.setAttribute('role','status');toast.append(el('strong',text));if(sub)toast.append(el('span',sub));toast.addEventListener('click',finish);document.body.append(toast);bannerTimer=setTimeout(finish,bannerMs);return;}
+  notice={kind,text,sub};
+ }
  async function load(){
   try{
    const [a,c]=await Promise.all([read({view:'ADMISSIONS'}),read({view:'CATALOGUE'})]);if(!live)return;
@@ -56,8 +62,8 @@ export function mountSingleEntry({root,api,onAuthFailure,bannerMs=5000}){
    if(live){if(!ctx&&admission){try{const e=await read({view:'ENTRY_PURCHASES',admission_id:admission.id});if(live)leftovers=e.items.filter(x=>x.customer_id===null);}catch{}}render();}
   }
  }
- function start(item){if(busy||ctx)return;ctx={item,saleId:null,stage:'create',req:{},label:item.name+' · '+eur(item.current_price_eur)};drive();}
- function useLeftover(x){if(busy||ctx)return;ctx={item:null,saleId:x.sale_id,stage:'visit',req:{},label:x.display_name_at_sale+' · '+eur(x.actual_unit_price)};drive();}
+ function start(item){if(busy||ctx||celebrating)return;ctx={item,saleId:null,stage:'create',req:{},label:item.name+' · '+eur(item.current_price_eur)};drive();}
+ function useLeftover(x){if(busy||ctx||celebrating)return;ctx={item:null,saleId:x.sale_id,stage:'visit',req:{},label:x.display_name_at_sale+' · '+eur(x.actual_unit_price)};drive();}
  function render(){
   if(!live)return;root.replaceChildren(el('h2','Jednorazový vstup'));
   root.append(el('p','Vyber cenu. Vstup sa zapíše jedným kliknutím. Platba prebehne na pokladni mimo CRM.','crm-lead'));
@@ -66,11 +72,11 @@ export function mountSingleEntry({root,api,onAuthFailure,bannerMs=5000}){
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admission||!items.length){root.append(el('p','Jednorazový vstup nie je dostupný.'));return;}
   const grid=el('div',undefined,'crm-price-grid');
-  for(const item of items){const b=el('button',undefined,'crm-price-btn');b.type='button';b.disabled=busy;b.setAttribute('aria-label','Zapísať · '+item.name+' · '+eur(item.current_price_eur));b.append(el('span',item.name),el('strong',eur(item.current_price_eur)));b.addEventListener('click',()=>start(item));grid.append(b);}
+  for(const item of items){const b=el('button',undefined,'crm-price-btn');b.type='button';b.disabled=busy||celebrating;b.setAttribute('aria-label','Zapísať · '+item.name+' · '+eur(item.current_price_eur));b.append(el('span',item.name),el('strong',eur(item.current_price_eur)));b.addEventListener('click',()=>start(item));grid.append(b);}
   root.append(grid);
   if(busy)root.append(el('p','Zapisujem vstup…','crm-lead'));
   if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Zaplatený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const b=el('button','Zapísať vstup · '+x.display_name_at_sale+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}
  }
  render();load();
- return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;clearTimeout(bannerTimer);controller.abort();root.replaceChildren();}};
+ return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;clearToast();controller.abort();root.replaceChildren();}};
 }

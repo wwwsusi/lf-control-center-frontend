@@ -70,7 +70,7 @@ function choice(label,title,hint,action,tone){const b=button('',action);b.classN
 let visitFlow=false;
 function admissions(){visitFlow=false;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis, nákup.';return;}purchase?.dispose();purchase=null;heading('Ako vstupuje?');const grid=node('div',undefined,'crm-choice-grid crm-choice-grid-3');grid.append(choice('Má permanentku','Má permanentku','Nájdi ju v zozname a zapíš vstup.',()=>{visitFlow=true;customerSearch();},'pink'),choice('Jednorazový vstup','Jednorazový vstup','Platba na pokladni. Bez zápisu mena.',openSingleEntry,'cyan'),choice('MultiSport','MultiSport','Zapíš vstup cez MultiSport.',openMultisport,'amber'));content.append(grid);}
 function openSingleEntry(){if(!active)return;purchase?.dispose();purchase=null;epoch++;controller?.abort();content.classList.add('crm-big');content.replaceChildren();const box=node('section',undefined,'crm-card');content.append(box,button('Späť na výber',admissions));
- purchase=mountSingleEntry({root:box,api,onAuthFailure:code=>wipe(labels[code])});}
+ purchase=mountSingleEntry({root:box,api,onAuthFailure:code=>wipe(labels[code]),onDone:()=>show('reception')});}
 function openMultisport(){if(!active)return;purchase?.dispose();purchase=null;epoch++;controller?.abort();heading('MultiSport');content.append(node('p','Zapíš vstup cez MultiSport. Meno sa nezapisuje.','crm-guide'));const box=node('section',undefined,'crm-card crm-big');content.append(box);
  purchase=mountCheckin({root:box,api,customer:null,only:['MULTISPORT'],title:'Zapísať MultiSport vstup',backLabel:'Hotovo, ďalšia klientka',onBack:()=>openMultisport(),onAuthFailure:code=>wipe(labels[code])});
  content.append(button('Späť na výber',admissions));}
