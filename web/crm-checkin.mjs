@@ -16,11 +16,17 @@ export function entryMembershipLabel(e){
  return count+(e.expires_on?' · '+membershipValidityLabel(e):'');
 }
 // One tile design for every way of entering: name, optional detail (price), one action line. Used by single entry and MultiSport.
-export function entryTile({name,detail=null,action='Zapísať vstup',label=null,onClick,disabled=false}){
+export function entryTile({name,detail=null,note=null,action='Zapísať vstup',label=null,onClick,disabled=false}){
  const b=document.createElement('button');b.type='button';b.className='crm-price-btn';b.disabled=disabled;if(label)b.setAttribute('aria-label',label);
  const n=document.createElement('span');n.textContent=name;b.append(n);
  if(detail){const d=document.createElement('span');d.className='crm-tile-detail';d.textContent=detail;b.append(d);}
+ if(note){const m=document.createElement('span');m.textContent=note;b.append(m);}
  const a=document.createElement('strong');a.textContent=action;b.append(a);b.addEventListener('click',onClick);return b;
+}
+export function entitlementDetail(e){
+ if(e.type_at_purchase==='TIME_ACCESS')return {detail:membershipValidityLabel(e),note:null};
+ const total=Number(e.included_units_at_purchase),used=Number(e.consumed);
+ return {detail:Number.isFinite(total)&&Number.isFinite(used)?'Zostáva '+(total-used)+' z '+total+' vstupov':'Čerpané '+e.consumed+' vstupov',note:e.expires_on?membershipValidityLabel(e):null};
 }
 export function visitPayload(admission,customer=null,entitlement=null,purchase=null){
  if(!uuid(admission?.id)||!rev(admission?.revision))throw Error('INVALID_ADMISSION');
@@ -61,7 +67,17 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
   if(state.pending){root.append(el('p','Rozpracovaný zápis návštevy. Ďalší vstup je zablokovaný do overenia výsledku.'),button('Overiť ten istý zápis',writer.verify),button('Zopakovať ten istý zápis',writer.retry));return;}
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admissions.length)root.append(el('p','Nie sú dostupné schválené možnosti vstupu.'));
-  if(quick){for(const a of admissions.filter(x=>x.code==='MULTISPORT')){const grid=el('div');grid.className='crm-price-grid';grid.append(entryTile({name:'MultiSport',label:'Zapísať MultiSport vstup',disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer))}));root.append(grid);}return;}
+  if(quick){
+   const grid=el('div');grid.className='crm-price-grid';
+   for(const a of admissions){
+    if(a.code==='MULTISPORT')grid.append(entryTile({name:'MultiSport',label:'Zapísať MultiSport vstup',disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer))}));
+    else if(a.code==='ENTITLEMENT'&&customer){
+     for(const e of entitlements.filter(x=>x.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(x.type_at_purchase)))grid.append(entryTile({name:e.type_at_purchase==='TIME_ACCESS'?'Mesačná permanentka':'Permanentka na vstupy',...entitlementDetail(e),label:'Zapísať vstup · '+(e.type_at_purchase==='TIME_ACCESS'?'mesačná permanentka':'permanentka na vstupy'),disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer,e))}));
+    }
+   }
+   if(grid.children.length)root.append(grid);
+   else root.append(el('p',customer?'Klientka nemá platnú permanentku. Kúp novú nižšie.':'Nie sú dostupné schválené možnosti vstupu.','crm-lead'));
+   return;}
   for(const a of admissions){const card=el('article');card.className='crm-card';card.append(el('h3',a.label_sk));
    if(a.code==='MULTISPORT')card.append(button('Zapísať MultiSport vstup',()=>writer.submit(visitPayload(a,customer))));
    else if(a.code==='ENTITLEMENT'){

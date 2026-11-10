@@ -164,3 +164,6 @@
 .crm-main .crm-mode-box{margin:12px 0}
 .crm-main .crm-big .crm-price-btn{min-height:170px;padding:26px 30px;font:inherit}
 .crm-main .crm-big .crm-choice{min-height:180px;padding:26px 28px;font:inherit}
+.crm-main .crm-big .crm-sub{margin:0 0 6px;color:var(--muted,#a4b2c6)}
+.crm-main .crm-mode-box>.crm-lead{margin:0}
+.crm-main #crm-content.crm-big>button{margin:12px 12px 0 0}
