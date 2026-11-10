@@ -113,3 +113,24 @@
 .crm-main .crm-big button{min-height:64px;font-size:20px;padding:14px 20px}
 .crm-main .crm-big .crm-card{padding:22px}
 .crm-main .crm-guide{font-size:18px;padding:16px 20px}
+
+/* Reception scale: one type system for every counter screen (Oswald titles, Inter text, >= 18 px) */
+.crm-main .crm-big{--rc-title:600 30px/1.2 Oswald,system-ui,sans-serif;--rc-sub:600 24px/1.25 Oswald,system-ui,sans-serif;--rc-text:400 20px/1.5 Inter,system-ui,sans-serif;--rc-btn:600 20px/1.3 Inter,system-ui,sans-serif;font:var(--rc-text)}
+.crm-main .crm-big h2{font:var(--rc-title);margin:8px 0 14px}
+.crm-main .crm-big h3{font:var(--rc-sub)}
+.crm-main .crm-big p,.crm-main .crm-big li,.crm-main .crm-big label,.crm-main .crm-big small,.crm-main .crm-big dd,.crm-main .crm-big dt,.crm-main .crm-big input,.crm-main .crm-big select{font:var(--rc-text)}
+.crm-main .crm-big button{font:var(--rc-btn);min-height:64px;padding:14px 22px}
+.crm-main .crm-big .crm-note{font:400 18px/1.5 Inter,system-ui,sans-serif}
+.crm-main .crm-big .crm-lead{font:var(--rc-text);color:var(--muted,#a4b2c6);margin:0 0 16px}
+.crm-main .crm-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;margin:12px 0}
+.crm-main .crm-price-btn{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:150px;padding:24px 26px;text-align:left;border:1px solid var(--line,#304056);border-left:6px solid #64d8df;border-radius:14px;background:#142238;color:var(--ink,#edf2fa);cursor:pointer}
+.crm-main .crm-price-btn span{font:400 20px/1.35 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
+.crm-main .crm-price-btn strong{font:600 44px/1.1 Oswald,system-ui,sans-serif}
+.crm-main .crm-price-btn:disabled{opacity:.55;cursor:progress}
+.crm-main .crm-banner{display:flex;flex-direction:column;gap:4px;margin:12px 0;padding:18px 22px;border-radius:12px;border:1px solid;font-family:Inter,system-ui,sans-serif}
+.crm-main .crm-banner strong{font:600 24px/1.3 Inter,system-ui,sans-serif}
+.crm-main .crm-banner span{font:400 18px/1.4 Inter,system-ui,sans-serif}
+.crm-main .crm-banner[data-kind=ok]{background:#203a34;border-color:#4fb98a;color:#9ae1c0}
+.crm-main .crm-banner[data-kind=error]{background:#422532;border-color:#ff7f90;color:#ff9ca8}
+.crm-main .crm-recovery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:12px 0}
+.crm-main .crm-leftover{margin-top:24px;padding:18px 22px;border:1px solid #f3ce89;border-radius:12px;background:#3a3124}
