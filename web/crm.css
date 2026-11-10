@@ -99,7 +99,7 @@
    Button      --rc-btn    Inter 600 22px       min height 68px
    Nav button  --rc-nav    Inter 600 18px       min height 52px
    Price       --rc-price  Oswald 600 44px      amounts on price buttons */
-.crm-main{--rc-page:600 34px/1.2 Oswald,system-ui,sans-serif;--rc-box:600 28px/1.25 Oswald,system-ui,sans-serif;--rc-text:400 20px/1.5 Inter,system-ui,sans-serif;--rc-meta:400 18px/1.5 Inter,system-ui,sans-serif;--rc-btn:600 22px/1.3 Inter,system-ui,sans-serif;--rc-nav:600 18px/1.3 Inter,system-ui,sans-serif;--rc-price:600 44px/1.1 Oswald,system-ui,sans-serif}
+.home-shell,.crm-main{--rc-page:600 34px/1.2 Oswald,system-ui,sans-serif;--rc-box:600 28px/1.25 Oswald,system-ui,sans-serif;--rc-text:400 20px/1.5 Inter,system-ui,sans-serif;--rc-meta:400 18px/1.5 Inter,system-ui,sans-serif;--rc-btn:600 22px/1.3 Inter,system-ui,sans-serif;--rc-nav:600 18px/1.3 Inter,system-ui,sans-serif;--rc-price:600 44px/1.1 Oswald,system-ui,sans-serif}
 .crm-main .crm-big{font:var(--rc-text)}
 .crm-main .crm-big h2{font:var(--rc-page);margin:8px 0 16px}
 .crm-main .crm-big h3{font:var(--rc-box);margin:0 0 10px}
@@ -143,3 +143,10 @@
 .crm-toast span{font:400 20px/1.4 Inter,system-ui,sans-serif}
 @keyframes crm-toast-in{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.crm-toast{animation:none}}
+
+/* Header controls: session bar, refresh and back link share one style (reception nav token) */
+.crm-header-right{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px 12px}
+.crm-header-right button,.crm-header-right .crm-back{font:var(--rc-nav);min-height:52px;display:inline-flex;align-items:center;justify-content:center;margin:0;padding:0 18px;border:1px solid #304056;border-radius:10px;background:#142238;color:#edf2fa;text-decoration:none;cursor:pointer}
+.crm-header-right button:hover,.crm-header-right .crm-back:hover{background:#192a40}
+.crm-session-bar .crm-idle{font-size:18px}.crm-session-bar .crm-idle-timer{font-size:22px}
+.crm-session-bar .crm-identity{font-size:18px}
