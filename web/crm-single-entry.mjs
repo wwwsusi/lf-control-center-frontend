@@ -1,7 +1,7 @@
 // One-click anonymous single entry: sale -> confirmation -> visit, driven by one explicit click.
 // Every mutation has its own stable request_id, so a lost response is verified with a readback and never replayed as a new operation.
 import {purchaseLine} from './crm-purchase.mjs';
-import {visitPayload} from './crm-checkin.mjs';
+import {visitPayload,entryTile} from './crm-checkin.mjs';
 import {showToast} from './crm-toast.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'],DEFINITIVE=['VALIDATION_ERROR','POLICY_BLOCKED','REVISION_CONFLICT','BUSINESS_REJECTED'];
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
@@ -65,14 +65,13 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
  function start(item){if(busy||ctx||celebrating)return;ctx={item,saleId:null,stage:'create',req:{},label:item.name+' · '+eur(item.current_price_eur)};drive();}
  function useLeftover(x){if(busy||ctx||celebrating)return;ctx={item:null,saleId:x.sale_id,stage:'visit',req:{},label:x.display_name_at_sale+' · '+eur(x.actual_unit_price)};drive();}
  function render(){
-  if(!live)return;root.replaceChildren(el('h2','Jednorazový vstup'));
-  root.append(el('p','Vyber cenu. Vstup sa zapíše jedným kliknutím. Platba prebehne na pokladni mimo CRM.','crm-lead'));
+  if(!live)return;root.replaceChildren();
   if(notice){const b=el('div',undefined,'crm-banner');b.dataset.kind=notice.kind;b.setAttribute('role',notice.kind==='ok'?'status':'alert');b.append(el('strong',notice.text));if(notice.sub)b.append(el('span',notice.sub));root.append(b);}
   if(ctx?.unverified){const row=el('div',undefined,'crm-recovery');for(const [label,fn] of [['Overiť výsledok',()=>drive(true)],['Zopakovať ten istý zápis',()=>drive(false)]]){const b=el('button',label);b.type='button';b.disabled=busy;b.addEventListener('click',fn);row.append(b);}root.append(row);return;}
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admission||!items.length){root.append(el('p','Jednorazový vstup nie je dostupný.'));return;}
   const grid=el('div',undefined,'crm-price-grid');
-  for(const item of items){const b=el('button',undefined,'crm-price-btn');b.type='button';b.disabled=busy||celebrating;b.setAttribute('aria-label','Zapísať · '+item.name+' · '+eur(item.current_price_eur));b.append(el('span',item.name),el('strong',eur(item.current_price_eur)));b.addEventListener('click',()=>start(item));grid.append(b);}
+  for(const item of items)grid.append(entryTile({name:item.name,detail:eur(item.current_price_eur),label:'Zapísať · '+item.name+' · '+eur(item.current_price_eur),disabled:busy||celebrating,onClick:()=>start(item)}));
   root.append(grid);
   if(busy)root.append(el('p','Zapisujem vstup…','crm-lead'));
   if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Zaplatený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const b=el('button','Zapísať vstup · '+x.display_name_at_sale+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}

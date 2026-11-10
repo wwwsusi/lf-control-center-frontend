@@ -127,7 +127,8 @@
 .crm-main .crm-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;margin:12px 0}
 .crm-main .crm-price-btn{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:160px;padding:24px 26px;text-align:left;border:1px solid var(--line,#304056);border-left:6px solid #64d8df;border-radius:14px;background:#142238;color:var(--ink,#edf2fa);cursor:pointer}
 .crm-main .crm-price-btn span{font:var(--rc-text);color:var(--muted,#a4b2c6)}
-.crm-main .crm-price-btn strong{font:var(--rc-price)}
+.crm-main .crm-price-btn strong{font:var(--rc-price);font-size:36px}
+.crm-main .crm-price-btn .crm-tile-detail{font:600 32px/1.2 Inter,system-ui,sans-serif;color:#fff}
 .crm-main .crm-price-btn:disabled{opacity:.55;cursor:progress}
 /* Messages */
 .crm-main .crm-banner{display:flex;flex-direction:column;gap:4px;margin:12px 0;padding:18px 22px;border-radius:12px;border:1px solid}
