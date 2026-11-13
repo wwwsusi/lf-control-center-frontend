@@ -23,18 +23,23 @@ export function entitlementView(e,today){
  return view;
 }
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'];
-export function mountClientProfile({root,api,data,onVisit,onShop,onEdit,onBack,onAuthFailure}){
+export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure}){
  let live=true;const controller=new AbortController(),c=data.customer;
  const button=(label,fn,cls)=>{const b=el('button',label,cls);b.type='button';b.addEventListener('click',fn);return b;};
  const kv=(label,value)=>{const r=el('div',undefined,'crm-kv crm-kv-stack');r.append(el('span',label),el('strong',value||'—'));return r;};
  const card=(title,cls)=>{const x=el('section',undefined,'crm-card '+(cls||''));x.append(el('h3',title));return x;};
  root.replaceChildren();
- // header: name, contact, the two actions
+ // details box: name, contact, (owner/admin) registration and total spent, correction
  const head=el('section',undefined,'crm-card crm-profile-head');head.append(el('h2',c.name));
  const contact=el('div',undefined,'crm-kv-group crm-contact');contact.append(kv('Tel.',c.phone),kv('E-mail',c.email));head.append(contact);
- if(onVisit&&onShop){const actions=el('div',undefined,'crm-profile-actions');actions.append(button('Prišla cvičiť',onVisit,'crm-profile-go'),button('Prišla nakupovať',onShop,'crm-profile-go'));head.append(actions);}else head.append(el('p','Klientka nie je aktívna. Vstup ani nákup sa nezapíše.','crm-note'));
+ if(owner){const o=data.owner_summary,sum=el('div',undefined,'crm-kv-group crm-contact crm-owner-summary');
+  sum.append(kv('Registrovaná od',o?.registered_on?skDate(o.registered_on):null),kv('Minula spolu',o&&o.total_spent_eur!==undefined&&o.total_spent_eur!==null?eur(o.total_spent_eur):null));
+  if(!o)sum.append(el('p','Údaje o registrácii a útrate zatiaľ server neposiela.','crm-note'));head.append(sum);}
  if(onEdit)head.append(button('Opraviť údaje klientky',onEdit,'crm-profile-edit'));
  root.append(head);
+ // actions in their own box below the details
+ if(onVisit&&onShop){const box=el('section',undefined,'crm-card crm-profile-actions-box');box.append(el('h3','Čo robí klientka?'));const actions=el('div',undefined,'crm-profile-actions');actions.append(button('Prišla cvičiť',onVisit,'crm-profile-go'),button('Prišla nakupovať',onShop,'crm-profile-go'));box.append(actions);root.append(box);}
+ else root.append(el('p','Klientka nie je aktívna. Vstup ani nákup sa nezapíše.','crm-note'));
  const grid=el('div',undefined,'crm-profile-grid');root.append(grid);
  // permanentky and validity
  const ents=card('Permanentky a platnosť');const list=Array.isArray(data.entitlements)?data.entitlements:null;
