@@ -119,8 +119,8 @@ function shopping(){
 function openProducts(){
  if(!active)return;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis, nákup.';return;}
  purchase?.dispose();purchase=null;epoch++;controller?.abort();visitFlow=false;cartFlow=false;
- const root=entryScreen('Produkty',{lead:'Vyber produkt. Jedno kliknutie ho zapíše bez mena.',back:shopping,backLabel:'Späť na výber'});
- purchase=mountSale({root,api,customer:null,cart:false,kinds:['products'],onAuthFailure:code=>wipe(labels[code]),onDone:()=>show('reception')});}
+ const root=entryScreen('Jednorazový nákup',{lead:'Vyber, čo kupuje. Jedno kliknutie ho zapíše bez mena.',back:shopping,backLabel:'Späť na výber'});
+ purchase=mountSale({root,api,customer:null,cart:false,kinds:['products','services'],onAuthFailure:code=>wipe(labels[code]),onDone:()=>show('reception')});}
 function clientCart(data,{back}){
  purchase?.dispose();purchase=null;epoch++;controller?.abort();cartFlow=false;
  const root=entryScreen('Nákup · '+data.customer.name,{lead:'Vyber, čo kupuje. Všetko sa zapíše naraz.',back,backLabel:'Späť'});
