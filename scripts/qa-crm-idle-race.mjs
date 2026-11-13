@@ -37,9 +37,10 @@ try{
   await page.goto('https://crm.test/crm');await expect(page.getByRole('heading',{name:'CRM · Recepcia',exact:true})).toBeVisible();
   await page.locator('.crm-card').filter({hasText:'Zoznam klientov'}).getByRole('button',{name:'Otvoriť',exact:true}).click();
   await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();
-  const entry=page.getByRole('button',{name:/Použiť permanentku/});await expect(entry).toBeVisible();
+  await page.getByRole('button',{name:'Prišla cvičiť',exact:true}).click();
+  const entry=page.getByRole('button',{name:/Zapísať vstup · permanentka na vstupy/});await expect(entry).toBeVisible();
   serverNow=base+180000;await page.clock.fastForward(179000);await expect.poll(()=>held).toBe(true);
-  await entry.click();await expect(page.getByText('Návšteva bola uložená a overená.',{exact:true})).toBeVisible();assert.equal(expires,base+480000);await expect(page.getByText('Čerpané: 1 / 10',{exact:true})).toBeVisible();
+  await entry.click();await expect(page.getByText('Návšteva bola uložená a overená.',{exact:true})).toBeVisible();assert.equal(expires,base+480000);
   serverNow=base+releaseAt;await page.clock.fastForward(releaseAt-180000);release();await expect.poll(()=>delivered).toBe(true);await page.clock.fastForward(1);
   if(releaseAt<300000){serverNow=base+301000;await page.clock.fastForward(301000-releaseAt);}
   await expect(page.getByRole('heading',{name:'CRM · Recepcia',exact:true})).toBeVisible();
