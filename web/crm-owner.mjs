@@ -15,3 +15,21 @@ export function mountOwner({root,api,onAuthFailure,mode,day,date}){
  if(mode==='day'){if(!day||day.opening_status==='UNKNOWN')root.append(button('Otvoriť dnešný deň',()=>mutate('OPEN_DAY',{business_date:date,expected_revision:day?.revision??null})));}else list();
  return {dispose(){live=false;controller.abort();pending=current=null;}};
 }
+
+// Centred prompt shown once after sign-in when today's business day is not open yet. Server rules stay authoritative.
+export function mountDayPrompt({api,onAuthFailure,onOpened}){
+ let live=true,busy=false,pending=null,overlay=null,dayInfo=null;const controller=new AbortController();
+ const request=(path,body)=>api(path,{...(body?{body}:{}),signal:controller.signal});
+ function button(label,fn,cls){const b=el('button',label);b.type='button';b.disabled=busy;if(cls)b.className=cls;b.onclick=fn;return b;}
+ function draw(message,actions){if(!overlay)return;const box=overlay.firstChild;box.replaceChildren(el('h2','Deň ešte nie je otvorený'),el('p','Kým deň neotvoríš, nedá sa zapisovať predaj ani vstupy klientok.'));if(message){const p=el('p',message);p.setAttribute('role','status');box.append(p);}const row=el('div');row.className='crm-day-prompt-actions';for(const a of actions)row.append(a);box.append(row);row.querySelector('button:not(:disabled)')?.focus();}
+ const idle=()=>draw('',[button('Otvoriť dnešný deň',open,'crm-day-prompt-primary'),button('Neskôr',close)]);
+ const recover=()=>draw('Výsledok nie je potvrdený. Najprv over výsledok pôvodnej operácie, nevytváraj novú.',[button('Overiť otvorenie dňa',verify,'crm-day-prompt-primary')]);
+ function close(){if(overlay){overlay.remove();overlay=null;}}
+ function fail(e){if(!live||e.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(e.code)){onAuthFailure(e.code);return;}recover();}
+ function complete(data){if(data.operation?.state==='REJECTED'){pending=null;draw('Otvorenie dňa bolo zamietnuté. Skús znova alebo to nahlás majiteľke.',[button('Skúsiť znova',idle,'crm-day-prompt-primary'),button('Zavrieť',close)]);return;}if(data.operation?.state!=='COMPLETED'||data.projection?.opening_status!=='OPEN')throw Error('UNVERIFIED');pending=null;close();onOpened();}
+ async function send(path,body){if(!live||busy)return;busy=true;recover();try{const data=await request(path,body);busy=false;if(live)complete(data);}catch(e){busy=false;fail(e);}}
+ const open=()=>{if(pending)return;pending={request_id:crypto.randomUUID(),operation_type:'OPEN_DAY',payload:{business_date:dayInfo.date,expected_revision:dayInfo.day?.revision??null}};send('/api/crm/operations',pending);};
+ const verify=()=>send('/api/crm/readback?request_id='+encodeURIComponent(pending.request_id));
+ (async()=>{try{const data=await request('/api/crm/read',{view:'TODAY'});if(!live||data.day?.opening_status==='OPEN')return;dayInfo={date:data.date,day:data.day};overlay=el('div');overlay.className='crm-day-prompt';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');const box=el('div');box.className='crm-day-prompt-box';overlay.append(box);document.body.append(overlay);idle();}catch(e){fail(e);}})();
+ return {dispose(){live=false;controller.abort();close();pending=null;}};
+}
