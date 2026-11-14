@@ -6,6 +6,14 @@ import {showToast} from './crm-toast.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'],DEFINITIVE=['VALIDATION_ERROR','POLICY_BLOCKED','REVISION_CONFLICT','BUSINESS_REJECTED'];
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
 const el=(tag,value,cls)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);if(cls)x.className=cls;return x;};
+// Both single-entry services are named "Jednorazový vstup"; the catalogue category tells them apart.
+export function entryAudience(item){
+ const category=String(item?.category??'').trim();
+ if(/študent|senior/i.test(category))return 'Študent / senior';
+ if(/^dospel/i.test(category))return 'Dospelí';
+ return category;
+}
+export const entryTitle=item=>{const audience=entryAudience(item);return audience?item.name+' · '+audience:item.name;};
 export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=3000}){
  let live=true,busy=false,items=[],admission=null,leftovers=[],loading=true,ctx=null,notice=null,bannerTimer=0,toast=null,celebrating=false;
  const controller=new AbortController(),signal=controller.signal;
@@ -62,7 +70,7 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
    if(live){if(!ctx&&admission){try{const e=await read({view:'ENTRY_PURCHASES',admission_id:admission.id});if(live)leftovers=e.items.filter(x=>x.customer_id===null);}catch{}}render();}
   }
  }
- function start(item){if(busy||ctx||celebrating)return;ctx={item,saleId:null,stage:'create',req:{},label:item.name+' · '+eur(item.current_price_eur)};drive();}
+ function start(item){if(busy||ctx||celebrating)return;ctx={item,saleId:null,stage:'create',req:{},label:entryTitle(item)+' · '+eur(item.current_price_eur)};drive();}
  function useLeftover(x){if(busy||ctx||celebrating)return;ctx={item:null,saleId:x.sale_id,stage:'visit',req:{},label:x.display_name_at_sale+' · '+eur(x.actual_unit_price)};drive();}
  function render(){
   if(!live)return;root.replaceChildren();
@@ -71,10 +79,10 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
   if(loading){root.append(el('p','Načítavam možnosti vstupu…'));return;}
   if(!admission||!items.length){root.append(el('p','Jednorazový vstup nie je dostupný.'));return;}
   const grid=el('div',undefined,'crm-price-grid');
-  for(const item of items)grid.append(entryTile({name:item.name,detail:eur(item.current_price_eur),label:'Zapísať · '+item.name+' · '+eur(item.current_price_eur),disabled:busy||celebrating,onClick:()=>start(item)}));
+  for(const item of items)grid.append(entryTile({name:entryTitle(item),detail:eur(item.current_price_eur),label:'Zapísať · '+entryTitle(item)+' · '+eur(item.current_price_eur),disabled:busy||celebrating,onClick:()=>start(item)}));
   root.append(grid);
   if(busy)root.append(el('p','Zapisujem vstup…','crm-lead'));
-  if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Kúpený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const b=el('button','Zapísať vstup · '+x.display_name_at_sale+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}
+  if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Kúpený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const service=items.find(i=>i.id===x.service_id),b=el('button','Zapísať vstup · '+(service?entryTitle({...service,name:x.display_name_at_sale}):x.display_name_at_sale)+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}
  }
  render();load();
  return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;clearToast();controller.abort();root.replaceChildren();}};
