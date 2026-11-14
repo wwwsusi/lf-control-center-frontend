@@ -12,17 +12,17 @@ export const byName=(a,b)=>String(a.name).localeCompare(String(b.name),'sk');
 export function cartTotal(lines){return lines.reduce((n,l)=>n+Number(l.item.current_price_eur)*l.qty,0);}
 export function mountSale({root,api,customer=null,cart=false,kinds=['products'],onAuthFailure,onDone=()=>{},bannerMs=3000}){
  const identity=purchaseCustomerReference(customer,customer===null);
- let live=true,busy=false,loading=true,items={products:[],services:[]},kind=kinds[0],lines=new Map(),ctx=null,notice=null,toast=null,celebrating=false,sort='az';
+ let live=true,busy=false,loading=true,unavailable=new Set(),items={products:[],services:[]},kind=kinds[0],lines=new Map(),ctx=null,notice=null,toast=null,celebrating=false,sort='az';
  const controller=new AbortController(),signal=controller.signal,read=body=>api('/api/crm/read',{body,signal});
  const clearToast=()=>{toast?.close(true);toast=null;};
  function finish(){if(!live||!celebrating)return;celebrating=false;toast=null;onDone();}
  function say(k,text,sub){if(k==='ok'){celebrating=true;notice=null;toast?.close(true);toast=showToast({text,sub,ms:bannerMs,onClose:finish});return;}notice={kind:k,text,sub};}
  async function load(){
-  try{
-   if(kinds.includes('products')){const p=await read({view:'PRODUCT_CATALOGUE'});if(!live)return;items.products=p.items.filter(i=>customer||i.requires_customer!==true);}
-   if(kinds.includes('services')){const s=await read({view:'CATALOGUE'});if(!live)return;items.services=s.items.filter(i=>customer||i.requires_customer!==true);}
-  }catch(error){if(!live||error.name==='AbortError')return;if(AUTH.includes(error.code)){onAuthFailure(error.code);return;}say('error','Ponuku sa nepodarilo načítať.');}
-  finally{if(live){loading=false;render();}}
+  for(const [k,view] of [['products','PRODUCT_CATALOGUE'],['services','CATALOGUE']].filter(([k])=>kinds.includes(k))){
+   try{const data=await read({view});if(!live)return;items[k]=data.items.filter(i=>customer||i.requires_customer!==true);}
+   catch(error){if(!live||error.name==='AbortError')return;if(AUTH.includes(error.code)){onAuthFailure(error.code);return;}unavailable.add(k);}
+  }
+  if(live){loading=false;render();}
  }
  async function stageResult(stage,verify){
   const request_id=ctx.req[stage]??=crypto.randomUUID();
@@ -96,7 +96,8 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
   const az=el('button','Zoradiť A–Z');az.type='button';az.setAttribute('aria-pressed','true');
   const top=el('button','Najpredávanejšie · zatiaľ nedostupné');top.type='button';top.disabled=true;top.title='Údaje o predaji recepcia zatiaľ nevidí.';order.append(az,top);tools.append(order);root.append(tools);
   const shown=[...items[kind]].sort(byName);
-  if(!shown.length)root.append(el('p','V tejto ponuke zatiaľ nie je nič dostupné.','crm-lead'));
+  if(unavailable.has(kind))root.append(el('p','Túto ponuku sa nepodarilo načítať. Skús obnoviť prístup.','crm-lead'));
+  else if(!shown.length)root.append(el('p','V tejto ponuke zatiaľ nie je nič dostupné.','crm-lead'));
   const grid=el('div',undefined,'crm-price-grid');for(const item of shown)grid.append(tile(item));root.append(grid);
   if(busy)root.append(el('p','Zapisujem nákup…','crm-lead'));
  }
