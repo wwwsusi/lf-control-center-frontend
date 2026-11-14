@@ -29,6 +29,7 @@ try{
     if(body.view==='PRODUCT_CATALOGUE')return json({items:[],next:null});
     if(body.view==='CATALOGUE')return json({items:[{id:id(4),name:'Synthetic 10 vstupov',current_price_eur:'10.00',unit:'vstup',requires_customer:true,catalogue_fingerprint:'a'.repeat(64)}],next:null});
     if(body.view==='OWN_CHECKOUT')return json({sale:{...sale,customer_id:client.id,customer_name:client.name,customer_revision:client.revision,total:'10.00',paid:paid?'10.00':'0.00',line_fingerprint:'a'.repeat(64),lines:[{display_name_at_sale:'Synthetic 10 vstupov',quantity:'1',unit_at_sale:'vstup',line_total:'10.00'}]},payment:payment?.status==='PENDING'?payment:null,catalogue:[{service_id:id(4),catalogue_fingerprint:'a'.repeat(64)}],resume_blocked:null});
+    if(body.view==='TODAY')return json({date:'2026-11-15',day:{opening_status:'OPEN'},items:[],next:null});
     throw Error('Unexpected read '+body.view);
    }
    assert.equal(url.pathname,'/api/crm/operations');writes.push(body);

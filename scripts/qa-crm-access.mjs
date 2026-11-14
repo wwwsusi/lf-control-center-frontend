@@ -10,6 +10,7 @@ try{for(const width of [1280,768,375]){
   if(u.pathname==='/api/crm/access-start'){assert.deepEqual(Object.keys(body).sort(),['email','purpose']);return json(202,{message:'generic'});}
   if(u.pathname==='/api/crm/access-verify'){assert.equal(body.code,'123456');stage='MFA_ENROLL';return json(200,{stage,expires_at:new Date(Date.now()+120000).toISOString(),csrf_token:'setup-csrf'});}
   if(u.pathname==='/api/crm/access-status')return json(200,{stage:'MFA_READY',purpose:'RECOVERY',expires_at:new Date(Date.now()+120000).toISOString(),csrf_token:'setup-csrf'});
+  if(u.pathname==='/api/crm/read'&&body?.view==='TODAY')return json(200,{date:'2026-11-15',day:{opening_status:'OPEN'},items:[],next:null});
   assert.equal(req.headers()['x-csrf-token'],'setup-csrf');
   if(u.pathname==='/api/crm/access-enroll'){if(late)await late;stage='MFA_READY';return json(200,{stage,qr_svg:'<svg xmlns="http://www.w3.org/2000/svg"></svg>',secret:'ABCDEFGHIJKLMNOP'});}
   if(u.pathname==='/api/crm/access-mfa'){assert.equal(body.code,'654321');return json(200,{stage:'PASSWORD_READY'});}

@@ -27,6 +27,7 @@ try{
     if(b.view==='CUSTOMER')return json(200,{customer,entitlements:[{id:id(3),revision:'1',status:'ENABLED',type_at_purchase:'VISIT_COUNT',included_units_at_purchase:'10',consumed:String(consumed),activated_on:null,expires_on:null,validity_value_at_purchase:6,validity_unit_at_purchase:'MONTH'}]});
     if(b.view==='ADMISSIONS')return json(200,{items:[{id:id(2),revision:'1',code:'ENTITLEMENT',label_sk:'Permanentka'}]});
     if(b.view==='PRODUCT_CATALOGUE')return json(200,{items:[],next:null});
+    if(b.view==='TODAY')return json(200,{date:'2026-11-15',day:{opening_status:'OPEN'},items:[],next:null});
     throw Error('Unexpected read');
    }
    if(u.pathname==='/api/crm/operations'){assert.equal(req.postDataJSON().operation_type,'CHECK_IN');consumed++;expires=Math.min(serverNow+300000,base+900000);return json(200,{operation:{state:'COMPLETED',target_type:'visit'},projection:{id:id(4),status:'POSTED'},expires_at:new Date(expires).toISOString()});}
