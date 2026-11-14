@@ -74,7 +74,7 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
   for(const item of items)grid.append(entryTile({name:item.name,detail:eur(item.current_price_eur),label:'Zapísať · '+item.name+' · '+eur(item.current_price_eur),disabled:busy||celebrating,onClick:()=>start(item)}));
   root.append(grid);
   if(busy)root.append(el('p','Zapisujem vstup…','crm-lead'));
-  if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Zaplatený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const b=el('button','Zapísať vstup · '+x.display_name_at_sale+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}
+  if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Kúpený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const b=el('button','Zapísať vstup · '+x.display_name_at_sale+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}
  }
  render();load();
  return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;clearToast();controller.abort();root.replaceChildren();}};

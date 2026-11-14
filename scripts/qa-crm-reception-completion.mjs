@@ -62,16 +62,25 @@ try{
   await expect(page.getByRole('button',{name:'Overiť výsledok',exact:true})).toBeVisible();assert.equal(writes.length,1);
   await page.getByRole('button',{name:'Overiť výsledok',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Synthetic corrected client',exact:true})).toBeVisible();
-  const checkout=page.getByRole('region',{name:'Nákup klientky'});
-  await checkout.getByRole('button',{name:'Služby',exact:true}).click();await checkout.getByRole('button',{name:'Pridať Synthetic 10 vstupov',exact:true}).click();
-  await checkout.getByRole('button',{name:'Uložiť rozpracovaný predaj',exact:true}).click();await checkout.getByRole('button',{name:'Potvrdiť predaj',exact:true}).click();
-  await expect(checkout.getByText('Nákup je zaznamenaný.',{exact:false})).toBeVisible();
+  // new profile: contact, permanentky, two actions; purchase through the cart, visit through the permanentka tile
+  await expect(page.getByRole('button',{name:'Prišla cvičiť',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Prišla nakupovať',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Prišla nakupovať',exact:true}).click();
+  await page.getByRole('button',{name:'Služby',exact:true}).click();await page.getByRole('button',{name:/Pridať · Synthetic 10 vstupov/}).click();
+  await expect(page.getByRole('region',{name:'Košík'})).toContainText('10,00');
+  await page.getByRole('button',{name:'Zapísať nákup',exact:true}).click();
+  await expect(page.getByRole('status').filter({hasText:'Nákup bol zaznamenaný.'})).toBeVisible();
   assert.equal(writes.some(w=>w.operation_type.includes('PAYMENT')),false);
-  await page.getByRole('button',{name:/Použiť permanentku · čerpané 0 \/ 10/}).click();
-  await expect(page.getByText('Čerpané: 1 / 10',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Recepcia',exact:true})).toBeVisible({timeout:8000});
+  const openProfile=async()=>{await page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Zoznam klientov',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();};
+  await openProfile();await expect(page.getByText('10 z 10 vstupov',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Prišla cvičiť',exact:true}).click();
+  await page.getByRole('button',{name:/Zapísať vstup · permanentka na vstupy/}).click();
+  await expect(page.getByRole('status').filter({hasText:'Návšteva bola uložená a overená.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Recepcia',exact:true})).toBeVisible({timeout:8000});
+  await openProfile();await expect(page.getByText('9 z 10 vstupov',{exact:true})).toBeVisible();
   assert.deepEqual(writes.map(w=>w.operation_type),['UPDATE_CUSTOMER','CREATE_SALE','CONFIRM_SALE','CHECK_IN']);
   assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.close();
  }
- console.log('PASS: full synthetic client workspace at 1440/820/375px; lost correction readback/navigation guard, current revision, recorded purchase without payment, immediate redemption and immediate balance refresh; no browser storage or external calls.');
+ console.log('PASS: full synthetic client workspace at 1440/820/375px; lost correction readback/navigation guard, current revision, profile with permanentky, cart purchase without payment, one-click redemption with toast and return to Recepcia, balance refresh; no browser storage or external calls.');
 }finally{await browser.close();}
