@@ -31,12 +31,12 @@ export function mountControlCenter({root,api,onAuthFailure,onBack}){
 
  function render(){
   if(!live||!data)return;
-  root.replaceChildren(make('h2','Úlohy'),make('p','Prehľady Control Center používajú existujúce Supabase registre. Zobrazenie je iba na čítanie; kampane nespúšťajú marketingové odosielanie.',root,'crm-note'));
+  root.replaceChildren(make('h2','Úlohy'),make('p','Zobrazenie je iba na čítanie; kampane nespúšťajú marketingové odosielanie.',root,'crm-note'));
   const nav=make('nav',undefined,root,'crm-control-tabs');nav.setAttribute('aria-label','Podzáložky Úlohy');
   for(const [key,label] of views){const tab=action(label,()=>{section=key;render();},nav);if(section===key){tab.setAttribute('aria-current','page');tab.setAttribute('aria-pressed','true');}}
   const refresh=action(loading?'Načítavam…':'Obnoviť údaje',load,root);refresh.disabled=loading;action('Späť na prehľad',onBack,root).className='crm-control-back';
   const stamp=data.backend_read_at?new Date(data.backend_read_at):null;
-  make('p','Zdroj: Supabase · načítané '+(stamp&&Number.isFinite(stamp.getTime())?stamp.toLocaleString('sk-SK',{timeZone:'Europe/Prague'}):'čas nie je potvrdený')+' · bez samostatnej evidencie CRM.',root,'crm-note');
+  make('p','Údaje z centrálnej evidencie · načítané '+(stamp&&Number.isFinite(stamp.getTime())?stamp.toLocaleString('sk-SK',{timeZone:'Europe/Prague'}):'čas nie je potvrdený'),root,'crm-note');
   const host=make('section',undefined,root,'crm-control-center');host.setAttribute('aria-live','polite');
   const statusBadge=(value,parent,domain)=>{const meta=registryStatus(value,domain),badge=make('span',statusLabel(value,domain),parent,'dash-badge');badge.dataset.tone=statusTone(value,domain);badge.title=String(value||'TBD');if(parent.tagName==='TD')parent.dataset.statusRank=meta?String(meta.sort_order):'999999';return badge;};
   const renderLegend=(target)=>renderStatusLegend({data,section,parent:target,make,statusBadge});
