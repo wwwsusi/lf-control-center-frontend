@@ -1,6 +1,6 @@
 // Table view of the client list for the owner/admin: basic fields, status of the permanentka, last visit, registration, total spent,
 // with text, status, last-visit and minimum-spent filters and sortable columns. Filters work on the rows that are loaded.
-import {skDate,membershipView} from './crm-client-view.mjs';
+import {skDate,membershipView,clientCountLabel} from './crm-client-view.mjs';
 const el=(tag,value,cls)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);if(cls)x.className=cls;return x;};
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
 const DAY=86400000;
@@ -40,13 +40,15 @@ const COLUMNS=[['name','Meno'],['phone','Telefón'],['email','E-mail'],['status'
 export function mountClientTable({root,state,onOpen,onLoadAll,today=new Date().toISOString().slice(0,10)}){
  const f=state.filters??={q:'',status:'',visit:'',minSpent:''},sort=state.sort??={key:'name',dir:1};
  let items=[];
- const bar=el('div',undefined,'crm-table-filters'),count=el('p',undefined,'crm-note'),wrap=el('div',undefined,'crm-table-scroll'),foot=el('div');
+ const box=el('details',undefined,'crm-filters-toggle'),summary=el('summary','Filtre'),badge=el('span',undefined,'crm-filter-badge'),bar=el('div',undefined,'crm-table-filters'),count=el('p',undefined,'crm-note'),wrap=el('div',undefined,'crm-table-scroll'),foot=el('div');
+ summary.append(badge);box.append(summary,bar);
  const field=(label,control)=>{const l=el('label');l.append(el('span',label),control);return l;};
  const input=(key,type,ph)=>{const i=el('input');i.type=type;i.placeholder=ph||'';i.value=f[key];i.addEventListener('input',()=>{f[key]=i.value;draw();});return i;};
  const select=(key,opts)=>{const s=el('select');for(const [v,t] of opts){const o=el('option',t);o.value=v;s.append(o);}s.value=f[key];s.addEventListener('change',()=>{f[key]=s.value;draw();});return s;};
- bar.append(field('Hľadať v zozname',input('q','search','meno, telefón, e-mail')),field('Permanentka',select('status',STATUS_OPTIONS)),field('Posledná návšteva',select('visit',VISIT_OPTIONS)),field('Minula aspoň (€)',input('minSpent','number','0')));
+ // The name / contact search lives in the search box above the list; here only the narrowing filters.
+ bar.append(field('Permanentka',select('status',STATUS_OPTIONS)),field('Posledná návšteva',select('visit',VISIT_OPTIONS)),field('Minula aspoň (€)',input('minSpent','number','0')));
  const reset=el('button','Zrušiť filtre');reset.type='button';reset.addEventListener('click',()=>{Object.assign(f,{q:'',status:'',visit:'',minSpent:''});bar.querySelectorAll('input').forEach(i=>{i.value='';});bar.querySelectorAll('select').forEach(s=>{s.value='';});draw();});bar.append(reset);
- root.replaceChildren(bar,count,wrap,foot);
+ root.replaceChildren(box,count,wrap,foot);
  function cell(i,key){
   const m=i.membership,o=i.owner_summary;
   if(key==='name')return el('strong',i.name);
@@ -60,7 +62,9 @@ export function mountClientTable({root,state,onOpen,onLoadAll,today=new Date().t
  }
  function draw(){
   const shown=sortClients(filterClients(items,f,today),sort.key,sort.dir,today);
-  count.textContent='Zobrazených '+shown.length+' z '+items.length+' načítaných klientok.';
+  const active=['status','visit','minSpent'].filter(k=>f[k]!==''&&f[k]!==undefined).length;
+  badge.textContent=active?String(active):'';badge.hidden=!active;reset.hidden=!active;if(active)box.open=true;
+  count.textContent=clientCountLabel(shown.length,items.length);
   const table=el('table',undefined,'crm-client-table');table.setAttribute('aria-label','Zoznam klientok');
   const thead=el('thead'),hr=el('tr');
   for(const [key,label] of COLUMNS){const th=el('th');th.scope='col';th.setAttribute('aria-sort',sort.key===key?(sort.dir>0?'ascending':'descending'):'none');

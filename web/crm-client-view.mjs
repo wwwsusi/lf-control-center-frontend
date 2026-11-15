@@ -67,3 +67,16 @@ export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onE
  root.append(button('Späť na zoznam',onBack,'crm-profile-back'));
  return {hasPending:()=>false,dispose(){live=false;controller.abort();root.replaceChildren();}};
 }
+
+// One search box for the customer list: the lookup mode follows from what was typed.
+export function detectSearchMode(value){
+ const v=String(value??'').trim();
+ if(v.includes('@'))return 'EMAIL';
+ if(/^\+?[\d\s()\-]+$/.test(v)&&v.replace(/\D/g,'').length>=6)return 'PHONE';
+ return 'NAME';
+}
+export function clientCountLabel(shown,total){
+ const word=n=>n===1?'klientka':n>=2&&n<=4?'klientky':'klientok';
+ return shown===total?total+' '+word(total):shown+' z '+total+' '+word(total);
+}
+

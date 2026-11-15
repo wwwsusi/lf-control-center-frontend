@@ -283,3 +283,16 @@
 .crm-day-prompt-actions button.crm-day-prompt-primary{background:#64d8df;border-color:#64d8df;color:#0b1626}
 .crm-day-prompt-actions button:disabled{opacity:.5;cursor:default}
 .crm-day-prompt-actions button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* Customer list: controls must stay inside their grid column (they used to overflow and overlap the next field) */
+.crm-main .crm-search>*,.crm-main .crm-table-filters>*{min-width:0}
+.crm-main .crm-search input,.crm-main .crm-search select,.crm-main .crm-table-filters input,.crm-main .crm-table-filters select{width:100%;box-sizing:border-box;min-width:0}
+.crm-main .crm-search{grid-template-columns:minmax(0,1fr) auto}
+.crm-main .crm-filters-toggle{margin:6px 0 2px;border:1px solid var(--line,#304056);border-radius:12px;background:#142238}
+.crm-main .crm-filters-toggle>summary{display:flex;gap:10px;align-items:center;min-height:48px;padding:0 16px;font:600 17px/1.3 Inter,system-ui,sans-serif;color:#c7d2e3;cursor:pointer;list-style:none}
+.crm-main .crm-filters-toggle>summary::-webkit-details-marker{display:none}
+.crm-main .crm-filters-toggle>summary::before{content:'▸';color:#64d8df}
+.crm-main .crm-filters-toggle[open]>summary::before{content:'▾'}
+.crm-main .crm-filter-badge{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:999px;background:var(--pink,#ff6398);color:#fff;font-size:14px}
+.crm-main .crm-filters-toggle .crm-table-filters{padding:6px 16px 16px;margin:0}
+@media(max-width:800px){.crm-main .crm-search{grid-template-columns:minmax(0,1fr)}}
+
