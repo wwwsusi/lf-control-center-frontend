@@ -9,7 +9,7 @@ import {showToast} from './crm-toast.mjs';
 import {mountPurchase} from './crm-purchase.mjs?v=20261021-customer-link';
 import {mountSingleEntry} from './crm-single-entry.mjs';
 import {mountSale} from './crm-sale.mjs';
-import {skDate,membershipView,mountClientProfile} from './crm-client-view.mjs';
+import {skDate,membershipView,mountClientProfile,detectSearchMode} from './crm-client-view.mjs';
 import {mountClientTable} from './crm-client-table.mjs';
 import {mountControlCenter} from './crm-control-center.mjs?v=20261108-integrated-views';
 import {idleRemaining,isTrustedUserActivity,formatIdleRemaining,idleState,logoutRemaining} from './crm-session-idle.mjs?v=20261109-session-bar';
@@ -54,9 +54,8 @@ function customerSearch(){
  const views=node('div',undefined,'crm-segment crm-view-switch');views.setAttribute('aria-label','Zobrazenie zoznamu');
  if(owner){for(const [key,label] of [['cards','Karty'],['table','Tabuľka']]){const b=button(label,()=>{clientView=key;for(const x of views.children)x.setAttribute('aria-pressed',String(x.dataset.view===clientView));draw();});b.dataset.view=key;b.setAttribute('aria-pressed',String(clientView===key));views.append(b);}head.append(views);}
  head.append(button('Založiť novú klientku',()=>openCustomerForm()));content.append(head);
- const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';label.append(input);
- const modeLabel=node('label','Hľadať podľa'),mode=node('select');for(const [value,text] of [['NAME','Začiatok mena'],['PHONE','Presné telefónne číslo'],['EMAIL','Presný e-mail']]){const option=node('option',text);option.value=value;mode.append(option);}modeLabel.append(mode);
- const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,modeLabel,submit);content.append(form,node('p','Kontakt slúži na vyhľadanie, nie na automatické zlúčenie klientok.','crm-note'));
+ const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';input.placeholder='meno, telefón alebo e-mail';label.append(input);
+ const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,submit);content.append(form);
  const grid=node('div',undefined,'crm-client-grid'),tableRoot=node('div'),more=node('div');content.append(grid,tableRoot,more);
  const state={items:[],next:null,query:'',mode:'NAME',empty:false,tstate:{}};let token=0,table=null;
  const openItem=i=>customer(i.id);
@@ -72,7 +71,7 @@ function customerSearch(){
  function load(query,mode,after){const mine=after?token:++token;if(!after){state.items=[];state.next=null;state.empty=false;state.query=query;state.mode=mode;}
   read({view:'CUSTOMERS',query,mode,...(after?{after}:{})},data=>{if(mine!==token)return;state.items=[...state.items,...data.items];state.next=data.next;state.empty=!state.items.length;draw();});}
  function loadAll(){const mine=token;let pages=0;const step=after=>read({view:'CUSTOMERS',query:state.query,mode:state.mode,...(after?{after}:{})},data=>{if(mine!==token)return;state.items=[...state.items,...data.items];state.next=data.next;if(data.next&&++pages<50)step(data.next);else draw();});if(state.next)step(state.next);}
- form.addEventListener('submit',e=>{e.preventDefault();if(!input.value.trim()&&mode.value!=='NAME'){input.setCustomValidity('Zadaj kontakt klientky.');input.reportValidity();input.setCustomValidity('');return;}if(form.reportValidity())load(input.value.trim(),mode.value);});
+ form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())load(input.value.trim(),detectSearchMode(input.value));});
  load('','NAME');
 }
 function customer(id){
