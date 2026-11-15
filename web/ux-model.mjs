@@ -61,6 +61,15 @@ export function workloadTable(data,tasks,openTasks,today){
  return [['In progress',inProgress,campaigns.filter(c=>c.live).length],['Due soon (5 dní)',openTasks.filter(i=>day(i.fields.due_date)&&i.fields.due_date>=today&&i.fields.due_date<=soon).length,campaigns.filter(c=>launch(c)&&launch(c)>=today&&launch(c)<=soon).length],['Already overdue',openTasks.filter(i=>day(i.fields.due_date)&&i.fields.due_date<today).length,campaigns.filter(c=>launch(c)&&launch(c)<today).length]];
 }
 export function uxProjection(data,today=pragueToday()){configureStatusCatalog(data);const tasks=data.items.filter(i=>i.kind==='task').sort((a,b)=>({P0:0,P1:1,P2:2}[a.fields.priority]??9)-({P0:0,P1:1,P2:2}[b.fields.priority]??9)||a.id.localeCompare(b.id)),open=tasks.filter(taskIsOpen),uncertain=tasks.filter(i=>taskState(i)==='uncertain'),countBy=(items,key)=>{const counts=new Map();for(const item of items){const value=key(item)||'Other / Unclassified';counts.set(value,(counts.get(value)||0)+1);}return [...counts];};const statuses=countBy(tasks,i=>i.fields.task_status||i.fields.status);for(const meta of statusOptions('work'))if(!statuses.some(([code])=>code===meta.code))statuses.push([meta.code,0]);return {today,tasks,counts:[['Úlohy',tasks.length],['Kampane',data.items.filter(i=>i.kind==='campaign').length],['Služby',data.items.filter(i=>i.kind==='service').length],['Produkty',data.items.filter(i=>i.kind==='product').length]],categories:countBy(tasks,i=>i.fields.category),statuses,uncertain,dueSoon:open.filter(i=>day(i.fields.due_date)&&i.fields.due_date>=today&&i.fields.due_date<=addDays(today,5)),overdue:open.filter(i=>day(i.fields.due_date)&&i.fields.due_date<today),launches:calendarEvents(data).filter(e=>e.type==='launch'&&e.date>=today),campaigns:campaignBuckets(data),quality:qualitySummary(data.validation),workload:workloadTable(data,tasks,open,today),important:['campaigns','management','it','other'].map(id=>({id,items:open.filter(i=>taskGroup(i)===id)}))};}
+// "Dôležité dnes": a short, ordered answer to "what needs me now" — overdue, blocked, due soon, top priority. Max `limit` items.
+export function todayFocus(v,limit=5){
+ const blocked=i=>String(i.fields.task_status||i.fields.status||'').trim().toUpperCase()==='BLOCKED',open=v.tasks.filter(taskIsOpen),seen=new Set(),picked=[];
+ const add=(items,reason)=>{for(const item of items){if(seen.has(item.id))continue;seen.add(item.id);picked.push({item,reason});}};
+ const byDue=(a,b)=>String(a.fields.due_date||'9').localeCompare(String(b.fields.due_date||'9'));
+ add([...v.overdue].sort(byDue),'Po termíne');add(open.filter(blocked),'Zablokované');
+ add([...v.dueSoon].sort(byDue),'Termín čoskoro');add(open.filter(i=>i.fields.priority==='P0'),'Najvyššia priorita');
+ return {shown:picked.slice(0,limit),total:picked.length};
+}
 export const COLUMN_DEFINITIONS=[
  {id:'name',label:'Názov',required:true,default:true},
  {id:'lifecycle',label:'Status / Lifecycle',fields:['lifecycle'],default:true},
