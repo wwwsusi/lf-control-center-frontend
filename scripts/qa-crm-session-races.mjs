@@ -43,7 +43,7 @@ try{
  }
  // A login response arriving after an explicit hide must not reopen the workspace.
  {
-  const {page,delay}=await fixture();await page.getByRole('button',{name:'Skryť údaje',exact:true}).click();
+  const {page,delay}=await fixture();await page.getByRole('button',{name:'Skryť údaje',exact:true}).click();await page.locator('#crm-choice-admin').click();
   await page.getByLabel('E-mail',{exact:true}).fill('synthetic@example.test');await page.getByLabel('Heslo',{exact:true}).fill('synthetic-password');
   const gate=delay('/api/crm/login');await page.getByRole('button',{name:'Prihlásiť sa',exact:true}).click();await gate.started.promise;
   await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));gate.finish.resolve({status:200,data:{active:true,csrf_token:'synthetic-csrf'}});
