@@ -85,10 +85,6 @@
 .crm-status{display:inline-block;margin:0;font-size:13px;vertical-align:baseline}
 .crm-toolbar{margin:8px 0 8px}
 
-.crm-pin{display:grid;gap:12px;margin-top:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18)}
-.crm-pin-dots{margin:0;text-align:center;font-size:1.75rem;letter-spacing:.5em;min-height:2.2rem}
-.crm-pin-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.crm-pin-keys button{min-height:64px;font-size:1.4rem}
 
 /* ===== Reception type standard (counter screens: laptop and tablet) =====
    Every reception box takes its type from these tokens; nothing on a counter screen is below 18 px.
@@ -296,3 +292,14 @@
 .crm-main .crm-filters-toggle .crm-table-filters{padding:6px 16px 16px;margin:0}
 @media(max-width:800px){.crm-main .crm-search{grid-template-columns:minmax(0,1fr)}}
 
+
+/* Login: two big choices (reception PIN / admin), equal large PIN keys. Own class names: .crm-pin belongs to the temporary price-card pins. */
+.crm-logins{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px;max-width:900px;margin:32px 0}
+.crm-main .crm-login-box{display:grid;place-items:center;min-height:220px;padding:24px;font-size:clamp(28px,4vw,44px);font-weight:600;line-height:1.2;text-align:center;border-radius:16px;border:2px solid #607087;background:#192a40}
+.crm-main .crm-login-box[data-kind=reception]{border-color:var(--pink,#ff6398)}
+.crm-pinlogin{display:grid;gap:14px;max-width:560px;margin:24px 0}
+.crm-pinlogin h2,.crm-login h2{margin:0}
+.crm-pinlogin-dots{margin:0;text-align:center;font-size:2rem;letter-spacing:.5em;min-height:2.2rem}
+.crm-pinlogin-keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:clamp(64px,10.5vh,96px);gap:16px}
+.crm-main .crm-pinlogin-keys button{width:100%;height:100%;min-height:0;padding:0;font-size:2rem;border-radius:16px}
+.crm-main .crm-login-back{justify-self:start;width:auto;min-height:48px}

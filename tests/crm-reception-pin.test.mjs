@@ -1,9 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../web/crm.html',import.meta.url),'utf8'),js=fs.readFileSync(new URL('../web/crm.mjs',import.meta.url),'utf8');
-test('reception PIN controls live inside the login form so they share its visibility',()=>{
+test('login offers two choices; the PIN keypad is its own section and the admin form keeps the classic fields',()=>{
+ for(const id of ['crm-login-choice','crm-choice-reception','crm-choice-admin','crm-login-reception','crm-pin-dots','crm-pin-keys','crm-pin-back','crm-login-back'])assert.ok(html.includes(`id="${id}"`),id);
  const form=html.match(/<form id="crm-login"[\s\S]*?<\/form>/)[0];
- for(const id of ['crm-pin-open','crm-pin-pad','crm-pin-dots','crm-pin-keys'])assert.ok(form.includes(`id="${id}"`),id);
- assert.match(form,/id="crm-pin-open" type="button"/);
+ for(const id of ['crm-email','crm-password','crm-mfa','crm-login-submit'])assert.ok(form.includes(`id="${id}"`),id);
+ assert.ok(!form.includes('crm-pin-keys'),'PIN keypad is not inside the admin form');
+ assert.ok(html.includes('id="crm-access-actions" hidden'));
 });
 test('PIN login posts exactly {pin} to the existing login endpoint and nothing else',()=>{
  assert.ok(js.includes("api('/api/crm/login',{body:{pin}})"));

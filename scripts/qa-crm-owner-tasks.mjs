@@ -78,7 +78,7 @@ try {
     await page.getByRole('button', { name: 'Späť na prehľad' }).click();
     await expect(page.getByRole('heading', { name: 'Tvoj prehľad CRM', exact: true })).toBeVisible();
     await page.locator('#crm-logout').click();
-    await expect(page.locator('#crm-login')).toBeVisible();
+    await expect(page.locator('#crm-login-choice')).toBeVisible();
     await expect(page.locator('#crm-workspace')).toBeHidden();
     assert.deepEqual(await page.evaluate(() => [localStorage.length, sessionStorage.length]), [0, 0]);
     scenarios++;

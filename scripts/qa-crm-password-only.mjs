@@ -20,7 +20,7 @@ try{for(const width of [1280,768]){
   try{return route.fulfill({body:await readFile(file),contentType:({'.mjs':'text/javascript','.css':'text/css','.html':'text/html','.woff':'font/woff','.png':'image/png'})[path.extname(file)]||'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}
  });
  for(const nextRole of ['OWNER_ADMIN','RECEPTION']){
-  role=nextRole;logout=false;await page.goto(origin+'/crm');await page.locator('#crm-login').waitFor({state:'visible'});
+  role=nextRole;logout=false;await page.goto(origin+'/crm');await page.locator('#crm-choice-admin').click();await page.locator('#crm-login').waitFor({state:'visible'});
   assert.equal(await page.locator('[autocomplete="one-time-code"]').count(),0);
   await page.getByLabel('E-mail',{exact:true}).fill('synthetic@example.test');await page.getByLabel('Heslo',{exact:true}).fill('synthetic-password');
   await page.getByRole('button',{name:'Prihlásiť sa',exact:true}).click();await page.locator('#crm-workspace').waitFor({state:'visible'});
