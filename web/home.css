@@ -18,3 +18,4 @@
 .entry-crm .entry-go{color:var(--pink)}
 @media(max-width:900px){.hero{grid-template-columns:1fr;padding:48px 0 40px;gap:32px}.entry-grid{justify-self:stretch;max-width:none}.entry-box{min-height:150px;padding:26px 26px}}
 .entry-box strong{padding-right:40px}
+@media(prefers-reduced-motion:reduce){.entry-box{transition:none}.entry-box:hover{transform:none}}
