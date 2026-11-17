@@ -7,7 +7,7 @@ export function buildPublic({root,out=path.join(root,'dist'),profile='pages'}){
  fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(path.join(out,'data'),{recursive:true});fs.mkdirSync(path.join(out,'assets'),{recursive:true});
  for(const f of PUBLIC_FILES)fs.copyFileSync(path.join(root,'web',f),path.join(out,f));
  const landing=path.join(out,'index.html');
- const crmEntry=profile==='same-origin'?'<a class="crm-entry" href="./crm"><strong>CRM recepcia</strong><span>Prihlásenie zamestnancov</span></a>':'';
+ const crmEntry=profile==='same-origin'?'<a class="entry-box entry-crm" href="./crm"><span class="entry-kicker" aria-hidden="true">RECEPCIA A MAJITEĽKA</span><strong>CRM</strong><span class="entry-text">Klientky, predaj, cenník, úlohy a reporting.</span><span class="entry-go" aria-hidden="true">↗</span></a>':'';
  fs.writeFileSync(landing,fs.readFileSync(landing,'utf8').replace('<!-- LF_PRIVATE_CRM_ENTRY -->',crmEntry));
  fs.mkdirSync(path.join(out,'fonts'),{recursive:true});for(const f of FONT_FILES)fs.copyFileSync(path.join(root,'web/fonts',f),path.join(out,'fonts',f));
  if(profile==='same-origin'){
