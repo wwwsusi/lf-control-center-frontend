@@ -317,3 +317,9 @@
 .crm-main .crm-big .crm-price-card .crm-price-value{color:#64d8df}
 @media(max-width:700px){.crm-catalogue-top{grid-template-columns:minmax(0,1fr);position:static}.crm-catalogue-top .crm-catalogue-kinds{flex-direction:row}.crm-catalogue-top .crm-catalogue-kinds button{min-width:0;flex:1}}
 @media(max-height:700px){.crm-catalogue-top{position:static}}
+/* Cenník: category chips fit in one row beside the Služby/Produkty column */
+.crm-catalogue-top .crm-catalogue-kinds button{min-width:150px;font-size:19px;padding:10px 16px}
+.crm-catalogue-top .crm-catalogue-filters{flex-wrap:nowrap;gap:8px;overflow-x:auto}
+.crm-catalogue-top .crm-catalogue-filters button{flex:0 0 auto;min-height:50px;font-size:15px;padding:8px 12px;gap:7px;white-space:nowrap}
+@media(max-width:700px){.crm-catalogue-top .crm-catalogue-filters{flex-wrap:wrap}}
+@media(max-width:1300px){.crm-catalogue-top .crm-catalogue-kinds button{min-width:128px;font-size:18px;padding:8px 12px;min-height:56px;gap:8px}.crm-catalogue-top .crm-catalogue-filters{gap:6px;overflow:visible}.crm-catalogue-top .crm-catalogue-filters button{font-size:14px;padding:6px 10px;min-height:46px}.crm-catalogue-top .crm-catalogue-filters .crm-tile-icon{display:none}}
