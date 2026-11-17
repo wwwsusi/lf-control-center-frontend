@@ -36,7 +36,7 @@ async function pageFor(opaque,width=1280){
   }
   const filename=path.resolve(dist,'.'+(url.pathname==='/'?'/index.html':url.pathname==='/crm'?'/crm.html':url.pathname));assert.ok(filename.startsWith(dist+'/'));try{return route.fulfill({body:await readFile(filename),contentType:({'.mjs':'text/javascript','.html':'text/html','.css':'text/css','.woff':'font/woff'})[path.extname(filename)]||'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}
  });
- if(process.env.LF_CRM_START_AT_HOME==='true'){await page.goto('https://crm.test/');await page.getByRole('link',{name:'CRM recepcia Prihlásenie zamestnancov'}).click();await page.waitForURL('https://crm.test/crm');}else await page.goto('https://crm.test/crm');await expect(page.locator('#crm-workspace')).toBeVisible();return {page,context};
+ if(process.env.LF_CRM_START_AT_HOME==='true'){await page.goto('https://crm.test/');await page.getByRole('link',{name:/^CRM/}).click();await page.waitForURL('https://crm.test/crm');}else await page.goto('https://crm.test/crm');await expect(page.locator('#crm-workspace')).toBeVisible();return {page,context};
 }
 const card=(page,name)=>page.locator('.crm-card').filter({has:page.getByRole('heading',{name,exact:true})}).getByRole('button',{name:'Otvoriť',exact:true});
 try{
