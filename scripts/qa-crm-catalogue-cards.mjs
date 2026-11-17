@@ -13,7 +13,7 @@ try{for(const [width,height]of [[1440,1000],[820,1100],[375,900]]){
  await page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Cenník',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();
  await expect(page.getByText('Zobrazené 9 z 9 položiek')).toBeVisible();await expect(page.getByText('Cena nie je uvedená',{exact:true})).toBeVisible();
  const passNames=await page.locator('[data-tone=pink] .crm-price-card h4').allTextContents();assert.deepEqual(passNames,['10-vstupová permanentka','30-vstupová permanentka']);
- await expect(page.getByRole('option',{name:'Najpredávanejšie · zatiaľ nedostupné'})).toHaveAttribute('disabled','');
+ await expect(page.getByRole('option',{name:'Najpredávanejšie · 90 dní'})).toBeEnabled();await page.getByLabel('Zoradenie').selectOption('popular');await expect(page.locator('.crm-catalogue-empty')).toContainText('zatiaľ nie sú žiadne potvrdené predaje');await page.getByLabel('Zoradenie').selectOption('logical');
  await page.screenshot({path:`qa-artifacts/reception-cards/${engine}-services-${width}.png`,fullPage:true});
  if(width>1000)await page.getByRole('button',{name:'Časové permanentky · 3',exact:true}).click();else await page.getByLabel('Kategória',{exact:true}).selectOption('time');assert.equal(await page.locator('.crm-price-card').count(),3);
  await page.getByRole('searchbox',{name:'Vyhľadať položku'}).fill('mesacna studenti');assert.equal(await page.locator('.crm-price-card').count(),1);await expect(page.locator('.crm-price-audience')).toContainText('seniori');
