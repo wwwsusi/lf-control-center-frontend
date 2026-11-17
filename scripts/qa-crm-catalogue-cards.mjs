@@ -10,7 +10,7 @@ try{for(const [width,height]of [[1440,1000],[820,1100],[375,900]]){
  const file=path.resolve(root,'.'+(u.pathname==='/crm'?'/crm.html':u.pathname));assert.ok(file.startsWith(root+'/'));try{return route.fulfill({body:await fs.readFile(file),contentType:({'.html':'text/html','.mjs':'text/javascript','.css':'text/css'})[path.extname(file)]||'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}});
  await page.goto('https://crm.test/crm');await expect(page.getByRole('heading',{name:'Recepcia',exact:true,level:2})).toBeVisible();
  await fs.mkdir('qa-artifacts/reception-cards',{recursive:true});await page.screenshot({path:`qa-artifacts/reception-cards/${engine}-reception-${width}.png`,fullPage:true});
- await page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Cenník',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();
+ await page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Cenník predaja',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();
  await expect(page.getByText('Zobrazené 9 z 9 položiek')).toBeVisible();await expect(page.getByText('Cena nie je uvedená',{exact:true})).toBeVisible();
  const passNames=await page.locator('[data-tone=pink] .crm-price-card h4').allTextContents();assert.deepEqual(passNames,['10-vstupová permanentka','30-vstupová permanentka']);
  await expect(page.getByRole('option',{name:'Najpredávanejšie · zatiaľ nedostupné'})).toHaveAttribute('disabled','');

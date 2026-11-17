@@ -9,7 +9,7 @@ try{for(const [width,height]of [[1440,1000],[820,1100],[375,900]]){
  assert.equal(u.pathname,'/api/crm/read');if(body.view==='SESSION_ACTIVITY')return json(200,{read_only:true,expires_at:new Date(Date.now()+600000).toISOString()});if(body.view==='TODAY')return json(200,{date:'2026-11-15',day:{opening_status:'OPEN'},items:[],next:null});assert.ok(['CATALOGUE','PRODUCT_CATALOGUE'].includes(body.view));if(holdProducts&&body.view==='PRODUCT_CATALOGUE')await new Promise(r=>release=r);return json(200,catalogueResponse(body));}
  const file=path.resolve(root,'.'+(u.pathname==='/crm'?'/crm.html':u.pathname));assert.ok(file.startsWith(root+'/'));try{return route.fulfill({body:await fs.readFile(file),contentType:({'.html':'text/html','.mjs':'text/javascript','.css':'text/css'})[path.extname(file)]||'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}});
  await page.goto('https://crm.test/crm');
- const open=()=>page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Cenník',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();
+ const open=()=>page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Cenník predaja',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();
  const category=async value=>{if(width>1000)await page.getByRole('button',{name:'Časové permanentky · 3',exact:true}).click();else await page.getByLabel('Kategória',{exact:true}).selectOption(value);};
  await open();await expect(page.getByText('Zobrazené 9 z 9 položiek')).toBeVisible();
  await page.locator('[data-item-id="svc-10"] .crm-pin').click();await page.locator('[data-item-id="svc-1"] .crm-pin').click();
