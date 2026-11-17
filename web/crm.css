@@ -308,3 +308,12 @@
 .ux-today{border-left:4px solid var(--pink,#e0457b)}
 .ux-today .ux-reason{font-weight:700;margin-right:.5rem;text-transform:uppercase;letter-spacing:.03em}
 #crm-session:not([hidden])~#crm-refresh{display:none}
+
+/* Cenník: one calm top row (Služby/Produkty beside the search box), prices in the counter-screen blue */
+.crm-catalogue-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start;position:sticky;top:8px;z-index:10;margin-bottom:16px}
+.crm-catalogue-top .crm-catalogue-kinds{flex-direction:column;margin:0;gap:10px}
+.crm-catalogue-top .crm-catalogue-kinds button{min-height:62px;min-width:190px;font-size:21px}
+.crm-catalogue-top .crm-catalogue-tools{position:static}
+.crm-main .crm-big .crm-price-card .crm-price-value{color:#64d8df}
+@media(max-width:700px){.crm-catalogue-top{grid-template-columns:minmax(0,1fr);position:static}.crm-catalogue-top .crm-catalogue-kinds{flex-direction:row}.crm-catalogue-top .crm-catalogue-kinds button{min-width:0;flex:1}}
+@media(max-height:700px){.crm-catalogue-top{position:static}}

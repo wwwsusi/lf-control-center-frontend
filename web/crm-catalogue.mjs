@@ -61,19 +61,18 @@ export function mountCatalogue({root,api,onBack,onAuthFailure,kind:initialKind='
  const state=()=>preferences.views[kind]??(preferences.views[kind]={category:'ALL',query:'',favorites:[],onlyFavorites:false,scrollY:0});
  const restore=()=>{const saved=state();category=saved.category;query=saved.query;onlyFavorites=saved.onlyFavorites;};
  const remember=()=>{Object.assign(state(),{category,query,onlyFavorites});preferences.kind=kind;};restore();
- const title=el('div',undefined,'crm-catalogue-heading'),caption=el('div');caption.append(el('h2',mode==='PRICE_LIST'?'Cenník':'Cenník predaja'),el('p',mode==='PRICE_LIST'?'Rýchly výber kategórie, prehľadná cena.':'Zobrazené sú len položky schválené na predaj. Kompletný cenník nájdeš na úvodnej obrazovke.','crm-note'));title.append(caption,button('Späť na prehľad',onBack));
+ const title=el('div',undefined,'crm-catalogue-heading'),caption=el('div');caption.append(el('h2',mode==='PRICE_LIST'?'Cenník':'Cenník predaja'));const back=button('Späť na prehľad',onBack);back.classList.add('crm-nav-back');title.append(caption);
  const tabs=el('div',undefined,'crm-catalogue-kinds');tabs.setAttribute('aria-label','Typ katalógu');
  const typeButtons=new Map();for(const [key,label,icon]of [['SERVICES','Služby','ticket'],['PRODUCTS','Produkty','product']]){const b=button(label,()=>{if(key===kind)return;remember();state().scrollY=0;kind=key;restore();search.value=query;load();});b.prepend(catalogueIcon(icon));typeButtons.set(key,b);tabs.append(b);}
  const tools=el('div',undefined,'crm-catalogue-tools'),controls=el('div',undefined,'crm-catalogue-controls'),searchLabel=el('label','Vyhľadať položku'),search=el('input');search.type='search';search.placeholder='Názov, kategória alebo variant…';search.autocomplete='off';search.maxLength=200;search.value=query;searchLabel.append(search);
  const categoryLabel=el('label','Kategória', 'crm-catalogue-category-select'),categorySelect=el('select');categorySelect.setAttribute('aria-label','Kategória');categoryLabel.append(categorySelect);categorySelect.addEventListener('change',()=>{category=categorySelect.value;remember();filters();render();});
  const orderLabel=el('label','Zoradenie'),order=el('select');for(const [value,label,disabled]of [['logical','Podľa kategórií',false],['popular','Najpredávanejšie · 90 dní',false]]){const o=el('option',label);o.value=value;o.disabled=disabled;order.append(o);}order.setAttribute('aria-label','Zoradenie');order.addEventListener('change',()=>{sortMode=order.value;render();});orderLabel.append(order);controls.append(searchLabel,categoryLabel,orderLabel);
  const favoritesToggle=button('Iba obľúbené',()=>{onlyFavorites=!onlyFavorites;remember();filters();render();});favoritesToggle.prepend(catalogueIcon('star'));favoritesToggle.className='crm-favorites-toggle';
- const help=el('p','Obľúbené sú dočasné — po obnovení stránky alebo odhlásení sa vymažú. Najpredávanejšie vychádza z potvrdených predajov za posledných 90 dní.','crm-note crm-catalogue-hint');help.id='crm-catalogue-sort-note';order.setAttribute('aria-describedby',help.id);
  const categories=el('div',undefined,'crm-catalogue-filters');categories.setAttribute('aria-label','Kategórie');
  const status=el('p',undefined,'crm-note crm-catalogue-count');status.setAttribute('role','status');
  const filterSummary=el('div',undefined,'crm-filter-summary'),filterText=el('span'),clear=button('Zobraziť všetko',reset);filterSummary.append(filterText,clear);filterSummary.hidden=true;
  const body=el('div',undefined,'crm-catalogue-body'),note=el('p','Iba prezeranie cenníka. Výber položky nevytvára predaj ani platbu.','crm-note');
- tools.append(controls,favoritesToggle,categories);root.replaceChildren(title,tabs,tools,help,filterSummary,status,body,note);
+ tools.append(controls,favoritesToggle,categories);const top=el('div',undefined,'crm-catalogue-top');top.append(tabs,tools);root.replaceChildren(title,top,filterSummary,status,body,note);const nav=document.querySelector('.crm-nav');nav?.append(back);
  search.addEventListener('input',()=>{query=search.value;remember();render();});
  function reset(){category='ALL';query='';onlyFavorites=false;search.value='';remember();filters();render();}
  function card(item,group){
@@ -106,5 +105,5 @@ export function mountCatalogue({root,api,onBack,onAuthFailure,kind:initialKind='
   try{const data=await loadCataloguePages(api,{kind,mode,signal:controller.signal});if(!live||current!==seq)return;items=data;state().favorites=state().favorites.filter(id=>items.some(item=>item.id===id));if(category!=='ALL'&&!items.some(i=>catalogueGroup(i,kind).key===category))category='ALL';search.disabled=false;categorySelect.disabled=false;favoritesToggle.disabled=false;remember();filters();render();const y=state().scrollY;requestAnimationFrame(()=>{if(live&&current===seq&&y>0)window.scrollTo({top:y,behavior:'instant'});});}
   catch(error){if(!live||current!==seq||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}status.textContent='Cenník sa nepodarilo načítať. Skús načítanie zopakovať; neúplné ceny nezobrazujeme.';body.replaceChildren(button('Načítať cenník znova',load));}
  }
- load();return {dispose(){remember();state().scrollY=window.scrollY;live=false;seq++;controller?.abort();items=[];}};
+ load();return {dispose(){back.remove();remember();state().scrollY=window.scrollY;live=false;seq++;controller?.abort();items=[];}};
 }
