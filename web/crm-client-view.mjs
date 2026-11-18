@@ -2,14 +2,16 @@
 // Visit and purchase history are optional fields of the CUSTOMER read (visits, purchases, with cursors); when the server does not
 // send them the profile says so instead of showing an empty list.
 export const skDate=v=>{const d=typeof v==='string'&&/^\d{4}-\d{2}-\d{2}/.test(v)?new Date(v.slice(0,10)+'T12:00:00Z'):null;return d&&Number.isFinite(d.getTime())?new Intl.DateTimeFormat('sk-SK',{timeZone:'UTC'}).format(d):'—';};
+// The database stores an exclusive end (expires_on = first day the pass is no longer valid); people read the last valid day.
+export const lastValidDay=v=>{const d=typeof v==='string'&&/^\d{4}-\d{2}-\d{2}/.test(v)?new Date(v.slice(0,10)+'T12:00:00Z'):null;if(!d||!Number.isFinite(d.getTime()))return v;d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10);};
 export function membershipView(m,today=new Date().toISOString().slice(0,10)){
  if(m===undefined)return {tone:'neutral',chip:'Údaje o permanentke nie sú v zozname',rows:[]};
  if(m===null)return {tone:'neutral',chip:'Bez permanentky',rows:[]};
- const time=m.type==='TIME_ACCESS',total=Number(m.included_units),used=Number(m.consumed),left=time?null:total-used,expired=typeof m.expires_on==='string'&&m.expires_on<today;
+ const time=m.type==='TIME_ACCESS',total=Number(m.included_units),used=Number(m.consumed),left=time?null:total-used,expired=typeof m.expires_on==='string'&&m.expires_on<=today;
  const soon=!expired&&typeof m.expires_on==='string'&&Date.parse(m.expires_on)-Date.parse(today)<=7*86400000;
  const exhausted=!time&&Number.isFinite(left)&&left<=0,low=!time&&Number.isFinite(left)&&left>0&&left<=2;
  const tone=expired||exhausted?'danger':soon||low?'warning':'success';
- return {tone,chip:expired?'Neplatná · vypršala':exhausted?'Neplatná · vyčerpaná':soon||low?'Platná · končí čoskoro':'Platná',rows:[[time?'Mesačná permanentka':'Permanentka na vstupy',null],['Od',m.activated_on?skDate(m.activated_on):'Aktivuje sa prvým vstupom'],['Do',m.expires_on?skDate(m.expires_on):'—'],['Zostáva',time?'Bez limitu vstupov':Number.isFinite(left)?Math.max(left,0)+' z '+total+' vstupov':'—']]};
+ return {tone,chip:expired?'Neplatná · vypršala':exhausted?'Neplatná · vyčerpaná':soon||low?'Platná · končí čoskoro':'Platná',rows:[[time?'Mesačná permanentka':'Permanentka na vstupy',null],['Od',m.activated_on?skDate(m.activated_on):'Aktivuje sa prvým vstupom'],['Do',m.expires_on?skDate(lastValidDay(m.expires_on)):'—'],['Zostáva',time?'Bez limitu vstupov':Number.isFinite(left)?Math.max(left,0)+' z '+total+' vstupov':'—']]};
 }
 
 const el=(tag,value,cls)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);if(cls)x.className=cls;return x;};
@@ -18,12 +20,15 @@ const ADMISSION={ENTITLEMENT:'Permanentka',SINGLE_ENTRY:'Jednorazový vstup',MUL
 export const visitLabel=v=>ADMISSION[v.admission_code]??'Návšteva';
 export const purchaseLabel=p=>(p.lines??[]).map(l=>l.name+(Number(l.quantity)>1?' × '+Number(l.quantity):'')).join(', ')||'Nákup';
 export function entitlementView(e,today){
- const view=membershipView({type:e.type_at_purchase,activated_on:e.activated_on,expires_on:e.expires_on,included_units:e.included_units_at_purchase,consumed:e.consumed},today);
- if(e.status&&e.status!=='ENABLED')return {...view,tone:'neutral',chip:'Zrušená'};
- return view;
+ // Entries used before CRM start (opening balance) count together with the visits recorded in CRM.
+ const consumed=String(Number(e.consumed||0)+Number(e.opening_used_units||0));
+ const view=membershipView({type:e.type_at_purchase,activated_on:e.activated_on,expires_on:e.expires_on,included_units:e.included_units_at_purchase,consumed},today);
+ const named=e.service_name?{...view,rows:[[e.service_name+(e.origin==='OPENING_BALANCE'?' · prevzatá':''),null],...view.rows.slice(1)]}:view;
+ if(e.status&&e.status!=='ENABLED')return {...named,tone:'neutral',chip:'Zrušená'};
+ return named;
 }
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'];
-export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure}){
+export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure,onAddPass=null,onEditPass=null}){
  let live=true;const controller=new AbortController(),c=data.customer;
  const button=(label,fn,cls)=>{const b=el('button',label,cls);b.type='button';b.addEventListener('click',fn);return b;};
  const kv=(label,value)=>{const r=el('div',undefined,'crm-kv crm-kv-stack');r.append(el('span',label),el('strong',value||'—'));return r;};
@@ -46,7 +51,9 @@ export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onE
  if(!list)ents.append(el('p','Údaje o permanentkách nie sú dostupné.','crm-note'));
  else if(!list.length)ents.append(el('p','Klientka nemá žiadnu permanentku.','crm-note'));
  else for(const e of list){const view=entitlementView(e),box=el('div',undefined,'crm-profile-ent');const chip=el('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;box.append(chip);
-  const rows=el('div',undefined,'crm-kv-group');for(const [label,value] of view.rows)rows.append(value===null?el('p',label,'crm-kv-title'):Object.assign(kv(label,value),{className:'crm-kv'}));box.append(rows);ents.append(box);}
+  const rows=el('div',undefined,'crm-kv-group');for(const [label,value] of view.rows)rows.append(value===null?el('p',label,'crm-kv-title'):Object.assign(kv(label,value),{className:'crm-kv'}));box.append(rows);
+  if(onEditPass&&e.origin==='OPENING_BALANCE'&&(!e.status||e.status==='ENABLED'))box.append(button('Upraviť zápis',()=>onEditPass(e),'crm-pass-edit'));ents.append(box);}
+ if(onAddPass)ents.append(button('Pridať existujúcu permanentku',onAddPass,'crm-pass-add'));
  if(data.entitlements_truncated)ents.append(el('p','Zobrazených je prvých 20 permanentiek.','crm-note'));
  grid.append(ents);
  // history sections

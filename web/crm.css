@@ -338,3 +338,10 @@
 .crm-main .crm-cancel-reasons input{width:26px;height:26px;min-height:0;padding:0;accent-color:var(--pink,#ff6398)}
 .crm-cancel-actions{display:flex;flex-wrap:wrap;gap:12px}
 .crm-cancel-done{display:grid;gap:12px;margin-top:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18)}
+
+/* Existing passes: add/edit buttons and form hints */
+.crm-main .crm-pass-add{margin-top:14px;align-self:flex-start}
+.crm-main .crm-pass-edit{justify-self:start}
+.crm-main .crm-pass-form select,.crm-main .crm-pass-form input{min-height:52px;font-size:18px}
+.crm-main .crm-pass-preview{font-weight:600;color:#64d8df;margin:0}
+.crm-main .crm-pass-form small{font-weight:400}
