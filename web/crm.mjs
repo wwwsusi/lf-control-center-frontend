@@ -4,6 +4,7 @@ import {mountReporting} from './crm-reporting.mjs';
 import {mountCheckin,membershipValidityLabel} from './crm-checkin.mjs';
 import {mountAccess} from './crm-access.mjs';
 import {mountCustomer} from './crm-customer.mjs';
+import {mountOpeningPass} from './crm-opening-pass.mjs';
 import {mountOwner,mountDayPrompt} from './crm-owner.mjs';
 import {mountCancellation} from './crm-cancel.mjs';
 import {showToast} from './crm-toast.mjs';
@@ -86,6 +87,7 @@ function customer(id){
   const toList=()=>{visitFlow=false;cartFlow=false;customerSearch();},toProfile=()=>{visitFlow=false;cartFlow=false;customer(id);};
   purchase=mountClientProfile({root:content,api,data,owner:role==='OWNER_ADMIN',onAuthFailure:code=>wipe(labels[code]),onBack:toList,
    onEdit:data.can_edit===true?()=>openCustomerForm(data.customer):null,
+   onAddPass:data.can_manage_passes===true&&active?()=>openPassForm(data):null,onEditPass:data.can_manage_passes===true?e=>openPassForm(data,e):null,
    onVisit:active?()=>{visitFlow=true;clientVisit(data,{back:toProfile,backLabel:'Späť na klientku'});}:null,
    onShop:active?()=>clientCart(data,{back:toProfile}):null});
  });
@@ -103,6 +105,7 @@ function openCatalogue(kind,mode){
 }
 function priceList(after,kind='SERVICES'){openCatalogue(kind,'PRICE_LIST');}
 function catalogue(after,kind='services'){openCatalogue(kind==='products'?'PRODUCTS':'SERVICES','CATALOGUE');}
+function openPassForm(data,entitlement=null){if(!active)return;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis.';return;}purchase?.dispose();epoch++;controller?.abort();purchase=mountOpeningPass({root:content,api,customer:data.customer,services:data.pass_services||[],entitlement,onAuthFailure:code=>wipe(labels[code]),onBack:()=>customer(data.customer.id),onSaved:()=>{purchase?.dispose();purchase=null;customer(data.customer.id);}});}
 function openCustomerForm(selected=null){if(!active)return;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis.';return;}purchase?.dispose();epoch++;controller?.abort();purchase=mountCustomer({root:content,api,customer:selected,onAuthFailure:code=>wipe(labels[code]),onBack:()=>selected?customer(selected.id):customerSearch(),onSaved:id=>{purchase?.dispose();purchase=null;customer(id);}});}
 function choice(label,title,hint,action,tone){const b=button('',action);b.className='crm-choice';b.dataset.tone=tone;b.setAttribute('aria-label',label);b.append(node('strong',title),node('span',hint));return b;}
 let visitFlow=false,cartFlow=false;
