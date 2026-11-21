@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validThrough,buildPayload,passRuleLabel} from '../web/crm-opening-pass.mjs';
+import {validThrough,buildPayload,passRuleLabel,remainingLabel} from '../web/crm-opening-pass.mjs';
 import {entitlementView} from '../web/crm-client-view.mjs';
 
 test('valid-through follows the database rule (start + N months, clamped to month end)',()=>{
@@ -47,4 +47,11 @@ test('profile shows the last valid day, not the exclusive database end',async()=
  assert.equal(v.rows.find(r=>r[0]==='Do')[1],'20. 1. 2027');
  // expires_on is the first invalid day: on that day the pass is already expired
  assert.match(membershipView({type:'TIME_ACCESS',activated_on:'2026-10-20',expires_on:'2026-11-18',included_units:null,consumed:'0'},'2026-11-18').chip,/vypršala/);
+});
+
+test('remaining entries use correct Slovak inflection',()=>{
+ assert.equal(remainingLabel(0),'Zostáva 0 vstupov');
+ assert.equal(remainingLabel(1),'Zostáva 1 vstup');
+ for(const n of [2,3,4])assert.equal(remainingLabel(n),'Zostávajú '+n+' vstupy');
+ for(const n of [5,6,10,30])assert.equal(remainingLabel(n),'Zostáva '+n+' vstupov');
 });

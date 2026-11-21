@@ -10,6 +10,7 @@ export function validThrough(start,months){
  const last=new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth()+1,0)).getUTCDate();
  target.setUTCDate(Math.min(d,last));return target.toISOString().slice(0,10);
 }
+export const remainingLabel=n=>n===1?'Zostáva 1 vstup':n>=2&&n<=4?'Zostávajú '+n+' vstupy':'Zostáva '+n+' vstupov';
 export const passRuleLabel=r=>r.type==='TIME_ACCESS'?'Časová permanentka · platí '+r.months+(r.months===1?' mesiac':r.months<5?' mesiace':' mesiacov'):'Vstupová permanentka · '+r.included+' vstupov · platí 6 mesiacov od prvého použitia';
 export function buildPayload({customer,entitlement,rule,serviceId,start,used,cancel=false}){
  if(entitlement)return cancel?{entitlement_id:entitlement.id,expected_revision:entitlement.revision,action:'CANCEL'}:{entitlement_id:entitlement.id,expected_revision:entitlement.revision,action:'UPDATE',start_date:start||null,used_units:String(rule.type==='VISIT_COUNT'?used:0)};
@@ -49,7 +50,7 @@ export function mountOpeningPass({root,api,customer,services=[],entitlement=null
   if(!needStart)start.value='';
   const through=r&&start.value?validThrough(start.value,r.months):null;
   const left=visit&&Number.isFinite(n)?r.included-n-crmUsed:null;
-  preview.textContent=r?[through?'Platná do '+skDate(through):(visit?'Platnosť sa spustí prvým vstupom.':''),visit&&left!==null?'Zostáva '+Math.max(left,0)+' vstupov.':''].filter(Boolean).join(' · '):'';
+  preview.textContent=r?[through?'Platná do '+skDate(through):(visit?'Platnosť sa spustí prvým vstupom.':''),visit&&left!==null?remainingLabel(Math.max(left,0))+'.':''].filter(Boolean).join(' · '):'';
   if(editing&&crmUsed>0)preview.textContent+=(preview.textContent?' ':'')+'Vstupy zapísané priamo v CRM ('+crmUsed+') sa k tomuto počtu pripočítavajú.';
  }
  function render(){if(!live)return;const lock=busy||!!pending;for(const c of [start,used])c.disabled=lock;select.disabled=lock||editing;save.disabled=lock;cancel.disabled=lock;verify.hidden=retry.hidden=!pending;verify.disabled=retry.disabled=busy;back.disabled=lock;}
@@ -63,7 +64,10 @@ export function mountOpeningPass({root,api,customer,services=[],entitlement=null
  }
  async function send(check=false){if(!live||busy||!pending)return;busy=true;notice.textContent=check?'Overujem výsledok…':'Ukladám…';render();try{const data=await api(check?'/api/crm/readback?request_id='+encodeURIComponent(pending.request_id):'/api/crm/operations',{...(check?{}:{body:pending}),signal:controller.signal});if(live)complete(data);}catch(error){failure(error);}finally{busy=false;render();}}
  const begin=body=>{pending={request_id:crypto.randomUUID(),operation_type:editing?'CORRECT_ENTITLEMENT':'IMPORT_ENTITLEMENT',payload:body};send();};
- form.addEventListener('submit',event=>{event.preventDefault();if(busy||pending)return;const r=rule();if(!r){select.focus();notice.textContent='Vyber druh permanentky.';return;}if(!form.reportValidity())return;
+ form.noValidate=true;
+ form.addEventListener('submit',event=>{event.preventDefault();if(busy||pending)return;const r=rule();if(!r){select.focus();notice.textContent='Vyber druh permanentky.';return;}
+  if(!startLabel.hidden){if(!start.value){start.focus();notice.textContent=r.type==='VISIT_COUNT'?'Zadaj dátum prvého použitia.':'Zadaj dátum začiatku platnosti.';return;}if(start.value>today){start.focus();notice.textContent='Dátum nesmie byť v budúcnosti.';return;}}
+  notice.textContent='';
   const n=Number(used.value);if(r.type==='VISIT_COUNT'&&(!Number.isInteger(n)||n<0||n>r.included)){used.focus();notice.textContent='Počet použitých vstupov musí byť od 0 do '+r.included+'.';return;}
   begin(buildPayload({customer,entitlement,rule:r,serviceId:select.value,start:start.value,used:r.type==='VISIT_COUNT'?n:0}));});
  cancel.addEventListener('click',()=>{if(busy||pending)return;if(!window.confirm('Zrušiť tento zápis permanentky? Nezmení to nič v predaji ani v tržbách.'))return;begin(buildPayload({entitlement,cancel:true}));});
