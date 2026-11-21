@@ -345,3 +345,18 @@
 .crm-main .crm-pass-form select,.crm-main .crm-pass-form input{min-height:52px;font-size:18px}
 .crm-main .crm-pass-preview{font-weight:600;color:#64d8df;margin:0}
 .crm-main .crm-pass-form small{font-weight:400}
+
+/* Client list cards: compact layout (name+status, one-line contact, two-line pass, footer with last visit and action) */
+.crm-main .crm-client-compact{gap:8px;padding:14px 16px}
+.crm-main .crm-client-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.crm-main .crm-client-head .crm-chip-status{align-self:center;font-size:15px;padding:2px 10px}
+.crm-main .crm-client-contact{margin:0;display:flex;flex-wrap:wrap;gap:2px 16px;font:400 17px/1.4 Inter,system-ui,sans-serif;color:#c7d2e3;overflow-wrap:anywhere}
+.crm-main .crm-client-contact em{font-style:normal;color:var(--muted,#a4b2c6)}
+.crm-main .crm-client-pass{display:grid;gap:2px;padding-top:8px;border-top:1px solid var(--line,#304056)}
+.crm-main .crm-client-pass-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.crm-main .crm-client-pass-name{color:#64d8df;font:600 17px/1.3 Inter,system-ui,sans-serif}
+.crm-main .crm-client-pass-top strong{font:600 18px/1.3 Inter,system-ui,sans-serif;color:#fff}
+.crm-main .crm-client-pass-dates{font:400 16px/1.3 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
+.crm-main .crm-client-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line,#304056)}
+.crm-main .crm-client-last{font:400 16px/1.3 Inter,system-ui,sans-serif;color:var(--muted,#a4b2c6)}
+.crm-main .crm-client-compact .crm-client-foot>button{margin:0;min-height:48px;padding:8px 16px;font-size:17px}

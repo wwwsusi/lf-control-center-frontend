@@ -40,13 +40,18 @@ function heading(text,mode){content.classList.add('crm-big');if(mode)content.dat
 async function read(body,render){if(!active)return;const version=++epoch;controller?.abort();controller=new AbortController();status.textContent='Načítavam CRM údaje…';try{const data=await api('/api/crm/read',{body,signal:controller.signal});if(version!==epoch||!active)return;render(data);status.textContent='CRM · pripojené';}catch(error){if(error.name==='AbortError'||version!==epoch)return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){wipe(labels[error.code]);return;}content.replaceChildren(node('p',labels[error.code]||'Načítanie zlyhalo. Obnov údaje.','crm-error'));status.textContent='Údaje nie sú dostupné.';}}
 function listing(items,render,next,more){const list=node('ul',undefined,'crm-list');for(const item of items)list.append(render(item));content.append(list);if(!items.length)content.append(node('p','V tomto pohľade nie sú záznamy. Nula neznamená potvrdenú úplnosť dňa.','crm-note'));if(next)content.append(button('Ďalšie záznamy',()=>more(next)));}
 function clientCard(item){
- const card=node('article',undefined,'crm-client-card'),view=membershipView(item.membership);card.append(node('h3',item.name));
- const kv=(label,value,stack=false)=>{const row=node('div',undefined,stack?'crm-kv crm-kv-stack':'crm-kv');row.append(node('span',label),node('strong',value||'—'));return row;};
- const contact=node('div',undefined,'crm-kv-group');contact.classList.add('crm-contact');contact.append(kv('Tel.',item.phone,true),kv('E-mail',item.email,true));card.append(contact);
- const chip=node('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;card.append(chip);
- if(view.rows.length){const group=node('div',undefined,'crm-kv-group');for(const [label,value] of view.rows)group.append(value===null?node('p',label,'crm-kv-title'):kv(label,value));card.append(group);}
- card.append(kv('Naposledy',item.last_visit_on?skDate(item.last_visit_on):'—'));
- card.append(button('Otvoriť klientku',()=>customer(item.id)));return card;
+ // Compact card: name and status on one row, contact on one line, pass in two lines, last visit and action on the footer row.
+ const card=node('article',undefined,'crm-client-card crm-client-compact'),view=membershipView(item.membership);
+ const head=node('div',undefined,'crm-client-head');head.append(node('h3',item.name));
+ const chip=node('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;head.append(chip);card.append(head);
+ const contact=node('p',undefined,'crm-client-contact');
+ const bits=[['Tel.',item.phone],['E-mail',item.email]].filter(([,v])=>v);
+ if(bits.length)for(const [label,value] of bits){const part=node('span');part.append(node('em',label+' '),document.createTextNode(value));contact.append(part);}else contact.textContent='Bez kontaktu';
+ card.append(contact);
+ if(view.rows.length){const row=l=>view.rows.find(r=>r[0]===l)?.[1];const pass=node('div',undefined,'crm-client-pass');
+  const top=node('div',undefined,'crm-client-pass-top');top.append(node('span',view.rows[0][0],'crm-client-pass-name'));const left=row('Zostáva');if(left&&left!=='Bez limitu vstupov')top.append(node('strong',left));pass.append(top);
+  const from=row('Od'),to=row('Do');pass.append(node('span',(from?from:'—')+' – '+(to||'—'),'crm-client-pass-dates'));card.append(pass);}
+ const foot=node('div',undefined,'crm-client-foot');foot.append(node('span','Naposledy '+(item.last_visit_on?skDate(item.last_visit_on):'—'),'crm-client-last'),button('Otvoriť klientku',()=>customer(item.id)));card.append(foot);return card;
 }
 let clientView='cards';
 function customerSearch(){
