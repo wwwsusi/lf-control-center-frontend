@@ -93,9 +93,11 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
   const tools=el('div',undefined,'crm-sale-tools');
   if(kinds.length>1){const seg=el('div',undefined,'crm-segment');for(const [k,t] of [['products','Produkty'],['services','Služby']]){const b=el('button',t);b.type='button';b.setAttribute('aria-pressed',String(kind===k));b.addEventListener('click',()=>{kind=k;render();});seg.append(b);}tools.append(seg);}
   const order=el('div',undefined,'crm-segment');order.setAttribute('aria-label','Zoradenie');
-  const az=el('button','Zoradiť A–Z');az.type='button';az.setAttribute('aria-pressed','true');
-  const top=el('button','Najpredávanejšie · zatiaľ nedostupné');top.type='button';top.disabled=true;top.title='Údaje o predaji recepcia zatiaľ nevidí.';order.append(az,top);tools.append(order);root.append(tools);
-  const shown=[...items[kind]].sort(byName);
+  const az=el('button','Zoradiť A–Z');az.type='button';az.setAttribute('aria-pressed',String(sort==='az'));az.addEventListener('click',()=>{sort='az';render();});
+  const top=el('button','Najpredávanejšie · 90 dní');top.type='button';top.setAttribute('aria-pressed',String(sort==='top'));top.addEventListener('click',()=>{sort='top';render();});order.append(az,top);tools.append(order);root.append(tools);
+  const sold=i=>Number(i.units_sold_90d)||0;
+  const shown=[...items[kind]].sort(sort==='top'?(x,y)=>sold(y)-sold(x)||byName(x,y):byName);
+  if(sort==='top'&&shown.length&&!shown.some(i=>sold(i)>0))root.append(el('p','Za posledných 90 dní zatiaľ nie sú žiadne potvrdené predaje, položky sú zoradené A–Z.','crm-lead'));
   if(unavailable.has(kind))root.append(el('p','Túto ponuku sa nepodarilo načítať. Skús obnoviť prístup.','crm-lead'));
   else if(!shown.length)root.append(el('p','V tejto ponuke zatiaľ nie je nič dostupné.','crm-lead'));
   const grid=el('div',undefined,'crm-price-grid');for(const item of shown)grid.append(tile(item));root.append(grid);
