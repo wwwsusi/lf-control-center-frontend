@@ -33,6 +33,29 @@ export function sumWeeks(weeks){
   visits:weeks.every(w=>w.visits!==null)?weeks.reduce((a,w)=>a+w.visits,0):null};
 }
 
+// Whole-period comparison: later half of the weeks vs the earlier half (middle week skipped when odd).
+export function halves(weeks){
+ if(weeks.length<2)return null;
+ const k=Math.floor(weeks.length/2),early=weeks.slice(0,k),late=weeks.slice(weeks.length-k);
+ return {early,late,label:'W'+late[0].week+'–W'+late.at(-1).week+' / W'+early[0].week+'–W'+early.at(-1).week};
+}
+export function halvesChange(weeks,key){
+ const h=halves(weeks);if(!h)return null;
+ const a=sumWeeks(h.early).total[key],b=sumWeeks(h.late).total[key];
+ return pct(b,a);
+}
+export function weeklyAverage(weeks,key){
+ const vals=weeks.map(w=>w.total[key]).filter(v=>v!==null);
+ return vals.length?Math.round(vals.reduce((s,v)=>s+v,0)/vals.length):null;
+}
+export function periodLabel(weeks){return weeks.length?'W'+weeks[0].week+(weeks.length>1?'–W'+weeks.at(-1).week:''):'';}
+// ISO calendar week of a timestamp, counted in Europe/Prague (CW in the posts table).
+export function isoWeek(iso){
+ const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso));
+ const d=new Date(p+'T00:00:00Z'),day=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-day+3);
+ const y=new Date(Date.UTC(d.getUTCFullYear(),0,4));return 1+Math.round(((d-y)/86400000-3+((y.getUTCDay()+6)%7))/7);
+}
+
 export function postsInRange(posts,from,to){
  return posts.filter(p=>{const d=p.published_at.slice(0,10);return (!from||d>=from)&&(!to||d<=to);});
 }
@@ -83,7 +106,7 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  // Week picker
  const picker=node('div',undefined,'crm-social-weeks');picker.setAttribute('role','group');picker.setAttribute('aria-label','Týždeň');
  for(const w of weeks)picker.append(btn('W'+w.week,()=>onChange({selected:w.period_start}),state.selected===w.period_start));
- picker.append(btn('Všetko',()=>onChange({selected:'all'}),state.selected==='all'));
+ const allBtn=btn(periodLabel(weeks),()=>onChange({selected:'all'}),state.selected==='all');allBtn.title='Všetky uložené týždne spolu';picker.append(allBtn);
  wrap.append(picker);
 
  const all=state.selected==='all',idx=weeks.findIndex(w=>w.period_start===state.selected);
@@ -91,11 +114,12 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  const from=all?weeks[0].period_start:cur.period_start,to=all?weeks.at(-1).period_end:cur.period_end;
  const posts=postsInRange(social.posts,from,to);
  const best=posts.slice().sort((a,b)=>(b.reach??0)-(a.reach??0))[0];
- const change=k=>all?null:{weekly:pct(cur.total[k],prev?.total[k]??null),cumulative:pct(cur.total[k],first.total[k]),latest:'W'+cur.week,previous:prev?'W'+prev.week:'',first:'W'+first.week};
- const split=k=>`FB ${formatCount(cur.fb?.[k])} · IG ${formatCount(cur.ig?.[k])}`;
+ const h=halves(weeks);
+ const change=k=>all?(h?{rows:[['Druhá polovica obdobia',halvesChange(weeks,k),h.label]]}:null):{weekly:pct(cur.total[k],prev?.total[k]??null),cumulative:pct(cur.total[k],first.total[k]),latest:'W'+cur.week,previous:prev?'W'+prev.week:'',first:'W'+first.week};
+ const split=k=>`FB ${formatCount(cur.fb?.[k])} · IG ${formatCount(cur.ig?.[k])}`+(all?` · Ø ${formatCount(weeklyAverage(weeks,k))} / týždeň`:'');
  const cards=node('div',undefined,'crm-kpi-grid crm-social-kpis');
  cards.append(
-  kpiCard({title:'Dosah',value:formatCount(cur.total.reach),note:split('reach'),hint:'Rôzni ľudia, ktorí videli obsah. FB a IG sa sčítavajú, ten istý človek môže byť v oboch.',change:change('reach')}),
+  kpiCard({title:all?'Dosah (súčet týždňov)':'Dosah',value:formatCount(cur.total.reach),note:split('reach'),hint:all?'Súčet týždenných dosahov. Ten istý človek oslovený v rôznych týždňoch je započítaný viackrát, takže počet rôznych ľudí je nižší.':'Rôzni ľudia, ktorí videli obsah. FB a IG sa sčítavajú, ten istý človek môže byť v oboch.',change:change('reach')}),
   kpiCard({title:'Videnia',value:formatCount(cur.total.media_views),note:split('media_views'),hint:'Koľkokrát sa obsah zobrazil, aj opakovane tomu istému človeku.',change:change('media_views')}),
   kpiCard({title:'Interakcie',value:formatCount(cur.total.interactions),note:split('interactions'),hint:'Reakcie, kliknutia, uloženia a zdieľania podľa Meta.',change:change('interactions')}),
   kpiCard({title:'Noví sledovatelia',value:formatCount(cur.total.new_followers),note:split('new_followers')+(cur.ig?.unfollows!==null&&cur.ig?.unfollows!==undefined?` (IG odišli ${formatCount(cur.ig.unfollows)})`:''),hint:'Iba počty. Meta neposkytuje mená sledovateľov.',change:change('new_followers')}),
@@ -105,7 +129,7 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  wrap.append(cards);
 
  const lines=socialInsights(weeks,state.selected);
- if(lines.length){const box=node('div',undefined,'crm-social-insight');box.append(node('strong','Čo z toho vyplýva · '+(all?'všetky týždne':'W'+cur.week)));const ul=node('ul');for(const l of lines)ul.append(node('li',l));box.append(ul);wrap.append(box);}
+ if(lines.length){const box=node('div',undefined,'crm-social-insight');box.append(node('strong','Čo z toho vyplýva · '+(all?periodLabel(weeks):'W'+cur.week)));const ul=node('ul');for(const l of lines)ul.append(node('li',l));box.append(ul);wrap.append(box);}
 
  // Charts over all weeks
  const labels=weeks.map(w=>'W'+w.week),charts=node('div',undefined,'crm-chart-grid');
@@ -131,14 +155,14 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  let body;
  if(!rows.length)body=unavailable('V zvolenom období nie sú žiadne príspevky.');
  else{
-  const t=node('table',undefined,'crm-report-table crm-social-posts');const hr=node('tr');for(const h of ['Dátum','Sieť','Príspevok','Dosah','Interakcie','Miera'])hr.append(node('th',h));const th=node('thead');th.append(hr);const tb=node('tbody');
+  const t=node('table',undefined,'crm-report-table crm-social-posts');const hr=node('tr');for(const h of ['Dátum','CW','Sieť','Príspevok','Dosah','Interakcie','Miera'])hr.append(node('th',h));const th=node('thead');th.append(hr);const tb=node('tbody');
   for(const p of rows){const tr=node('tr'),txt=node('td');const label=p.text||(p.media_type==='REELS'?'Reels bez popisu':'Bez popisu');
    if(p.permalink&&/^https:\/\/(www\.)?(facebook|instagram)\.com\//.test(p.permalink)){const a=node('a',label.length>90?label.slice(0,90)+'…':label);a.href=p.permalink;a.target='_blank';a.rel='noopener noreferrer';txt.append(a);}else txt.append(label.length>90?label.slice(0,90)+'…':label);
    const r=engagementRate(p);const platCell=node('td');platCell.append(node('span',p.platform==='facebook'?'FB':'IG','crm-social-platform crm-social-'+p.platform));
-   tr.append(node('td',dayLabel(p.published_at)),platCell,txt,node('td',formatCount(p.reach)),node('td',formatCount(p.interactions)),node('td',r===null?'N/A':String(r).replace('.',',')+' %'));tb.append(tr);}
+   tr.append(node('td',dayLabel(p.published_at)),node('td','W'+isoWeek(p.published_at)),platCell,txt,node('td',formatCount(p.reach)),node('td',formatCount(p.interactions)),node('td',r===null?'N/A':String(r).replace('.',',')+' %'));tb.append(tr);}
   t.append(th,tb);body=node('div',undefined,'crm-table-scroll');body.append(t);
  }
- wrap.append(chartCard('Príspevky'+(all?'':' · W'+cur.week),body,'FB interakcie = reakcie + kliknutia. Miera = interakcie ÷ dosah. Čísla príspevkov sú z posledného stiahnutia.',plat));
+ wrap.append(chartCard('Príspevky · '+(all?periodLabel(weeks):'W'+cur.week),body,'FB interakcie = reakcie + kliknutia. Miera = interakcie ÷ dosah. Čísla príspevkov sú z posledného stiahnutia.',plat));
  wrap.append(node('p','Zdroj: Meta (stránka LADY Fitness Humenné, @lady.fitness.he), sťahované každý pondelok. Pokryté do '+(social.covered_through?dayLabel(social.covered_through+'T12:00:00Z'):'–'),'crm-note'));
  root.append(wrap);
 }

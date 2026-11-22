@@ -163,7 +163,8 @@ export function kpiCard({title,value,note,hint,change,neutral=false}){
  const card=node('article',undefined,'crm-card crm-kpi');if(hint)card.title=hint;card.append(node('h3',title),node('p',value,'crm-kpi-value'),node('p',note,'crm-note'));
  if(change){
   const row=node('div',undefined,'crm-kpi-changes');
-  for(const [label,pct,basis] of [['Zmena týždenná',change.weekly,change.latest&&change.previous?change.latest+' / '+change.previous:''],['Zmena kum',change.cumulative,change.latest&&change.first?change.latest+' / '+change.first:'']]){
+  // change.rows ([label,pct,basis]) lets a caller name its own comparisons; default is weekly + cumulative.
+  for(const [label,pct,basis] of change.rows??[['Zmena týždenná',change.weekly,change.latest&&change.previous?change.latest+' / '+change.previous:''],['Zmena kum',change.cumulative,change.latest&&change.first?change.latest+' / '+change.first:'']]){
    const cell=node('div'),strong=node('strong',formatPercent(pct),'crm-kpi-delta');
    strong.dataset.direction=pct===null?'none':neutral?'neutral':pct>0?'up':pct<0?'down':'flat';
    cell.append(node('span',label),strong,node('small',basis));row.append(cell);
