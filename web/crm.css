@@ -370,6 +370,11 @@
 .crm-print-card .pc-logo{grid-column:1;grid-row:1;height:27cqw;width:auto;justify-self:start;align-self:start;margin-left:1.5cqw}
 .crm-print-card .pc-name{grid-column:1;grid-row:2;align-self:end;font-family:Oswald,Inter,sans-serif;font-weight:600;font-size:6.6cqw;line-height:1.1;letter-spacing:.02em;color:#1d2230;overflow-wrap:anywhere;margin:0 0 1cqw 1.5cqw}
 .crm-print-card .pc-qr{grid-column:2;grid-row:1/3;width:100%;height:auto;aspect-ratio:1;align-self:center;justify-self:end}
+.crm-print-card .pc-hint,.crm-print-card .pc-number{display:none}
+.crm-print-card .pc-numbered{grid-template-rows:auto 1fr auto auto}
+.crm-print-card .pc-numbered .pc-hint{display:block;grid-column:1;grid-row:3;align-self:center;margin:1.2cqw 0 0 1.5cqw;font-size:2.5cqw;line-height:1.25;color:#5b6270}
+.crm-print-card .pc-numbered .pc-number{display:block;grid-column:2;grid-row:3;align-self:center;justify-self:end;margin-top:1.2cqw;font-family:Oswald,Inter,sans-serif;font-weight:600;font-size:6.2cqw;letter-spacing:.12em;color:#1d2230;white-space:nowrap}
+.crm-print-card .pc-numbered .pc-motto{grid-row:4}
 .crm-print-card .pc-motto{grid-column:1/3;grid-row:3;margin-top:1.5cqw;padding-top:1.8cqw;border-top:.4cqw solid var(--pink);font-style:italic;font-size:3.1cqw;line-height:1.25;color:var(--pink);text-align:center;letter-spacing:.01em}
 @media print{
  body *{visibility:hidden}
