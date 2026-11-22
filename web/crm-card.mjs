@@ -32,7 +32,10 @@ export function mountCard({root,api,customer,card=null,onBack,onIssued,onAuthFai
   const sheet=el('div',undefined,'crm-print-card');
   const img=el('img',undefined,'pc-logo');img.src=logo;img.alt='Lady Fitness';
   const qr=qrSvg(cardCode(card.token));qr.classList.add('pc-qr');
-  const grid=el('div',undefined,'pc-grid');grid.append(img,el('span',customer.name,'pc-name'),qr,el('span',CARD_MOTTO,'pc-motto'));sheet.append(grid);
+  const grid=el('div',undefined,'pc-grid');grid.append(img,el('span',customer.name,'pc-name'),qr);
+  // The 8-digit number lets a client check her pass on the website without a camera.
+  if(typeof card.short_code==='string'&&/^[0-9]{8}$/.test(card.short_code)){grid.classList.add('pc-numbered');grid.append(el('span','Stav permanentky skontroluješ na webe Lady Fitness. Zadaj číslo karty:','pc-hint'),el('span',card.short_code.slice(0,4)+' '+card.short_code.slice(4),'pc-number'));}
+  grid.append(el('span',CARD_MOTTO,'pc-motto'));sheet.append(grid);
   const print=button('Vytlačiť kartu',()=>{if(live)window.print();});
   actions.append(print,issue);wrap.append(sheet);
  }else{
