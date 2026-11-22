@@ -364,14 +364,21 @@
 /* Client card: scanner and printable card */
 .crm-scan video{width:100%;max-height:50vh;border-radius:14px;background:#000;object-fit:cover}
 .crm-scan form{margin-top:10px}
-.crm-print-card{display:flex;align-items:center;justify-content:space-between;gap:14px;width:min(100%,85.6mm);aspect-ratio:85.6/54;box-sizing:border-box;padding:5mm;border-radius:10px;background:#fff;color:#111;border:1px solid #ccc}
-.crm-print-card svg{flex:0 0 46%;width:46%;height:auto;aspect-ratio:1}
-.crm-print-card-text{display:flex;flex-direction:column;gap:4px;flex:1 1 0;min-width:0}
-.crm-print-card-text strong{font-family:Oswald,Inter,sans-serif;letter-spacing:.08em;font-size:15px}
-.crm-print-card-name{font-size:16px;font-weight:600;overflow-wrap:anywhere}
-.crm-print-card-sub{font-size:11px;color:#555}
+.crm-print-card{--pink:#e82a6b;container-type:inline-size;position:relative;width:min(100%,560px);aspect-ratio:85.6/54;box-sizing:border-box;border-radius:3%/4.8%;overflow:hidden;background:#fff;color:#2b2f38;border:1px solid #d9dce2}
+.crm-print-card .pc-grid{display:grid;grid-template-columns:1fr 47%;grid-template-rows:auto 1fr auto;column-gap:3cqw;box-sizing:border-box;height:100%;padding:5cqw 5cqw 4cqw 6cqw}
+.crm-print-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2.2cqw;background:linear-gradient(180deg,var(--pink),#ff7aa8)}
+.crm-print-card .pc-logo{grid-column:1;grid-row:1;height:27cqw;width:auto;justify-self:start;align-self:start;margin-left:1.5cqw}
+.crm-print-card .pc-name{grid-column:1;grid-row:2;align-self:end;font-family:Oswald,Inter,sans-serif;font-weight:600;font-size:6.6cqw;line-height:1.1;letter-spacing:.02em;color:#1d2230;overflow-wrap:anywhere;margin:0 0 1cqw 1.5cqw}
+.crm-print-card .pc-qr{grid-column:2;grid-row:1/3;width:100%;height:auto;aspect-ratio:1;align-self:center;justify-self:end}
+.crm-print-card .pc-motto{grid-column:1/3;grid-row:3;margin-top:1.5cqw;padding-top:1.8cqw;border-top:.4cqw solid var(--pink);font-style:italic;font-size:3.1cqw;line-height:1.25;color:var(--pink);text-align:center;letter-spacing:.01em}
 @media print{
  body *{visibility:hidden}
  .crm-print-card,.crm-print-card *{visibility:visible}
- .crm-print-card{position:fixed;left:10mm;top:10mm;width:85.6mm;height:54mm;border:1px solid #000;border-radius:0}
+ .crm-print-card{position:fixed;left:10mm;top:10mm;width:85.6mm;height:54mm;border:0;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* Client profile: passes inside the details box */
+.crm-profile-ents{margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#304056);display:grid;gap:10px}
+.crm-profile-ents h3{margin:0}
+.crm-profile-head-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.crm-profile-head-actions .crm-profile-edit{margin:0}

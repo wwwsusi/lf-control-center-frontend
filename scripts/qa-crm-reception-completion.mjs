@@ -56,7 +56,7 @@ try{
   await page.goto('https://crm.test/');
   await page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Zoznam klientov',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();
   await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();
-  await page.getByRole('button',{name:'Opraviť údaje klientky',exact:true}).click();
+  await page.getByRole('button',{name:'Opraviť osobné údaje',exact:true}).click();
   await page.getByLabel('Meno klientky',{exact:true}).fill('Synthetic corrected client');await page.getByRole('button',{name:'Uložiť opravu',exact:true}).click();
   await expect(page.getByRole('button',{name:'Overiť výsledok',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Recepcia',exact:true}).click();

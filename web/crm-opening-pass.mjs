@@ -23,7 +23,7 @@ export function mountOpeningPass({root,api,customer,services=[],entitlement=null
  const el=(tag,value,cls)=>{const n=document.createElement(tag);if(value!==undefined)n.textContent=value;if(cls)n.className=cls;return n;};
  const editing=entitlement!==null,today=new Date().toISOString().slice(0,10);
  const crmUsed=editing?Number(entitlement.consumed||0):0;
- const heading=el('h2',editing?'Upraviť existujúcu permanentku':'Pridať existujúcu permanentku'),sub=el('p',customer.name,'crm-note');
+ const heading=el('h2',editing?'Upraviť existujúcu službu':'Pridať existujúcu službu'),sub=el('p',customer.name,'crm-note');
  const form=el('form',undefined,'crm-customer-form crm-pass-form'),notice=el('p');notice.setAttribute('role','status');
  const label=(title,control,hint)=>{const l=el('label',title);l.append(control);if(hint)l.append(el('small',hint,'crm-note'));return l;};
  const select=el('select');select.setAttribute('aria-label','Služba');
@@ -33,7 +33,7 @@ export function mountOpeningPass({root,api,customer,services=[],entitlement=null
  const used=el('input');used.type='number';used.min='0';used.step='1';used.value='0';
  const startLabel=label('Dátum začiatku',start),usedLabel=label('Koľko vstupov už bolo použitých',used);
  const ruleNote=el('p',undefined,'crm-note'),preview=el('p',undefined,'crm-pass-preview');
- const save=el('button',editing?'Uložiť opravu':'Uložiť permanentku');save.type='submit';
+ const save=el('button',editing?'Uložiť opravu':'Uložiť službu');save.type='submit';
  const verify=el('button','Overiť výsledok'),retry=el('button','Zopakovať tú istú požiadavku'),back=el('button',editing?'Späť ku klientke':'Späť'),cancel=el('button','Zrušiť tento zápis');
  for(const b of [verify,retry,back,cancel])b.type='button';verify.hidden=retry.hidden=true;cancel.hidden=!editing;
  form.append(label('Druh permanentky',select),ruleNote,startLabel,usedLabel,preview,save);
