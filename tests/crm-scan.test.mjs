@@ -18,3 +18,7 @@ test('reader picks up a fast burst ending with Enter and ignores slow typing and
  for(const ch of 'LF1:'+ID)doc.fire({key:ch,target:{tagName:'INPUT'}});doc.fire({key:'Enter',target:{tagName:'INPUT'}});assert.equal(got.length,1,'typing in a field is left to the form');
  off();assert.equal(doc.count(),0);
 });
+test('the reception home offers a scan tile that opens the scanner screen',async()=>{
+ const {readFileSync}=await import('node:fs');const src=readFileSync(new URL('../web/crm.mjs',import.meta.url),'utf8');
+ assert(src.includes("['Skenovať kartu',")&&src.includes('function scanScreen()')&&src.includes("'Skenovať kartu':['grid','cyan']"));
+});
