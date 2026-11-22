@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {socialWeeks,sumWeeks,postsInRange,engagementRate,socialInsights,validateSocialReport} from '../web/crm-social.mjs';
+import {socialWeeks,sumWeeks,postsInRange,engagementRate,socialInsights,validateSocialReport,halves,halvesChange,weeklyAverage,periodLabel,isoWeek} from '../web/crm-social.mjs';
 
 const w=(platform,week,start,end,o)=>({platform,week,period_start:start,period_end:end,revision:1,reach:null,media_views:null,interactions:null,new_followers:null,unfollows:null,profile_views:null,...o});
 const social={accounts:{facebook:{followers_total:2392,following_total:null,posts_total:null}},covered_through:'2026-11-15',weekly:[
@@ -36,4 +36,17 @@ test('insights compare with the previous week and mention missing visits',()=>{
 test('invalid payloads are rejected',()=>{
  assert.throws(()=>validateSocialReport({weekly:[{platform:'tiktok',week:1,period_start:'2026-01-05'}],posts:[],accounts:{}}));
  assert.throws(()=>validateSocialReport(null));
+});
+test('whole-period label, halves comparison and weekly average',()=>{
+ const weeks=socialWeeks(social,visits);
+ assert.equal(periodLabel(weeks),'W45–W46');assert.equal(halves(weeks).label,'W46–W46 / W45–W45');
+ assert.equal(halvesChange(weeks,'reach'),-60.1);assert.equal(weeklyAverage(weeks,'reach'),7604);
+ const seven=Array.from({length:7},(_,i)=>({week:40+i,total:{reach:100*(i+1)},fb:{},ig:{}}));
+ assert.equal(halves(seven).label,'W44–W46 / W40–W42');assert.equal(halves([seven[0]]),null);
+});
+test('CW is the ISO week in Prague time',()=>{
+ assert.equal(isoWeek('2026-11-20T10:00:00.000Z'),47);
+ assert.equal(isoWeek('2026-11-15T23:30:00.000Z'),47); // already Monday 16 Nov in Prague
+ assert.equal(isoWeek('2026-11-15T22:59:00.000Z'),46);
+ assert.equal(isoWeek('2027-01-01T12:00:00.000Z'),53);
 });
