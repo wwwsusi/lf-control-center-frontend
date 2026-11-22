@@ -13,6 +13,8 @@ import {mountSingleEntry} from './crm-single-entry.mjs';
 import {mountSale} from './crm-sale.mjs';
 import {skDate,membershipView,mountClientProfile,detectSearchMode} from './crm-client-view.mjs';
 import {mountClientTable} from './crm-client-table.mjs';
+import {mountScanner,attachReader,parseCardCode} from './crm-scan.mjs';
+import {mountCard} from './crm-card.mjs';
 import {mountControlCenter} from './crm-control-center.mjs?v=20261108-integrated-views';
 import {idleRemaining,isTrustedUserActivity,formatIdleRemaining,idleState,logoutRemaining} from './crm-session-idle.mjs?v=20261109-session-bar';
 // CRM data stays transient: no browser storage, URL contacts, dashboard imports or analytics.
@@ -22,11 +24,11 @@ let controller=null,epoch=0,expiryDeadline=0,expiry=null,idleExpiry=null,poll=nu
 const sessionChannel=typeof BroadcastChannel==='function'?new BroadcastChannel('lf-crm-session'):null;
 const stateLabel=value=>({ACTIVE:'Aktívna',INACTIVE:'Neaktívna',ENABLED:'Platný',CANCELLED:'Stornované',OPEN:'Otvorené',CLOSED:'Zatvorené',UNKNOWN:'Otvorenosť neznáma',MISSING:'Chýbajú údaje',PARTIAL:'Čiastočné údaje',COMPLETE:'Úplné údaje',DRAFT:'Rozpracované',CONFIRMED:'Potvrdené',PENDING:'Čaká na potvrdenie',POSTED:'Zaúčtované',VISIT_COUNT:'Počet vstupov',TIME_ACCESS:'Časový prístup'})[value]||'Neznámy stav';
 let pinDigits='',pinBusy=false;
-let cancelUi=null;
+let cancelUi=null,detachReader=null;
 const pinLabels={AUTH_REQUIRED:'Nesprávny PIN. Skús to znova.',RATE_LIMITED:'Príliš veľa pokusov. Počkaj 15 minút alebo sa prihlás e-mailom.',POLICY_BLOCKED:'Prihlásenie PIN-om zatiaľ nie je zapnuté.',AUTH_PROVIDER_UNAVAILABLE:'Prihlasovacia služba je dočasne nedostupná.'};
 const labels={AUTH_REQUIRED:'Prihlásenie sa nepodarilo alebo vypršalo. Skontroluj e-mail a heslo a skús to znova.',FORBIDDEN:'Pre tento CRM pohľad nemáš oprávnenie.',POLICY_BLOCKED:'Tento postup čaká na schválené pravidlá.',CRM_NOT_ACTIVE:'Prihlásenie a práca s CRM zatiaľ nie sú dostupné.',VALIDATION_ERROR:'Skontroluj zadané údaje.',AUTH_PROVIDER_UNAVAILABLE:'Prihlasovacia služba je dočasne nedostupná.'};
 function node(tag,text,className){const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;}
-function wipe(message='Údaje sú skryté. Obnov prístup.',preserveCatalogue=false){if(!preserveCatalogue)clearCataloguePreferences();cancelUi?.dispose();cancelUi=null;access?.dispose();access=null;dayPrompt?.dispose();dayPrompt=null;byId('crm-access').hidden=true;byId('crm-mfa').value='';purchase?.dispose();purchase=null;epoch++;controller?.abort();controller=null;clearTimeout(expiry);clearTimeout(idleExpiry);clearInterval(poll);expiry=idleExpiry=poll=null;expiryDeadline=0;active=false;actor=null;role=null;csrfToken=null;if(!preserveCatalogue){lastUserActivityAt=0;lastActivityRequestAt=0;}priceListEnabled=false;reportSummaryEnabled=false;ownerTasksEnabled=false;view='reception';byId('crm-password').value='';resetPin();workspace.hidden=true;content.replaceChildren();byId('crm-identity').textContent='';status.textContent=message;byId('crm-heading').textContent='CRM · individuálne prihlásenie';showLogin('choice');}
+function wipe(message='Údaje sú skryté. Obnov prístup.',preserveCatalogue=false){detachReader?.();detachReader=null;if(!preserveCatalogue)clearCataloguePreferences();cancelUi?.dispose();cancelUi=null;access?.dispose();access=null;dayPrompt?.dispose();dayPrompt=null;byId('crm-access').hidden=true;byId('crm-mfa').value='';purchase?.dispose();purchase=null;epoch++;controller?.abort();controller=null;clearTimeout(expiry);clearTimeout(idleExpiry);clearInterval(poll);expiry=idleExpiry=poll=null;expiryDeadline=0;active=false;actor=null;role=null;csrfToken=null;if(!preserveCatalogue){lastUserActivityAt=0;lastActivityRequestAt=0;}priceListEnabled=false;reportSummaryEnabled=false;ownerTasksEnabled=false;view='reception';byId('crm-password').value='';resetPin();workspace.hidden=true;content.replaceChildren();byId('crm-identity').textContent='';status.textContent=message;byId('crm-heading').textContent='CRM · individuálne prihlásenie';showLogin('choice');}
 function scheduleExpiry(value){const end=Date.parse(value);if(!Number.isFinite(end)){wipe(labels.AUTH_REQUIRED);return;}if(end<=expiryDeadline)return;if(end<=Date.now()){wipe(labels.AUTH_REQUIRED);return;}expiryDeadline=end;clearTimeout(expiry);expiry=setTimeout(()=>wipe(labels.AUTH_REQUIRED),Math.min(end-Date.now(),2147483647));}
 function scheduleIdleExpiry(){clearTimeout(idleExpiry);if(!active||!lastUserActivityAt)return;const remaining=idleRemaining(lastUserActivityAt);if(remaining<=0){endForInactivity();return;}idleExpiry=setTimeout(endForInactivity,Math.min(remaining,2147483647));}
 function adoptActivity(at,remote=false){if(!active||!Number.isFinite(at)||at>Date.now()+5000||idleRemaining(at)<=0)return;lastUserActivityAt=Math.max(lastUserActivityAt,at);scheduleIdleExpiry();if(!remote)sessionChannel?.postMessage({type:'activity',at});if((workspaceEnabled||priceListEnabled||reportSummaryEnabled||ownerTasksEnabled)&&Date.now()-lastActivityRequestAt>=15000){lastActivityRequestAt=Date.now();api('/api/crm/read',{body:{view:'SESSION_ACTIVITY'},userActivity:true}).catch(error=>{if(active&&['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code))wipe(labels[error.code]);});}}
@@ -61,7 +63,10 @@ function customerSearch(){
  const head=node('div',undefined,'crm-screen-head');head.append(node('h2','Zoznam klientov'));
  const views=node('div',undefined,'crm-segment crm-view-switch');views.setAttribute('aria-label','Zobrazenie zoznamu');
  if(owner){for(const [key,label] of [['cards','Karty'],['table','Tabuľka']]){const b=button(label,()=>{clientView=key;for(const x of views.children)x.setAttribute('aria-pressed',String(x.dataset.view===clientView));draw();});b.dataset.view=key;b.setAttribute('aria-pressed',String(clientView===key));views.append(b);}head.append(views);}
- head.append(button('Založiť novú klientku',()=>openCustomerForm()));content.append(head);
+ const scanRoot=node('div');let scanning=null;
+ const openScan=()=>{if(scanning?.isActive())return;scanning=mountScanner({root:scanRoot,onCode:id=>{scanning=null;customer(id);},onClose:()=>{scanning=null;}});};
+ head.append(button('Skenovať kartu',openScan),button('Založiť novú klientku',()=>openCustomerForm()));content.append(head,scanRoot);
+ detachReader?.();detachReader=attachReader({onCode:id=>{scanning?.dispose();scanning=null;customer(id);}});
  const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';input.placeholder='meno, telefón alebo e-mail';label.append(input);
  const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,submit);content.append(form);
  const grid=node('div',undefined,'crm-client-grid'),tableRoot=node('div'),more=node('div');content.append(grid,tableRoot,more);
@@ -79,7 +84,7 @@ function customerSearch(){
  function load(query,mode,after){const mine=after?token:++token;if(!after){state.items=[];state.next=null;state.empty=false;state.query=query;state.mode=mode;}
   read({view:'CUSTOMERS',query,mode,...(after?{after}:{})},data=>{if(mine!==token)return;state.items=[...state.items,...data.items];state.next=data.next;state.empty=!state.items.length;draw();});}
  function loadAll(){const mine=token;let pages=0;const step=after=>read({view:'CUSTOMERS',query:state.query,mode:state.mode,...(after?{after}:{})},data=>{if(mine!==token)return;state.items=[...state.items,...data.items];state.next=data.next;if(data.next&&++pages<50)step(data.next);else draw();});if(state.next)step(state.next);}
- form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())load(input.value.trim(),detectSearchMode(input.value));});
+ form.addEventListener('submit',e=>{e.preventDefault();const card=parseCardCode(input.value);if(card){input.value='';customer(card);return;}if(form.reportValidity())load(input.value.trim(),detectSearchMode(input.value));});
  load('','NAME');
 }
 function customer(id){
@@ -93,6 +98,7 @@ function customer(id){
   purchase=mountClientProfile({root:content,api,data,owner:role==='OWNER_ADMIN',onAuthFailure:code=>wipe(labels[code]),onBack:toList,
    onEdit:data.can_edit===true?()=>openCustomerForm(data.customer):null,
    onAddPass:data.can_manage_passes===true&&active?()=>openPassForm(data):null,onEditPass:data.can_manage_passes===true?e=>openPassForm(data,e):null,
+   onCard:()=>{purchase?.dispose();purchase=mountCard({root:content,customer:data.customer,onBack:toProfile});},
    onVisit:active?()=>{visitFlow=true;clientVisit(data,{back:toProfile,backLabel:'Späť na klientku'});}:null,
    onShop:active?()=>clientCart(data,{back:toProfile}):null});
  });
