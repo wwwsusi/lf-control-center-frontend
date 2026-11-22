@@ -1,9 +1,10 @@
 import {kpiCard,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,weekdayChartData,formatOneDecimal,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,salesSplitSeries,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,formatCompactNumber,SERIES_COLORS} from './crm-report-view.mjs';
 import {selectHistoricalPeriods,liveReportingRanges,mergeLiveReports,historicalPeriods} from './crm-report-history.mjs';
+import {renderSocial,validateSocialReport} from './crm-social.mjs';
 // Owner-only live CRM reporting. The backend independently enforces OWNER_ADMIN and UAT denial.
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
 const button=(label,fn)=>{const el=node('button',label);el.type='button';el.addEventListener('click',fn);return el;};
-let range=null,selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
+let range=null,socialData=null,socialLoading=false,socialState={selected:null,platform:'all',sort:'reach'},selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
 const historicalKeys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
 function currentMonth(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return {from:v.year+'-'+v.month+'-01',to:v.year+'-'+v.month+'-'+v.day};}
 function shortRange(from,to){const [,m1,d1]=from.split('-').map(Number),[,m2,d2]=to.split('-').map(Number);return m1===m2?d1+'.–'+d2+'. '+m2+'.':d1+'. '+m1+'. – '+d2+'. '+m2+'.';}
@@ -57,13 +58,20 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
    loaded=mergeLiveReports(reports,range);draw();
   }catch(error){if(!live||version!==sequence||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}heading();root.append(node('p','Reporting sa nepodarilo načítať úplne. Čiastočný súčet nezobrazujeme.','crm-error'),button('Skúsiť znova',load));}
  }
+ function drawSocial(){
+  const box=document.createElement('div');root.append(box);
+  if(socialData){renderSocial(box,{social:socialData,visitRows:snapshot?.weekly??[],state:socialState,onChange:patch=>{Object.assign(socialState,patch);draw();}});return;}
+  box.append(node('p','Načítavam údaje zo sociálnych sietí…','crm-note'));
+  if(socialLoading)return;socialLoading=true;
+  api('/api/crm/read',{body:{view:'SOCIAL_MEDIA_REPORT'}}).then(r=>{socialData=validateSocialReport(r.social);socialLoading=false;if(live&&selectedSection==='social')draw();}).catch(error=>{socialLoading=false;if(!live)return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error?.code)){onAuthFailure(error.code);return;}box.replaceChildren(node('p','Údaje zo sociálnych sietí sa nepodarilo načítať.','crm-error'),button('Skúsiť znova',()=>draw()));});
+ }
  function draw(){
   if(!live||!loaded)return;heading();
   const rows=history.included,hasHistory=rows.length>0,hasLive=Number(loaded.coverage.recorded_days)>0,sales=loaded.sales;
   const weeks=weekModel(rows),facts=normalizeFacts(snapshot),allWeeks=historicalPeriods(snapshot),fullWeeks=weekModel(allWeeks);
   // One compact bar: section tabs on the left, period controls on the right (wraps on narrow screens).
   const bar=node('div',undefined,'crm-report-bar');
-  const nav=node('nav',undefined,'crm-report-tabs');nav.setAttribute('aria-label','Sekcie reportingu');for(const [key,label] of [['overview','Prehľad'],['attendance','Návštevnosť'],['sales','Predaj a zisk'],['catalogue','Produkty a služby']]){const tab=button(label,()=>{selectedSection=key;draw();});if(key===selectedSection)tab.setAttribute('aria-current','page');nav.append(tab);}
+  const nav=node('nav',undefined,'crm-report-tabs');nav.setAttribute('aria-label','Sekcie reportingu');for(const [key,label] of [['overview','Prehľad'],['attendance','Návštevnosť'],['sales','Predaj a zisk'],['catalogue','Produkty a služby'],['social','Sociálne siete']]){const tab=button(label,()=>{selectedSection=key;draw();});if(key===selectedSection)tab.setAttribute('aria-current','page');nav.append(tab);}
   const period=node('div',undefined,'crm-report-period-group'),selectLabel=node('label'),select=node('select');select.setAttribute('aria-label','Obdobie reportu');selectLabel.append(node('span','Obdobie','crm-sr-only'));
   const optionFor=(value,text)=>{const o=node('option',text);o.value=value;return o;};
   const first=allWeeks[0],isAll=range.from===first.period_start&&range.to>=allWeeks.at(-1).period_end;
@@ -75,6 +83,7 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   const form=node('form',undefined,'crm-report-period'),fromLabel=node('label','Od'),from=node('input'),toLabel=node('label','Do'),to=node('input'),submit=node('button','Zobraziť obdobie'),notice=node('p',undefined,'crm-error');
   for(const [input,value,label] of [[from,range.from,fromLabel],[to,range.to,toLabel]]){input.type='date';input.required=true;input.value=value;label.append(input);}submit.type='submit';notice.setAttribute('role','alert');form.append(fromLabel,toLabel,submit,notice);form.onsubmit=event=>{event.preventDefault();const error=reportingPeriodError(from.value,to.value);if(error){notice.textContent=error;return;}range={from:from.value,to:to.value};load();};
   period.append(selectLabel,form);bar.append(nav,period);root.append(bar);
+  if(selectedSection==='social'){period.hidden=true;drawSocial();return;}
   const sources=new Map((snapshot.week_sources??[]).map(s=>[s.week,s.source_kind]));
   // Explanatory notes live in the tooltip of one short status chip instead of paragraphs above the data.
   const info=node('p',undefined,'crm-report-badge'),recordedDays=Number(loaded.coverage.recorded_days);
