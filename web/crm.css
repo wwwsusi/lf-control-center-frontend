@@ -416,7 +416,6 @@
 .crm-social-account span{color:#a4b2c6}
 .crm-social-platform{font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px;align-self:center}
 .crm-social-facebook{background:#3a1a2a;color:#ff8db4}.crm-social-instagram{background:#2b2148;color:#cdb9ff}
-td.crm-social-platform{display:table-cell}
 .crm-social-weeks,.crm-social-filter{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .crm-social-weeks button,.crm-social-filter button{font:inherit;font-size:12px;color:#edf2fa;background:#142238;border:1px solid #304056;border-radius:7px;padding:5px 9px;cursor:pointer;font-variant-numeric:tabular-nums}
 .crm-social-weeks button[aria-pressed="true"],.crm-social-filter button[aria-pressed="true"]{border-color:#64d8df;color:#64d8df;background:#102b33}

@@ -134,10 +134,11 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
   const t=node('table',undefined,'crm-report-table crm-social-posts');const hr=node('tr');for(const h of ['Dátum','Sieť','Príspevok','Dosah','Interakcie','Miera'])hr.append(node('th',h));const th=node('thead');th.append(hr);const tb=node('tbody');
   for(const p of rows){const tr=node('tr'),txt=node('td');const label=p.text||(p.media_type==='REELS'?'Reels bez popisu':'Bez popisu');
    if(p.permalink&&/^https:\/\/(www\.)?(facebook|instagram)\.com\//.test(p.permalink)){const a=node('a',label.length>90?label.slice(0,90)+'…':label);a.href=p.permalink;a.target='_blank';a.rel='noopener noreferrer';txt.append(a);}else txt.append(label.length>90?label.slice(0,90)+'…':label);
-   const r=engagementRate(p);tr.append(node('td',dayLabel(p.published_at)),node('td',p.platform==='facebook'?'FB':'IG','crm-social-platform crm-social-'+p.platform),txt,node('td',formatCount(p.reach)),node('td',formatCount(p.interactions)),node('td',r===null?'N/A':String(r).replace('.',',')+' %'));tb.append(tr);}
+   const r=engagementRate(p);const platCell=node('td');platCell.append(node('span',p.platform==='facebook'?'FB':'IG','crm-social-platform crm-social-'+p.platform));
+   tr.append(node('td',dayLabel(p.published_at)),platCell,txt,node('td',formatCount(p.reach)),node('td',formatCount(p.interactions)),node('td',r===null?'N/A':String(r).replace('.',',')+' %'));tb.append(tr);}
   t.append(th,tb);body=node('div',undefined,'crm-table-scroll');body.append(t);
  }
  wrap.append(chartCard('Príspevky'+(all?'':' · W'+cur.week),body,'FB interakcie = reakcie + kliknutia. Miera = interakcie ÷ dosah. Čísla príspevkov sú z posledného stiahnutia.',plat));
- wrap.append(node('p','Zdroj: Meta (stránka LADY Fitness Humenné, @lady.fitness.he), sťahované každý pondelok. Pokryté do '+(social.covered_through?dayLabel(social.covered_through+'T12:00:00Z'):'–')+'.','crm-note'));
+ wrap.append(node('p','Zdroj: Meta (stránka LADY Fitness Humenné, @lady.fitness.he), sťahované každý pondelok. Pokryté do '+(social.covered_through?dayLabel(social.covered_through+'T12:00:00Z'):'–'),'crm-note'));
  root.append(wrap);
 }
