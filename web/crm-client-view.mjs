@@ -28,7 +28,7 @@ export function entitlementView(e,today){
  return named;
 }
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'];
-export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure,onAddPass=null,onEditPass=null}){
+export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure,onAddPass=null,onEditPass=null,onCard=null}){
  let live=true;const controller=new AbortController(),c=data.customer;
  const button=(label,fn,cls)=>{const b=el('button',label,cls);b.type='button';b.addEventListener('click',fn);return b;};
  const kv=(label,value)=>{const r=el('div',undefined,'crm-kv crm-kv-stack');r.append(el('span',label),el('strong',value||'—'));return r;};
@@ -41,6 +41,7 @@ export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onE
   sum.append(kv('Registrovaná od',o?.registered_on?skDate(o.registered_on):null),kv('Minula spolu',o&&o.total_spent_eur!==undefined&&o.total_spent_eur!==null?eur(o.total_spent_eur):null));
   if(!o)sum.append(el('p','Údaje o registrácii a útrate zatiaľ server neposiela.','crm-note'));head.append(sum);}
  if(onEdit)head.append(button('Opraviť údaje klientky',onEdit,'crm-profile-edit'));
+ if(onCard)head.append(button('Karta s QR kódom',onCard,'crm-profile-edit'));
  root.append(head);
  // actions in their own box below the details
  if(onVisit&&onShop){const box=el('section',undefined,'crm-card crm-profile-actions-box');box.append(el('h3','Čo robí klientka?'));const actions=el('div',undefined,'crm-profile-actions');actions.append(button('Prišla cvičiť',onVisit,'crm-profile-go'),button('Prišla nakupovať',onShop,'crm-profile-go'));box.append(actions);root.append(box);}
