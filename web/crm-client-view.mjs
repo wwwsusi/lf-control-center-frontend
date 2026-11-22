@@ -35,28 +35,34 @@ export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onE
  const card=(title,cls)=>{const x=el('section',undefined,'crm-card '+(cls||''));x.append(el('h3',title));return x;};
  root.replaceChildren();
  // details box: name, contact, (owner/admin) registration and total spent, correction
- const head=el('section',undefined,'crm-card crm-profile-head');head.append(el('h2',c.name));
- const contact=el('div',undefined,'crm-kv-group crm-contact');contact.append(kv('Tel.',c.phone),kv('E-mail',c.email));head.append(contact);
+ const head=el('section',undefined,'crm-card crm-profile-head'),who=el('div',undefined,'crm-profile-who');who.append(el('h2',c.name));
+ const contact=el('div',undefined,'crm-kv-group crm-contact');contact.append(kv('Tel.',c.phone),kv('E-mail',c.email));who.append(contact);
  if(owner){const o=data.owner_summary,sum=el('div',undefined,'crm-kv-group crm-contact crm-owner-summary');
   sum.append(kv('Registrovaná od',o?.registered_on?skDate(o.registered_on):null),kv('Minula spolu',o&&o.total_spent_eur!==undefined&&o.total_spent_eur!==null?eur(o.total_spent_eur):null));
-  if(!o)sum.append(el('p','Údaje o registrácii a útrate zatiaľ server neposiela.','crm-note'));head.append(sum);}
+  if(!o)sum.append(el('p','Údaje o registrácii a útrate zatiaľ server neposiela.','crm-note'));who.append(sum);}
  // permanentky and validity live in the same box as the name and contacts
- const ents=el('div',undefined,'crm-profile-ents');ents.append(el('h3','Permanentky a platnosť'));head.append(ents);
+ const ents=el('div',undefined,'crm-profile-ents');ents.append(el('h3','Zaplatené služby a balíčky'));
  const headActions=el('div',undefined,'crm-profile-head-actions');
  if(onEdit)headActions.append(button('Opraviť osobné údaje',onEdit,'crm-profile-edit'));
  if(onCard)headActions.append(button('Karta s QR kódom',onCard,'crm-profile-edit'));
- if(headActions.children.length)head.append(headActions);
- root.append(head);
+ if(headActions.children.length)who.append(headActions);
+ head.append(who,ents);root.append(head);
  // actions in their own box below the details
  if(onVisit&&onShop){const box=el('section',undefined,'crm-card crm-profile-actions-box');box.append(el('h3','Čo robí klientka?'));const actions=el('div',undefined,'crm-profile-actions');actions.append(button('Prišla cvičiť',onVisit,'crm-profile-go'),button('Prišla nakupovať',onShop,'crm-profile-go'));box.append(actions);root.append(box);}
  else root.append(el('p','Klientka nie je aktívna. Vstup ani nákup sa nezapíše.','crm-note'));
  const grid=el('div',undefined,'crm-profile-grid');root.append(grid);
  // permanentky and validity
  const list=Array.isArray(data.entitlements)?data.entitlements:null;
- if(!list)ents.append(el('p','Údaje o permanentkách nie sú dostupné.','crm-note'));
- else if(!list.length)ents.append(el('p','Klientka nemá žiadnu permanentku.','crm-note'));
- else for(const e of list){const view=entitlementView(e),box=el('div',undefined,'crm-profile-ent');const chip=el('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;box.append(chip);
-  const rows=el('div',undefined,'crm-kv-group');for(const [label,value] of view.rows)rows.append(value===null?el('p',label,'crm-kv-title'):Object.assign(kv(label,value),{className:'crm-kv'}));box.append(rows);
+ if(!list)ents.append(el('p','Údaje o zaplatených službách nie sú dostupné.','crm-note'));
+ else if(!list.length)ents.append(el('p','Klientka zatiaľ nemá zaplatenú službu ani balíček.','crm-note'));
+ // One item per paid service or package. A package lists what it contains (e.components: [{name,total,used}]) when the server sends it;
+ // a single pass has no components. Everything else (status, validity, remaining) is shown the same way for both.
+ else for(const e of list){const view=entitlementView(e),box=el('div',undefined,'crm-profile-ent');
+  const top=el('div',undefined,'crm-ent-top'),chip=el('span',view.chip,'crm-chip-status');chip.dataset.tone=view.tone;
+  top.append(el('strong',view.rows[0]?.[0]??'Služba','crm-ent-title'),chip);box.append(top);
+  const rows=el('div',undefined,'crm-ent-rows');for(const [label,value] of view.rows.slice(1)){const r=el('div',undefined,'crm-ent-row');r.append(el('span',label),el('strong',value||'—'));rows.append(r);}
+  if(rows.children.length)box.append(rows);
+  if(Array.isArray(e.components)&&e.components.length){const inner=el('ul',undefined,'crm-ent-components');for(const k of e.components){const limited=k.total!==null&&k.total!==undefined&&Number.isFinite(Number(k.total)),total=Number(k.total),used=Number(k.used||0),li=el('li');li.append(el('span',String(k.name)),el('strong',limited?Math.max(total-used,0)+' z '+total:'Bez limitu'));inner.append(li);}box.append(el('p','Obsahuje','crm-kv-title'),inner);}
   if(onEditPass&&e.origin==='OPENING_BALANCE'&&(!e.status||e.status==='ENABLED'))box.append(button('Upraviť službu',()=>onEditPass(e),'crm-pass-edit'));ents.append(box);}
  if(onAddPass)ents.append(button('Pridať existujúcu službu',onAddPass,'crm-pass-add'));
  if(data.entitlements_truncated)ents.append(el('p','Zobrazených je prvých 20 permanentiek.','crm-note'));
