@@ -99,7 +99,6 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  const posts=postsInRange(social.posts,from,to);
  // Whole-period table lists every stored post, including the week that is still running.
  const tablePosts=all?social.posts:posts;
- const best=posts.slice().sort((a,b)=>(b.reach??0)-(a.reach??0))[0];
  const h=halves(weeks);
  const change=k=>all?(h?{rows:[['Druhá polovica obdobia',halvesChange(weeks,k),h.label]]}:null):{weekly:pct(cur.total[k],prev?.total[k]??null),cumulative:pct(cur.total[k],first.total[k]),latest:'W'+cur.week,previous:prev?'W'+prev.week:'',first:'W'+first.week};
  const split=k=>`FB ${formatCount(cur.fb?.[k])} · IG ${formatCount(cur.ig?.[k])}`+(all?` · Ø ${formatCount(weeklyAverage(weeks,k))} / týždeň`:'');
@@ -109,8 +108,7 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
   kpiCard({title:'Videnia',value:formatCount(cur.total.media_views),note:split('media_views'),hint:'Koľkokrát sa obsah zobrazil, aj opakovane tomu istému človeku.',change:change('media_views')}),
   kpiCard({title:'Interakcie',value:formatCount(cur.total.interactions),note:split('interactions'),hint:'Reakcie, kliknutia, uloženia a zdieľania podľa Meta.',change:change('interactions')}),
   kpiCard({title:'Noví sledovatelia',value:formatCount(cur.total.new_followers),note:split('new_followers')+(cur.ig?.unfollows!==null&&cur.ig?.unfollows!==undefined?` (IG odišli ${formatCount(cur.ig.unfollows)})`:''),hint:'Iba počty. Meta neposkytuje mená sledovateľov.',change:change('new_followers')}),
-  kpiCard({title:'Návštevy profilu',value:formatCount(cur.total.profile_views),note:split('profile_views'),hint:'Návštevy FB stránky a IG profilu.',change:change('profile_views')}),
-  kpiCard({title:'Najlepší príspevok',value:best?formatCount(best.reach):'Žiadny',note:best?(best.platform==='facebook'?'FB':'IG')+' · '+(best.text?best.text.slice(0,40)+(best.text.length>40?'…':''):'bez popisu'):'V tomto období žiadny príspevok',hint:'Príspevok s najväčším dosahom v zvolenom období.'})
+  kpiCard({title:'Návštevy profilu',value:formatCount(cur.total.profile_views),note:split('profile_views'),hint:'Návštevy FB stránky a IG profilu.',change:change('profile_views')})
  );
  wrap.append(cards);
 
