@@ -128,7 +128,7 @@ function entryScreen(title,{lead=ENTRY_LEAD,sub=null,extra=[],back=admissions,ba
 function clientVisit(data,{back=customerSearch,backLabel='Späť na hľadanie'}={}){
  const failed=code=>wipe(labels[code]);let checkin;
  const toggle=button('Kúpiť permanentku alebo produkt',()=>clientCart(data,{back:()=>clientVisit(data,{back,backLabel})}));
- const edit=data.can_edit===true?button('Opraviť údaje klientky',()=>openCustomerForm(data.customer)):null;
+ const edit=data.can_edit===true?button('Opraviť osobné údaje',()=>openCustomerForm(data.customer)):null;
  const root=entryScreen(data.customer.name,{lead:ENTRY_LEAD_CLIENT,sub:[data.customer.phone,data.customer.email].filter(Boolean).join(' · ')||null,extra:[toggle,...(edit?[edit]:[])],back,backLabel});
  checkin=mountCheckin({root,api,customer:data.customer,only:['ENTITLEMENT'],quick:true,onDone:()=>show('reception'),onBack:()=>show('reception'),onAuthFailure:failed});
  purchase={hasPending:()=>checkin.hasPending(),dispose(){checkin.dispose();}};

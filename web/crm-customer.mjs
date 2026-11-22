@@ -3,7 +3,7 @@ export function mountCustomer({root,api,onAuthFailure,onBack,onSaved,customer=nu
  let live=true,busy=false,pending=null;const controller=new AbortController();
  const el=(tag,value)=>{const n=document.createElement(tag);if(value!==undefined)n.textContent=value;return n;};
  const editing=customer!==null;
- const heading=el('h2',editing?'Opraviť údaje klientky':'Založiť novú klientku'),form=el('form'),notice=el('p');form.className='crm-customer-form';notice.setAttribute('role','status');
+ const heading=el('h2',editing?'Opraviť osobné údaje':'Založiť novú klientku'),form=el('form'),notice=el('p');form.className='crm-customer-form';notice.setAttribute('role','status');
  const inputs={};for(const [key,title,type,max] of [['name','Meno klientky','text',200],['phone','Telefón (nepovinné)','tel',50],['email','E-mail (nepovinné)','email',320]]){const label=el('label',title),input=el('input');input.type=type;input.maxLength=max;input.required=key==='name';input.autocomplete='off';input.value=customer?.[key]??'';label.append(input);form.append(label);inputs[key]=input;}
  const save=el('button',editing?'Uložiť opravu':'Založiť klientku');save.type='submit';const verify=el('button','Overiť výsledok'),retry=el('button','Zopakovať tú istú požiadavku'),back=el('button',editing?'Späť ku klientke':'Späť na zoznam klientov');for(const b of [verify,retry,back])b.type='button';verify.hidden=retry.hidden=true;form.append(save);root.replaceChildren(heading,form,notice,verify,retry,back);
  function render(){if(!live)return;for(const input of Object.values(inputs))input.disabled=busy||!!pending;save.disabled=busy||!!pending;verify.hidden=retry.hidden=!pending;verify.disabled=retry.disabled=busy;back.disabled=busy||!!pending;}
