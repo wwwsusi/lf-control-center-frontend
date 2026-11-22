@@ -64,9 +64,9 @@ function customerSearch(){
  const views=node('div',undefined,'crm-segment crm-view-switch');views.setAttribute('aria-label','Zobrazenie zoznamu');
  if(owner){for(const [key,label] of [['cards','Karty'],['table','Tabuľka']]){const b=button(label,()=>{clientView=key;for(const x of views.children)x.setAttribute('aria-pressed',String(x.dataset.view===clientView));draw();});b.dataset.view=key;b.setAttribute('aria-pressed',String(clientView===key));views.append(b);}head.append(views);}
  const scanRoot=node('div');let scanning=null;
- const openScan=()=>{if(scanning?.isActive())return;scanning=mountScanner({root:scanRoot,onCode:id=>{scanning=null;customer(id);},onClose:()=>{scanning=null;}});};
+ const openScan=()=>{if(scanning?.isActive())return;scanning=mountScanner({root:scanRoot,onCode:token=>{scanning=null;openByCard(token);},onClose:()=>{scanning=null;}});};
  head.append(button('Skenovať kartu',openScan),button('Založiť novú klientku',()=>openCustomerForm()));content.append(head,scanRoot);
- detachReader?.();detachReader=attachReader({onCode:id=>{scanning?.dispose();scanning=null;customer(id);}});
+ detachReader?.();detachReader=attachReader({onCode:token=>{scanning?.dispose();scanning=null;openByCard(token);}});
  const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';input.placeholder='meno, telefón alebo e-mail';label.append(input);
  const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,submit);content.append(form);
  const grid=node('div',undefined,'crm-client-grid'),tableRoot=node('div'),more=node('div');content.append(grid,tableRoot,more);
@@ -84,7 +84,7 @@ function customerSearch(){
  function load(query,mode,after){const mine=after?token:++token;if(!after){state.items=[];state.next=null;state.empty=false;state.query=query;state.mode=mode;}
   read({view:'CUSTOMERS',query,mode,...(after?{after}:{})},data=>{if(mine!==token)return;state.items=[...state.items,...data.items];state.next=data.next;state.empty=!state.items.length;draw();});}
  function loadAll(){const mine=token;let pages=0;const step=after=>read({view:'CUSTOMERS',query:state.query,mode:state.mode,...(after?{after}:{})},data=>{if(mine!==token)return;state.items=[...state.items,...data.items];state.next=data.next;if(data.next&&++pages<50)step(data.next);else draw();});if(state.next)step(state.next);}
- form.addEventListener('submit',e=>{e.preventDefault();const card=parseCardCode(input.value);if(card){input.value='';customer(card);return;}if(form.reportValidity())load(input.value.trim(),detectSearchMode(input.value));});
+ form.addEventListener('submit',e=>{e.preventDefault();const card=parseCardCode(input.value);if(card){input.value='';openByCard(card);return;}if(form.reportValidity())load(input.value.trim(),detectSearchMode(input.value));});
  load('','NAME');
 }
 function customer(id){
@@ -98,7 +98,7 @@ function customer(id){
   purchase=mountClientProfile({root:content,api,data,owner:role==='OWNER_ADMIN',onAuthFailure:code=>wipe(labels[code]),onBack:toList,
    onEdit:data.can_edit===true?()=>openCustomerForm(data.customer):null,
    onAddPass:data.can_manage_passes===true&&active?()=>openPassForm(data):null,onEditPass:data.can_manage_passes===true?e=>openPassForm(data,e):null,
-   onCard:()=>{purchase?.dispose();purchase=mountCard({root:content,customer:data.customer,onBack:toProfile});},
+   onCard:data.card_codes_enabled===true?()=>openCard(data):null,
    onVisit:active?()=>{visitFlow=true;clientVisit(data,{back:toProfile,backLabel:'Späť na klientku'});}:null,
    onShop:active?()=>clientCart(data,{back:toProfile}):null});
  });
@@ -170,12 +170,28 @@ function accessReady(){
 }
 function applyWorkspaceMode(data){priceListEnabled=data.price_list_enabled===true;reportSummaryEnabled=data.report_summary_enabled===true&&role==='OWNER_ADMIN';ownerTasksEnabled=data.owner_tasks_enabled===true&&role==='OWNER_ADMIN';const previous=workspaceEnabled;workspaceEnabled=data.workspace_enabled!==false;if(previous&&!workspaceEnabled){epoch++;controller?.abort();controller=null;purchase?.dispose();purchase=null;}for(const b of document.querySelectorAll('[data-view]'))b.hidden=b.dataset.view==='tasks'?!ownerTasksEnabled:b.dataset.view==='reporting'?!reportSummaryEnabled:!workspaceEnabled||(['staff','privacy'].includes(b.dataset.view)&&role!=='OWNER_ADMIN');}
 function show(next){if(!active)return;if(next==='reporting'||next==='tasks')content.classList.remove('crm-big');if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis, nákup.';return;}if(next==='tasks'&&ownerTasksEnabled){ownerTasks();return;}if(next==='reporting'&&!reportSummaryEnabled){status.textContent='Reporting nie je sprístupnený tomuto účtu.';return;}if(next==='reporting'&&!workspaceEnabled&&reportSummaryEnabled){purchase?.dispose();purchase=null;epoch++;controller?.abort();view=next;purchase=mountReporting({root:content,api,onAuthFailure:code=>wipe(labels[code]),onBack:()=>show('reception')});return;}if(next==='pricelist'&&priceListEnabled){priceList();return;}if(!workspaceEnabled){accessReady();return;}if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}if(['staff','reporting','privacy'].includes(next)&&role!=='OWNER_ADMIN'){status.textContent='Táto ponuka je dostupná iba majiteľke.';return;}purchase?.dispose();purchase=null;epoch++;controller?.abort();view=next;for(const b of document.querySelectorAll('[data-view]')){if(b.dataset.view===next)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}if(next==='today'){today();return;}if(next==='staff'){staff();return;}if(next==='privacy'){heading('Ochrana údajov');purchase=mountPrivacySummary(content,{api,onAuthFailure:code=>wipe(labels[code])});return;}if(next==='reporting'){purchase=mountReporting({root:content,api,onAuthFailure:code=>wipe(labels[code])});return;}heading('Recepcia');const grid=node('div',undefined,'crm-grid crm-reception-grid');for(const [title,text,action] of [['Skenovať kartu','Načítaj QR kód z karty klientky kamerou alebo čítačkou.',scanScreen],['Prišla cvičiť','Permanentka, jednorazový vstup alebo MultiSport.',admissions],['Prišla nakupovať','Klientka v evidencii alebo nákup bez registrácie.',shopping],['Rozpracované predaje','Obnov rozpracovaný nákup.',()=>openPurchase(true)],priceListEnabled?['Cenník','Aktuálny cenník služieb a produktov.',()=>priceList()]:['Cenník predaja','Služby a produkty schválené na predaj.',()=>catalogue()],['Zoznam klientov','Zoznam klientiek a založenie novej klientky.',()=>{visitFlow=false;cartFlow=false;customerSearch();}]]){const card=node('article',undefined,'crm-card crm-reception-action');const visual={'Skenovať kartu':['grid','cyan'],'Prišla cvičiť':['entry','cyan'],'Prišla nakupovať':['product','pink'],'Rozpracované predaje':['clock','violet'],'Cenník predaja':['ticket','amber'],'Cenník':['ticket','amber'],'Zoznam klientov':['people','green']}[title];card.dataset.tone=visual[1];card.append(catalogueIcon(visual[0]),node('h3',title),node('p',text),button('Otvoriť',action));grid.append(card);}if(role==='OWNER_ADMIN')for(const [title,text,icon,mode] of [['Kontrola draftov','Skontroluj rozpracované predaje a stornuj chyby.','ticket','drafts'],['Moje dnešné storná draftov','Prehľad dnes stornovaných draftov.','clock','history']]){const card=node('article',undefined,'crm-card crm-reception-action');card.dataset.tone='slate';card.append(catalogueIcon(icon),node('h3',title),node('p',text),button('Otvoriť',()=>openOwner(mode)));grid.append(card);}content.append(grid);}
+// Opens a client by scanned card code. An unknown or replaced code is reported; nothing is written.
+async function openByCard(token){
+ if(!active)return;
+ if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}
+ const version=++epoch;controller?.abort();controller=new AbortController();status.textContent='Overujem kartu…';
+ try{const found=await api('/api/crm/read',{body:{view:'CARD_LOOKUP',token},signal:controller.signal});if(version!==epoch||!active)return;customer(found.customer_id);}
+ catch(error){if(error.name==='AbortError'||version!==epoch)return;
+  if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){wipe(labels[error.code]);return;}
+  status.textContent=error.code==='BUSINESS_REJECTED'?'Táto karta nie je platná. Mohla byť nahradená novou. Vyhľadaj klientku podľa mena.':error.code==='POLICY_BLOCKED'?'Karty s QR kódom zatiaľ nie sú zapnuté.':'Kartu sa nepodarilo overiť. Skús znova alebo vyhľadaj klientku podľa mena.';}
+}
+function openCard(data){
+ if(!active)return;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis.';return;}
+ purchase?.dispose();epoch++;controller?.abort();
+ purchase=mountCard({root:content,api,customer:data.customer,card:data.card,onAuthFailure:code=>wipe(labels[code]),onBack:()=>customer(data.customer.id),
+  onIssued:()=>{purchase?.dispose();purchase=null;read({view:'CUSTOMER',customer_id:data.customer.id},fresh=>openCard(fresh));}});
+}
 function scanScreen(){
  if(!active)return;visitFlow=false;cartFlow=false;
  if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}
  purchase?.dispose();purchase=null;epoch++;controller?.abort();heading('Skenovať kartu');
  const root=node('div');content.append(root);
- const open=id=>{detachReader?.();detachReader=null;customer(id);};
+ const open=token=>{detachReader?.();detachReader=null;openByCard(token);};
  const scan=mountScanner({root,onCode:open,onClose:()=>show('reception')});
  purchase={hasPending:()=>false,dispose:()=>scan.dispose()};
  detachReader?.();detachReader=attachReader({onCode:open});

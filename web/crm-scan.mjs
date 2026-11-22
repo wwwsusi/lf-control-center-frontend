@@ -1,16 +1,16 @@
 // Client card scanning: external barcode reader (acts as a keyboard) and the device camera (tablet/PC, Safari and Chrome).
-// A card carries only "LF1:<client id>" — no name or contact. Scanning just opens the client profile; nothing is written.
+// A card carries only "LF1:<token>" — an opaque, revocable code; no name, contact or client id. Scanning just opens the profile; nothing is written.
 import jsQR from './crm-vendor-jsqr.mjs';
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TOKEN=/^[0-9a-f]{32}$/i;
 export const CARD_PREFIX='LF1:';
-export const cardCode=customerId=>CARD_PREFIX+String(customerId).toLowerCase();
-// Returns the client id for a scanned/typed card code, or null. Rejects anything that is not exactly LF1:<uuid>.
+export const cardCode=token=>CARD_PREFIX+String(token).toLowerCase();
+// Returns the card token for a scanned/typed card code, or null. Rejects anything that is not exactly LF1:<32 hex>.
 export function parseCardCode(value){
  if(typeof value!=='string')return null;
  const v=value.trim();
  if(!v.toUpperCase().startsWith(CARD_PREFIX))return null;
- const id=v.slice(CARD_PREFIX.length);
- return UUID.test(id)?id.toLowerCase():null;
+ const token=v.slice(CARD_PREFIX.length);
+ return TOKEN.test(token)?token.toLowerCase():null;
 }
 // Hardware readers type the code very fast and finish with Enter. Collect such bursts when no field has focus.
 // Keystrokes slower than maxGap are treated as a person typing and are ignored.
