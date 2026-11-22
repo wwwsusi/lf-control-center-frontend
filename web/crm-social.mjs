@@ -61,31 +61,15 @@ export function postsInRange(posts,from,to){
 }
 export function engagementRate(p){return p.reach?Math.round(p.interactions/p.reach*1000)/10:null;}
 
-export function socialInsights(weeks,selected){
- const lines=[];
- if(!weeks.length)return lines;
- if(selected==='all'){
-  const top=weeks.reduce((a,b)=>(b.total.reach??0)>(a.total.reach??0)?b:a);
-  const t=sumWeeks(weeks);
-  lines.push(`Najsilnejší týždeň: W${top.week} (${formatCount(top.total.reach)} ľudí).`);
-  lines.push(`Za ${weeks.length} týždňov pribudlo ${formatCount(t.total.new_followers)} sledovateľov (FB ${formatCount(t.fb.new_followers)}, IG ${formatCount(t.ig.new_followers)}).`);
-  if(t.total.reach)lines.push(`Facebook tvorí ${Math.round((t.fb.reach??0)/t.total.reach*100)} % dosahu.`);
-  return lines;
- }
- const i=weeks.findIndex(w=>w.period_start===selected),cur=weeks[i],prev=weeks[i-1];
- if(!cur)return lines;
- if(prev){const c=pct(cur.total.reach,prev.total.reach);if(c!==null)lines.push(`Dosah ${c>=0?'stúpol':'klesol'} o ${Math.abs(Math.round(c))} % (${formatCount(prev.total.reach)} → ${formatCount(cur.total.reach)}).`);}
- if(cur.total.reach)lines.push(`Facebook tvorí ${Math.round((cur.fb?.reach??0)/cur.total.reach*100)} % dosahu.`);
- if(cur.visits!==null&&prev&&prev.visits!==null)lines.push(`Návštevy fitka: ${formatCount(cur.visits)} (${cur.visits>=prev.visits?'+':''}${cur.visits-prev.visits} oproti minulému týždňu).`);
- else lines.push('Návštevy fitka za tento týždeň ešte nie sú v reportingu.');
- return lines;
-}
 
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
 const btn=(label,fn,pressed)=>{const el=node('button',label);el.type='button';el.setAttribute('aria-pressed',String(Boolean(pressed)));el.addEventListener('click',fn);return el;};
 const dayLabel=iso=>{const d=new Date(iso);return d.getDate()+'. '+(d.getMonth()+1)+'.';};
 
-// state: {selected:'all'|period_start, platform:'all'|'facebook'|'instagram', sort:'reach'|'interactions'}
+// Posts newest first ('date') or by a metric, highest first.
+export function sortPosts(rows,sort){return rows.slice().sort(sort==='date'?(a,b)=>b.published_at.localeCompare(a.published_at):(a,b)=>(b[sort]??-1)-(a[sort]??-1));}
+
+// state: {selected:'all'|period_start, platform:'all'|'facebook'|'instagram', sort:'date'|'reach'|'interactions'}
 export function renderSocial(root,{social,visitRows,state,onChange}){
  const weeks=socialWeeks(social,visitRows);
  const wrap=node('div',undefined,'crm-social');
@@ -113,6 +97,8 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  const cur=all?sumWeeks(weeks):weeks[idx],prev=all?null:weeks[idx-1]??null,first=weeks[0];
  const from=all?weeks[0].period_start:cur.period_start,to=all?weeks.at(-1).period_end:cur.period_end;
  const posts=postsInRange(social.posts,from,to);
+ // Whole-period table lists every stored post, including the week that is still running.
+ const tablePosts=all?social.posts:posts;
  const best=posts.slice().sort((a,b)=>(b.reach??0)-(a.reach??0))[0];
  const h=halves(weeks);
  const change=k=>all?(h?{rows:[['Druhá polovica obdobia',halvesChange(weeks,k),h.label]]}:null):{weekly:pct(cur.total[k],prev?.total[k]??null),cumulative:pct(cur.total[k],first.total[k]),latest:'W'+cur.week,previous:prev?'W'+prev.week:'',first:'W'+first.week};
@@ -127,9 +113,6 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
   kpiCard({title:'Najlepší príspevok',value:best?formatCount(best.reach):'Žiadny',note:best?(best.platform==='facebook'?'FB':'IG')+' · '+(best.text?best.text.slice(0,40)+(best.text.length>40?'…':''):'bez popisu'):'V tomto období žiadny príspevok',hint:'Príspevok s najväčším dosahom v zvolenom období.'})
  );
  wrap.append(cards);
-
- const lines=socialInsights(weeks,state.selected);
- if(lines.length){const box=node('div',undefined,'crm-social-insight');box.append(node('strong','Čo z toho vyplýva · '+(all?periodLabel(weeks):'W'+cur.week)));const ul=node('ul');for(const l of lines)ul.append(node('li',l));box.append(ul);wrap.append(box);}
 
  // Charts over all weeks
  const labels=weeks.map(w=>'W'+w.week),charts=node('div',undefined,'crm-chart-grid');
@@ -150,8 +133,8 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  // Posts table
  const plat=node('div',undefined,'crm-social-filter');plat.setAttribute('role','group');plat.setAttribute('aria-label','Sieť');
  for(const [k,l] of [['all','Všetky'],['facebook','Facebook'],['instagram','Instagram']])plat.append(btn(l,()=>onChange({platform:k}),state.platform===k));
- for(const [k,l] of [['reach','Podľa dosahu'],['interactions','Podľa interakcií']])plat.append(btn(l,()=>onChange({sort:k}),state.sort===k));
- const rows=posts.filter(p=>state.platform==='all'||p.platform===state.platform).sort((a,b)=>(b[state.sort]??-1)-(a[state.sort]??-1));
+ for(const [k,l] of [['date','Podľa dátumu'],['reach','Podľa dosahu'],['interactions','Podľa interakcií']])plat.append(btn(l,()=>onChange({sort:k}),state.sort===k));
+ const rows=sortPosts(tablePosts.filter(p=>state.platform==='all'||p.platform===state.platform),state.sort);
  let body;
  if(!rows.length)body=unavailable('V zvolenom období nie sú žiadne príspevky.');
  else{
@@ -162,7 +145,7 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
    tr.append(node('td',dayLabel(p.published_at)),node('td','W'+isoWeek(p.published_at)),platCell,txt,node('td',formatCount(p.reach)),node('td',formatCount(p.interactions)),node('td',r===null?'N/A':String(r).replace('.',',')+' %'));tb.append(tr);}
   t.append(th,tb);body=node('div',undefined,'crm-table-scroll');body.append(t);
  }
- wrap.append(chartCard('Príspevky · '+(all?periodLabel(weeks):'W'+cur.week),body,'FB interakcie = reakcie + kliknutia. Miera = interakcie ÷ dosah. Čísla príspevkov sú z posledného stiahnutia.',plat));
+ wrap.append(chartCard('Príspevky · '+(all?'všetky stiahnuté':'W'+cur.week),body,(all?'Aj príspevky z práve prebiehajúceho týždňa. ':'')+'FB interakcie = reakcie + kliknutia. Miera = interakcie ÷ dosah. Čísla príspevkov sú z posledného stiahnutia.',plat));
  wrap.append(node('p','Zdroj: Meta (stránka LADY Fitness Humenné, @lady.fitness.he), sťahované každý pondelok. Pokryté do '+(social.covered_through?dayLabel(social.covered_through+'T12:00:00Z'):'–'),'crm-note'));
  root.append(wrap);
 }

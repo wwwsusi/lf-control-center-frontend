@@ -4,7 +4,7 @@ import {renderSocial,validateSocialReport} from './crm-social.mjs';
 // Owner-only live CRM reporting. The backend independently enforces OWNER_ADMIN and UAT denial.
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
 const button=(label,fn)=>{const el=node('button',label);el.type='button';el.addEventListener('click',fn);return el;};
-let range=null,socialData=null,socialLoading=false,socialState={selected:null,platform:'all',sort:'reach'},selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
+let range=null,socialData=null,socialLoading=false,socialState={selected:null,platform:'all',sort:'date'},selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
 const historicalKeys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
 function currentMonth(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return {from:v.year+'-'+v.month+'-01',to:v.year+'-'+v.month+'-'+v.day};}
 function shortRange(from,to){const [,m1,d1]=from.split('-').map(Number),[,m2,d2]=to.split('-').map(Number);return m1===m2?d1+'.–'+d2+'. '+m2+'.':d1+'. '+m1+'. – '+d2+'. '+m2+'.';}

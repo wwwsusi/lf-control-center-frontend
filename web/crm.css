@@ -421,8 +421,6 @@
 .crm-social-weeks button[aria-pressed="true"],.crm-social-filter button[aria-pressed="true"]{border-color:#64d8df;color:#64d8df;background:#102b33}
 .crm-social-weeks button:focus-visible,.crm-social-filter button:focus-visible{outline:2px solid #64d8df;outline-offset:2px}
 .crm-social-kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-.crm-social-insight{background:#1a1730;border:1px solid #3a2f5e;border-radius:10px;padding:12px 14px}
-.crm-social-insight strong{color:#d9c7ff}.crm-social-insight ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
 .crm-social-posts td:nth-child(n+5),.crm-social-posts th:nth-child(n+5){text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .crm-social-posts a{color:#edf2fa}
 .crm-table-scroll{overflow-x:auto;max-width:100%}
