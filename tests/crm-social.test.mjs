@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {socialWeeks,sumWeeks,postsInRange,engagementRate,socialInsights,validateSocialReport,halves,halvesChange,weeklyAverage,periodLabel,isoWeek} from '../web/crm-social.mjs';
+import {socialWeeks,sumWeeks,postsInRange,engagementRate,sortPosts,validateSocialReport,halves,halvesChange,weeklyAverage,periodLabel,isoWeek} from '../web/crm-social.mjs';
 
 const w=(platform,week,start,end,o)=>({platform,week,period_start:start,period_end:end,revision:1,reach:null,media_views:null,interactions:null,new_followers:null,unfollows:null,profile_views:null,...o});
 const social={accounts:{facebook:{followers_total:2392,following_total:null,posts_total:null}},covered_through:'2026-11-15',weekly:[
@@ -27,11 +27,10 @@ test('posts filter by period and engagement rate guards zero reach',()=>{
  assert.deepEqual(postsInRange(social.posts,'2026-11-09','2026-11-15').map(p=>p.post_id),['2']);
  assert.equal(engagementRate(social.posts[0]),10.3);assert.equal(engagementRate(social.posts[2]),null);
 });
-test('insights compare with the previous week and mention missing visits',()=>{
- const weeks=socialWeeks(social,visits);
- const lines=socialInsights(weeks,'2026-11-09');
- assert.match(lines[0],/klesol o 60 %/);assert.match(lines.at(-1),/ešte nie sú/);
- assert.match(socialInsights(weeks,'all')[0],/W45/);
+test('posts sort newest first by date, or by a metric',()=>{
+ assert.deepEqual(sortPosts(social.posts,'date').map(p=>p.post_id),['1_2','2','1_1']);
+ assert.deepEqual(sortPosts(social.posts,'reach').map(p=>p.post_id),['1_1','2','1_2']);
+ assert.deepEqual(sortPosts(social.posts,'interactions').map(p=>p.post_id),['1_1','2','1_2']);
 });
 test('invalid payloads are rejected',()=>{
  assert.throws(()=>validateSocialReport({weekly:[{platform:'tiktok',week:1,period_start:'2026-01-05'}],posts:[],accounts:{}}));
