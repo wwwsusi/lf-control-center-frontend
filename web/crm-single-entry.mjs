@@ -1,7 +1,7 @@
 // One-click anonymous single entry: sale -> confirmation -> visit, driven by one explicit click.
 // Every mutation has its own stable request_id, so a lost response is verified with a readback and never replayed as a new operation.
 import {purchaseLine} from './crm-purchase.mjs';
-import {visitPayload,entryTile} from './crm-checkin.mjs';
+import {isConnectionLoss,createReconnect,WAITING_TEXT,visitPayload,entryTile} from './crm-checkin.mjs';
 import {showToast} from './crm-toast.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'],DEFINITIVE=['VALIDATION_ERROR','POLICY_BLOCKED','REVISION_CONFLICT','BUSINESS_REJECTED'];
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
@@ -48,6 +48,7 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
   }
   return api('/api/crm/operations',{body:{request_id,operation_type:{create:'CREATE_SALE',confirm:'CONFIRM_SALE',visit:'CHECK_IN'}[stage],payload},signal});
  }
+ const reconnect=createReconnect({isLive:()=>live&&Boolean(ctx?.unverified),isBusy:()=>busy,run:()=>drive(false),onGiveUp:()=>{if(live&&ctx){say('error','Spojenie sa neobnovilo. Zápis zostáva nepotvrdený, over ho tlačidlom.');render();}}});
  async function drive(verify=false){
   if(!live||busy||!ctx)return;busy=true;ctx.unverified=false;notice=null;render();let verifying=false;
   try{
@@ -65,7 +66,7 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
    if(AUTH.includes(error.code)){onAuthFailure(error.code);return;}
    if(verifying&&error.code==='BUSINESS_REJECTED'){say('error',ctx?.saleId?'Vstup nie je dokončený. Dokonči ho v časti Kúpený, ale nezapísaný vstup.':'Zápis sa na serveri nenašiel. Nič sa nezapísalo, vstup môžeš zopakovať.');ctx=null;}
    else if(DEFINITIVE.includes(error.code)||error.code==='BUSINESS_REJECTED'){say('error','Vstup sa nepodarilo zapísať. Skontroluj pravidlá a skús znova.');ctx=null;}
-   else{ctx.unverified=true;say('error','Výsledok nie je potvrdený. Over ho, nezapisuj vstup znova.');}
+   else{ctx.unverified=true;if(isConnectionLoss(error)){reconnect.start();say('error',WAITING_TEXT);}else{reconnect.stop();say('error','Výsledok nie je potvrdený. Over ho, nezapisuj vstup znova.');}}
   }finally{
    busy=false;
    if(live){if(!ctx&&admission){try{const e=await read({view:'ENTRY_PURCHASES',admission_id:admission.id});if(live)leftovers=e.items.filter(x=>x.customer_id===null);}catch{}}render();}
@@ -86,5 +87,5 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
   if(leftovers.length){const box=el('section',undefined,'crm-leftover');box.append(el('h3','Kúpený, ale nezapísaný vstup'),el('p','Predchádzajúci zápis sa nedokončil. Zapíš vstup alebo ho nechaj na kontrolu.'));for(const x of leftovers){const service=items.find(i=>i.id===x.service_id),b=el('button','Zapísať vstup · '+(service?entryTitle({...service,name:x.display_name_at_sale}):x.display_name_at_sale)+' · '+eur(x.actual_unit_price));b.type='button';b.disabled=busy;b.addEventListener('click',()=>useLeftover(x));box.append(b);}root.append(box);}
  }
  render();load();
- return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;clearToast();controller.abort();root.replaceChildren();}};
+ return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;reconnect.stop();clearToast();controller.abort();root.replaceChildren();}};
 }
