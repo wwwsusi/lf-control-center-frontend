@@ -1,10 +1,10 @@
-import {kpiCard,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,weekdayChartData,formatOneDecimal,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,salesSplitSeries,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,formatCompactNumber,SERIES_COLORS} from './crm-report-view.mjs';
+import {kpiCard,sumKnown,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,weekdayChartData,formatOneDecimal,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,salesSplitSeries,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,formatCompactNumber,SERIES_COLORS} from './crm-report-view.mjs';
 import {selectHistoricalPeriods,liveReportingRanges,mergeLiveReports,historicalPeriods,partialVisitRows} from './crm-report-history.mjs';
-import {renderSocial,validateSocialReport} from './crm-social.mjs';
+import {renderSocial,validateSocialReport,socialWeeks,SOCIAL_COLORS} from './crm-social.mjs';
 // Owner-only live CRM reporting. The backend independently enforces OWNER_ADMIN and UAT denial.
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
 const button=(label,fn)=>{const el=node('button',label);el.type='button';el.addEventListener('click',fn);return el;};
-let range=null,socialData=null,socialLoading=false,socialState={selected:null,platform:'all',sort:'date'},selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
+let range=null,socialData=null,socialLoading=false,socialFailed=false,socialState={selected:null,platform:'all',sort:'date'},selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
 const historicalKeys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
 function currentMonth(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return {from:v.year+'-'+v.month+'-01',to:v.year+'-'+v.month+'-'+v.day};}
 function shortRange(from,to){const [,m1,d1]=from.split('-').map(Number),[,m2,d2]=to.split('-').map(Number);return m1===m2?d1+'.–'+d2+'. '+m2+'.':d1+'. '+m1+'. – '+d2+'. '+m2+'.';}
@@ -41,6 +41,11 @@ export function validateHistoricalSnapshot(snapshot){
  }
  return snapshot;
 }
+// Adds Facebook/Instagram weekly reach to week rows (null when the week has no social record).
+export function withSocialReach(weeks,social){
+ const byStart=social?new Map(socialWeeks(social).map(r=>[r.period_start,r])):new Map();
+ return weeks.map(w=>({...w,reach:byStart.get(w.period_start)?.fb?.reach??null,igReach:byStart.get(w.period_start)?.ig?.reach??null}));
+}
 export function mountReporting({root,api,onAuthFailure,onBack}){
  let live=true,loaded=null,snapshot=null,history=null,sequence=0,controller=null;
  function heading(){const head=node('div',undefined,'crm-report-head');head.append(node('h2','Reporting'));if(onBack)head.append(button('Späť na prehľad',onBack));root.replaceChildren(head);}
@@ -62,14 +67,19 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   const box=document.createElement('div');root.append(box);
   if(socialData){renderSocial(box,{social:socialData,visitRows:snapshot?.weekly??[],state:socialState,onChange:patch=>{Object.assign(socialState,patch);draw();}});return;}
   box.append(node('p','Načítavam údaje zo sociálnych sietí…','crm-note'));
-  if(socialLoading)return;socialLoading=true;
-  api('/api/crm/read',{body:{view:'SOCIAL_MEDIA_REPORT'}}).then(r=>{socialData=validateSocialReport(r.social);socialLoading=false;if(live&&selectedSection==='social')draw();}).catch(error=>{socialLoading=false;if(!live)return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error?.code)){onAuthFailure(error.code);return;}box.replaceChildren(node('p','Údaje zo sociálnych sietí sa nepodarilo načítať.','crm-error'),button('Skúsiť znova',()=>draw()));});
+  if(socialLoading)return;
+  requestSocial(error=>{if(live)box.replaceChildren(node('p','Údaje zo sociálnych sietí sa nepodarilo načítať.','crm-error'),button('Skúsiť znova',()=>draw()));});
+ }
+ // One shared fetch for the Social tab and the Overview reach box; the screen is redrawn when it arrives.
+ function requestSocial(onFail){
+  socialLoading=true;socialFailed=false;
+  api('/api/crm/read',{body:{view:'SOCIAL_MEDIA_REPORT'}}).then(r=>{socialData=validateSocialReport(r.social);socialLoading=false;if(live&&(selectedSection==='social'||selectedSection==='overview'))draw();}).catch(error=>{socialLoading=false;if(!live)return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error?.code)){onAuthFailure(error.code);return;}socialFailed=true;if(selectedSection==='overview'){draw();return;}onFail(error);});
  }
  function draw(){
   if(!live||!loaded)return;heading();
   const rows=history.included,hasHistory=rows.length>0,hasLive=Number(loaded.coverage.recorded_days)>0,sales=loaded.sales;
   const partialVisits=partialVisitRows(snapshot,history.partial,range.from,range.to),visitRows=[...rows,...partialVisits.rows],visitWeeks=weekModel(visitRows),hasVisitHistory=visitRows.length>0;
-  const weeks=weekModel(rows),facts=normalizeFacts(snapshot),allWeeks=historicalPeriods(snapshot),fullWeeks=weekModel(allWeeks);
+  const weeks=withSocialReach(weekModel(rows),socialData),facts=normalizeFacts(snapshot),allWeeks=historicalPeriods(snapshot),fullWeeks=withSocialReach(weekModel(allWeeks),socialData);
   // One compact bar: section tabs on the left, period controls on the right (wraps on narrow screens).
   const bar=node('div',undefined,'crm-report-bar');
   const nav=node('nav',undefined,'crm-report-tabs');nav.setAttribute('aria-label','Sekcie reportingu');for(const [key,label] of [['overview','Prehľad'],['attendance','Návštevnosť'],['sales','Predaj a zisk'],['catalogue','Produkty a služby'],['social','Sociálne siete']]){const tab=button(label,()=>{selectedSection=key;draw();});if(key===selectedSection)tab.setAttribute('aria-current','page');nav.append(tab);}
@@ -114,14 +124,20 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   if(section==='overview'||section==='sales'){
    cards.append(kpiCard({title:'Predaj a MultiSport',value:bothTotal===null?noData:money(bothTotal),note:'Tržby vrátane MultiSport',hint:'Vstupy, permanentky, tréningy a produkty plus úhrady od MultiSport za vstupy.',change:chg('total')}));
    if(section==='sales'){cards.append(kpiCard({title:'Zaznamenaný predaj',value:salesTotal===null?noData:money(salesTotal),note:'Bez MultiSport',hint:'Bez MultiSport úhrad; sám osebe nepotvrdzuje prijatie platby.',change:chg('sales')}),kpiCard({title:'MultiSport',value:msTotal===null?noData:money(msTotal),note:'Započítaný raz',hint:'Zahrnutý raz podľa obdobia vstupu; neskoršie vyúčtovanie sa nepripočítava.',change:chg('multisportValue')}));}
-   cards.append(kpiCard({title:'Priame náklady',value:hasHistory?money(sum('product_cost')):noData,note:'Nákupná cena predaných produktov',hint:'Súčet nákupných cien predaných produktov podľa referenčných cien, nie podľa faktúr. Nájom, mzdy ani energie sa sem nerátajú.',change:chg('cost'),neutral:true}),kpiCard({title:'Hrubý zisk',value:hasHistory?money(sum('product_profit')):noData,note:'Zisk z predaja produktov',hint:'Predajná cena mínus nákupná cena produktov. Služby (vstupy, permanentky, tréningy) sa tu nerátajú.',change:chg('profit')}));
+   if(section==='overview'){
+    // Overview: costs and profit share one box; the former profit box makes room for social reach.
+    cards.append(kpiCard({title:'Náklady vs Zisk',value:hasHistory?money(sum('product_profit')):noData,note:hasHistory?'Zisk z produktov · náklady '+money(sum('product_cost')):'Bez evidencie',hint:'Zisk = predajná cena mínus nákupná cena predaných produktov; náklady = ich nákupná cena podľa referenčných cien, nie podľa faktúr. Služby (vstupy, permanentky, tréningy), nájom, mzdy ani energie sa sem nerátajú. Zmena sa týka zisku.',change:chg('profit')}));
+    const reach=sumKnown(weeks,'reach'),igReach=sumKnown(weeks,'igReach'),reachLoading=!socialData&&!socialFailed;
+    cards.append(kpiCard({title:'Dosah sociálnych sietí',value:reachLoading?'Načítavam…':reach===null?(socialData?'Neúplné údaje':noData):count(reach),note:reach===null?'Facebook · týždenný dosah':'Facebook'+(igReach===null?'':' · Instagram '+count(igReach)+' zvlášť'),hint:'Súčet týždenného dosahu stránky na Facebooku (jedineční ľudia za týždeň) za vybrané týždne. Instagram je uvedený zvlášť, pretože sa dosahy prekrývajú a nedajú sa sčítať.',change:chg('reach'),neutral:true}));
+   }else cards.append(kpiCard({title:'Priame náklady',value:hasHistory?money(sum('product_cost')):noData,note:'Nákupná cena predaných produktov',hint:'Súčet nákupných cien predaných produktov podľa referenčných cien, nie podľa faktúr. Nájom, mzdy ani energie sa sem nerátajú.',change:chg('cost'),neutral:true}),kpiCard({title:'Hrubý zisk',value:hasHistory?money(sum('product_profit')):noData,note:'Zisk z predaja produktov',hint:'Predajná cena mínus nákupná cena produktov. Služby (vstupy, permanentky, tréningy) sa tu nerátajú.',change:chg('profit')}));
    if(section==='sales')cards.append(kpiCard({title:'Potvrdené CRM platby po refundáciách',value:hasLive?euro(sales.net_confirmed_payments_eur):noData,note:'Len CRM obdobia',hint:'Len CRM obdobia. Platby zo súhrnov nemožno bez dokladov označiť za potvrdené.'}));
   }
   if(section==='overview'&&(weeks.length||visitWeeks.length)){
    // Part 1: each box gets the chart of the same metric directly under it.
-   const minis=[['visits',SERIES_COLORS.visits,formatCount,undefined,formatCount,'Návštevy po týždňoch'],['total',SERIES_COLORS.sales,formatEuro,formatEuroShort,formatCompactNumber,'Predaj a MultiSport po týždňoch'],['cost',SERIES_COLORS.cost,formatEuro,formatEuroShort,formatCompactNumber,'Priame náklady po týždňoch'],['profit',SERIES_COLORS.profit,formatEuro,formatEuroShort,formatCompactNumber,'Hrubý zisk po týždňoch']];
-   cards.replaceChildren(...[...cards.children].map((card,i)=>{const [key,color,format,axisFormat,valueFormat,label]=minis[i],src=key==='visits'?visitWeeks:weeks,col=node('div',undefined,'crm-kpi-col'),box=node('div',undefined,'crm-chart-card crm-mini-chart');box.append(columnChart({labels:src.map(w=>w.label),series:[{name:label,color,values:src.map(w=>w[key])}],format,axisFormat,valueFormat,ariaLabel:label,size:'compact'}));col.append(card,box);return col;}));
+   const minis=[[[['Návštevy po týždňoch','visits',SERIES_COLORS.visits]],formatCount,undefined,formatCount,'Návštevy po týždňoch'],[[['Predaj a MultiSport po týždňoch','total',SERIES_COLORS.sales]],formatEuro,formatEuroShort,formatCompactNumber,'Predaj a MultiSport po týždňoch'],[[['Náklady','cost',SERIES_COLORS.cost],['Zisk','profit',SERIES_COLORS.profit]],formatEuro,formatEuroShort,formatCompactNumber,'Náklady a zisk po týždňoch'],[[['Facebook','reach',SOCIAL_COLORS.facebook],['Instagram','igReach',SOCIAL_COLORS.instagram]],formatCount,undefined,formatCount,'Dosah sociálnych sietí po týždňoch']];
+   cards.replaceChildren(...[...cards.children].map((card,i)=>{const [defs,format,axisFormat,valueFormat,label]=minis[i],src=defs[0][1]==='visits'?visitWeeks:weeks,col=node('div',undefined,'crm-kpi-col'),box=node('div',undefined,'crm-chart-card crm-mini-chart');box.append(columnChart({labels:src.map(w=>w.label),series:defs.map(([name,key,color])=>({name,color,values:src.map(w=>w[key])})),format,axisFormat,valueFormat,ariaLabel:label,size:'compact'}));col.append(card,box);return col;}));
   }
+  if(section==='overview'&&!socialData&&!socialLoading&&!socialFailed)requestSocial(()=>{});
   if(cards.children.length)root.append(cards);
   const labels=weeks.map(w=>w.label),vlabels=visitWeeks.map(w=>w.label),charts=node('div',undefined,'crm-chart-grid');let overviewTable=null;
   const needWeeks=()=>charts.append(unavailable(weeks.length?'Grafy potrebujú týždenné súhrny za vybrané obdobie.':'Za vybrané obdobie nie sú týždenné súhrny na zobrazenie grafov.'));
