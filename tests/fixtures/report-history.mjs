@@ -1,4 +1,6 @@
-export function historyFixture(){
+export function historyFixture({daily=false}={}){
  const keys=['visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
- return {schema_version:1,source:'Lady Fitness Reporting MVP · weekly aggregate query',generated_at:'2026-11-01',source_sha256:'a'.repeat(64),snapshot_period:{weeks:[40,41,42,43,44]},limitations:{scope:'synthetic',costs:'synthetic',missing:'synthetic',receipts:'synthetic'},weekly:[40,41,42,43,44].map(week=>({...Object.fromEntries(keys.map(k=>[k,k==='visits'?10:0])),week,period_start:week===43?'2026-10-19':null,period_end:week===43?'2026-10-25':null}))};
+ const days=['2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02','2026-10-03','2026-10-04'];
+ const facts=daily?days.flatMap(d=>[{period_start:'2026-09-28',dimension:'DAY',key:d,label:d,units:3,value_eur:null,cost_eur:null},...['ENTITLEMENT','SINGLE_ENTRY','MULTISPORT'].map((c,i)=>({period_start:'2026-09-28',dimension:'DAY_ADMISSION',key:d+':'+c,label:c,units:[2,1,0][i],value_eur:null,cost_eur:null}))]):undefined;
+ return {schema_version:1,source:'Lady Fitness Reporting MVP · weekly aggregate query',generated_at:'2026-11-01',source_sha256:'a'.repeat(64),snapshot_period:{weeks:[40,41,42,43,44]},limitations:{scope:'synthetic',costs:'synthetic',missing:'synthetic',receipts:'synthetic'},weekly:[40,41,42,43,44].map(week=>({...Object.fromEntries(keys.map(k=>[k,k==='visits'?10:0])),week,period_start:week===43?'2026-10-19':null,period_end:week===43?'2026-10-25':null})),...(facts?{facts}:{})};
 }
