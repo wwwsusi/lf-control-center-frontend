@@ -79,3 +79,18 @@ test('verify of a request the server never received reports "not recorded" and a
  assert.equal(errors.at(-1).notRecorded,true);assert.equal(calls,2);
  await writer.submit(visitPayload(admission));assert.equal(calls,3);
 });
+test('connection loss holds the write in memory and replays the SAME request when connection returns',async()=>{
+ const calls=[];let online=false,successes=0;const errors=[];
+ const writer=createVisitWriter(async(path,options)=>{calls.push({path,body:options?.body});if(!online)throw new TypeError('Failed to fetch');return result;},{newId:()=>id(9),reconnectMs:5,onSuccess:()=>successes++,onError:e=>errors.push(e)});
+ await writer.submit(visitPayload(admission));
+ assert.equal(errors.at(-1).waiting,true);assert.equal(successes,0);
+ await new Promise(r=>setTimeout(r,25));assert.ok(calls.length>=2,'auto replay attempted while offline');assert.equal(successes,0);
+ online=true;await new Promise(r=>setTimeout(r,40));
+ assert.equal(successes,1);assert.equal(new Set(calls.map(c=>c.body.request_id)).size,1,'one request_id for every replay');
+ const n=calls.length;await new Promise(r=>setTimeout(r,30));assert.equal(calls.length,n,'no replays after success');
+ writer.dispose();
+});
+test('non-connection errors are not replayed automatically',async()=>{
+ let calls=0;const writer=createVisitWriter(async()=>{calls++;throw Object.assign(Error(),{code:'RETRYABLE_CONCURRENCY'});},{newId:()=>id(10),reconnectMs:5});
+ await writer.submit(visitPayload(admission));await new Promise(r=>setTimeout(r,30));assert.equal(calls,1);writer.dispose();
+});

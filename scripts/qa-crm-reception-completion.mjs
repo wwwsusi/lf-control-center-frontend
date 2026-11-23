@@ -73,8 +73,11 @@ try{
   await expect(page.getByRole('button',{name:'Overiť výsledok',exact:true})).toBeVisible();await page.getByRole('button',{name:'Overiť výsledok',exact:true}).click();
   await expect(page.getByText('Zápis sa na serveri nenašiel. Nič sa nezapísalo, nákup môžeš zopakovať.',{exact:true})).toBeVisible();assert.equal(writes.length,1);
   await expect(page.getByRole('region',{name:'Košík'})).toContainText('10,00');
-  await page.getByRole('button',{name:'Zapísať nákup',exact:true}).click();
-  await expect(page.getByRole('status').filter({hasText:'Nákup bol zaznamenaný.'})).toBeVisible();
+  // connection loss: the purchase waits in memory and the same request is replayed by itself when the network is back
+  dropNext=true;await page.getByRole('button',{name:'Zapísať nákup',exact:true}).click();
+  await expect(page.getByText('Bez spojenia. Zápis čaká a odošle sa sám po obnovení spojenia. Zostaň na tejto obrazovke.',{exact:true})).toBeVisible();assert.equal(writes.length,1);
+  await expect(page.getByRole('status').filter({hasText:'Nákup bol zaznamenaný.'})).toBeVisible({timeout:25000});
+  assert.equal(writes.filter(w=>w.operation_type==='CREATE_SALE').length,1);assert.equal(writes.filter(w=>w.operation_type==='CONFIRM_SALE').length,1);
   assert.equal(writes.some(w=>w.operation_type.includes('PAYMENT')),false);
   await expect(page.getByRole('heading',{name:'Recepcia',exact:true})).toBeVisible({timeout:8000});
   const openProfile=async()=>{await page.locator('.crm-reception-action').filter({has:page.getByRole('heading',{name:'Zoznam klientov',exact:true})}).getByRole('button',{name:'Otvoriť',exact:true}).click();await page.getByRole('button',{name:'Otvoriť klientku',exact:true}).click();};

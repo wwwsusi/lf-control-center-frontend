@@ -2,7 +2,7 @@
 // sale -> confirmation is one chain driven by one explicit click. Every mutation keeps its own request_id,
 // so a lost response is verified with a readback and never replayed as a new operation.
 import {purchaseLine,purchaseCustomerReference} from './crm-purchase.mjs';
-import {entryTile} from './crm-checkin.mjs';
+import {isConnectionLoss,createReconnect,WAITING_TEXT,entryTile} from './crm-checkin.mjs';
 import {showToast} from './crm-toast.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'],DEFINITIVE=['VALIDATION_ERROR','POLICY_BLOCKED','REVISION_CONFLICT','BUSINESS_REJECTED'];
 const eur=v=>new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(v));
@@ -36,6 +36,7 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
   }
   return api('/api/crm/operations',{body:{request_id,operation_type:stage==='create'?'CREATE_SALE':'CONFIRM_SALE',payload},signal});
  }
+ const reconnect=createReconnect({isLive:()=>live&&Boolean(ctx?.unverified),isBusy:()=>busy,run:()=>drive(false),onGiveUp:()=>{if(live&&ctx){say('error','Spojenie sa neobnovilo. Zápis zostáva nepotvrdený, over ho tlačidlom.');render();}}});
  async function drive(verify=false){
   if(!live||busy||!ctx)return;busy=true;ctx.unverified=false;notice=null;render();let verifying=false;
   try{
@@ -52,7 +53,7 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
    if(AUTH.includes(error.code)){onAuthFailure(error.code);return;}
    if(verifying&&error.code==='BUSINESS_REJECTED'){say('error',ctx?.saleId?'Nákup nie je dokončený. Nájdeš ho v Rozpracovaných predajoch.':'Zápis sa na serveri nenašiel. Nič sa nezapísalo, nákup môžeš zopakovať.');ctx=null;}
    else if(DEFINITIVE.includes(error.code)){say('error',ctx?.saleId?'Nákup sa nepodarilo dokončiť. Nájdeš ho v Rozpracovaných predajoch.':'Nákup sa nepodarilo zapísať. Skontroluj pravidlá a skús znova.');ctx=null;}
-   else{ctx.unverified=true;say('error','Výsledok nie je potvrdený. Over ho, nezapisuj nákup znova.');}
+   else{ctx.unverified=true;if(isConnectionLoss(error)){reconnect.start();say('error',WAITING_TEXT);}else{reconnect.stop();say('error','Výsledok nie je potvrdený. Over ho, nezapisuj nákup znova.');}}
   }finally{busy=false;if(live)render();}
  }
  function start(list){if(busy||ctx||celebrating||!list.length)return;
@@ -105,5 +106,5 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
   if(busy)root.append(el('p','Zapisujem nákup…','crm-lead'));
  }
  render();load();
- return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;clearToast();controller.abort();root.replaceChildren();}};
+ return {hasPending:()=>busy||Boolean(ctx),dispose(){live=false;reconnect.stop();clearToast();controller.abort();root.replaceChildren();}};
 }
