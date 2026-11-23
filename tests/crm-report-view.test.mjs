@@ -230,3 +230,24 @@ test('sales split: services vs products per week and month, day grain unavailabl
  assert.deepEqual(productRanking(facts,weeks,'sales','SERVICE').map(r=>r.key),['S1','S2']);
  assert.deepEqual(productRanking(facts,weeks,'sales','PRODUCT').map(r=>r.key),[]); // P1 has an unknown week, so it is not ranked
 });
+test('a selection that cuts a hand-written week counts its recorded days exactly and never prorates money',async()=>{
+ const {partialVisitRows,selectHistoricalPeriods}=await import('../web/crm-report-history.mjs');
+ const day=(d,u)=>({period_start:'2026-10-26',dimension:'DAY',key:d,label:d,units:u,value_eur:null,cost_eur:null});
+ const adm=(d,c,u)=>({period_start:'2026-10-26',dimension:'DAY_ADMISSION',key:d+':'+c,label:c,units:u,value_eur:null,cost_eur:null});
+ const days=['2026-10-26','2026-10-27','2026-10-28','2026-10-29','2026-10-30','2026-10-31','2026-11-01'],units=[51,43,38,42,40,20,0];
+ const facts=[...days.map((d,i)=>day(d,units[i])),...days.flatMap((d,i)=>[adm(d,'ENTITLEMENT',units[i]-5),adm(d,'SINGLE_ENTRY',3),adm(d,'MULTISPORT',2)].map(f=>units[i]===0?{...f,units:0}:f))];
+ const snapshot={weekly:[{week:44,period_start:'2026-10-26',period_end:'2026-11-01',visits:234,recorded_sales:1742.7}],facts};
+ const sel=selectHistoricalPeriods(snapshot,'2026-10-01','2026-10-31');
+ assert.equal(sel.included.length,0);assert.equal(sel.partial.length,1);
+ const {rows,unavailable}=partialVisitRows(snapshot,sel.partial,'2026-10-01','2026-10-31');
+ assert.equal(unavailable.length,0);assert.equal(rows.length,1);
+ assert.equal(rows[0].visits,51+43+38+42+40+20);assert.equal(rows[0].from,'2026-10-26');assert.equal(rows[0].to,'2026-10-31');
+ assert.equal(rows[0].single,18);assert.equal(rows[0].multisport,12);
+ assert.equal(rows[0].recorded_sales,undefined,'sales are not prorated');
+ const model=weekModel(rows);assert.equal(model[0].partial,true);assert.match(model[0].label,/^W44 · 26\. 10\.–31\. 10\.$/);assert.equal(model[0].sales,null);
+ assert.equal(dailySeries(normalizeFacts({facts}),model).length,6,'only days inside the selection');
+ assert.equal(dailyMix(normalizeFacts({facts}),model).length,6);
+ // a missing day makes the part unavailable instead of a silent undercount
+ const gap=partialVisitRows({...snapshot,facts:facts.filter(f=>f.key!=='2026-10-28'||f.dimension!=='DAY')},sel.partial,'2026-10-01','2026-10-31');
+ assert.equal(gap.rows.length,0);assert.equal(gap.unavailable.length,1);
+});

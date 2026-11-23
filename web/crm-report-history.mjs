@@ -22,3 +22,19 @@ export function mergeLiveReports(reports,period){
  if(!reports.length)result.coverage.recorded_days='0';
  return result;
 }
+
+// A selection may cut a hand-written week. Visits and entry types ARE recorded per day (facts DAY and DAY_ADMISSION),
+// so the cut part of such a week is counted exactly. Sales, products and costs exist only as weekly totals: never prorated.
+const spanDays=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/day)+1;
+export function partialVisitRows(snapshot,partial,from,to){
+ const facts=Array.isArray(snapshot?.facts)?snapshot.facts:[],rows=[],unavailable=[];
+ for(const row of partial){
+  const start=row.period_start<from?from:row.period_start,end=row.period_end>to?to:row.period_end,need=spanDays(start,end);
+  const own=facts.filter(f=>f.period_start===row.period_start);
+  const dayFacts=own.filter(f=>f.dimension==='DAY'&&f.key>=start&&f.key<=end&&Number.isFinite(f.units));
+  if(dayFacts.length!==need){unavailable.push(row);continue;}
+  const mix=code=>{const m=own.filter(f=>f.dimension==='DAY_ADMISSION'&&f.key.slice(11)===code&&f.key.slice(0,10)>=start&&f.key.slice(0,10)<=end);return m.length===need&&m.every(f=>Number.isFinite(f.units))?m.reduce((n,f)=>n+f.units,0):null;};
+  rows.push({week:row.week,period_start:row.period_start,period_end:end,from:start,to:end,partial:true,visits:dayFacts.reduce((n,f)=>n+f.units,0),membership:mix('ENTITLEMENT'),single:mix('SINGLE_ENTRY'),multisport:mix('MULTISPORT')});
+ }
+ return {rows,unavailable};
+}
