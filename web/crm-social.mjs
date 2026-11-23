@@ -1,4 +1,4 @@
-import {kpiCard,columnChart,chartCard,unavailable,formatCount,formatCompactNumber} from './crm-report-view.mjs';
+import {kpiCard,columnChart,lineChart,rankingChart,chartCard,unavailable,formatCount,formatCompactNumber} from './crm-report-view.mjs';
 // Owner Reporting tab "Sociálne siete": Facebook + Instagram from SOCIAL_MEDIA_REPORT (read-only),
 // next to gym visits from the existing weekly report. Meta provides counts only, never follower names.
 
@@ -69,6 +69,25 @@ const dayLabel=iso=>{const d=new Date(iso);return d.getDate()+'. '+(d.getMonth()
 // Posts newest first ('date') or by a metric, highest first.
 export function sortPosts(rows,sort){return rows.slice().sort(sort==='date'?(a,b)=>b.published_at.localeCompare(a.published_at):(a,b)=>(b[sort]??-1)-(a[sort]??-1));}
 
+// Engagement rate per week and platform in % (interactions / reach, one decimal). Unknown or zero reach stays null, never 0 %.
+export function engagementSeries(weeks){
+ const rate=m=>m&&m.reach&&m.interactions!==null&&m.interactions!==undefined?Math.round(m.interactions/m.reach*1000)/10:null;
+ return {facebook:weeks.map(w=>rate(w.fb)),instagram:weeks.map(w=>rate(w.ig))};
+}
+
+// Best posts by reach over the last `spanWeeks` stored weeks (counted from the newest stored week, not from today).
+// Facebook posts carry no media type in the database, so only Instagram reels are marked.
+export function topPosts(posts,weeks,{spanWeeks=4,limit=8}={}){
+ if(!weeks.length)return [];
+ const from=weeks[Math.max(0,weeks.length-spanWeeks)].period_start,to=weeks.at(-1).period_end;
+ return postsInRange(posts,from,to).filter(p=>Number.isFinite(p.reach)&&p.reach>0).sort((a,b)=>b.reach-a.reach).slice(0,limit).map(p=>{
+  const text=(p.text||'').replace(/\s+/g,' ').trim(),kind=p.media_type==='REELS'?' reel':'';
+  const net=(p.platform==='facebook'?'FB':'IG')+kind,body=text?(text.length>60?text.slice(0,60)+'…':text):'bez popisu';
+  // Short label (network + start of the text) so it stays readable in a narrow card; the date goes into the tooltip.
+  return {label:net+' · '+body,title:dayLabel(p.published_at)+' · '+net+' · '+body,value:p.reach,color:SOCIAL_COLORS[p.platform],platform:p.platform};
+ });
+}
+
 // state: {selected:'all'|period_start, platform:'all'|'facebook'|'instagram', sort:'date'|'reach'|'interactions'}
 export function renderSocial(root,{social,visitRows,state,onChange}){
  const weeks=socialWeeks(social,visitRows);
@@ -114,10 +133,13 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
 
  // Charts over all weeks
  const labels=weeks.map(w=>'W'+w.week),charts=node('div',undefined,'crm-chart-grid');
+ const engagement=engagementSeries(weeks),best=topPosts(social.posts,weeks),pctText=v=>String(v).replace('.',',')+' %';
  charts.append(
   chartCard('Dosah po týždňoch',columnChart({labels,stacked:true,series:[{name:'Facebook',color:SOCIAL_COLORS.facebook,values:weeks.map(w=>w.fb?.reach??null)},{name:'Instagram',color:SOCIAL_COLORS.instagram,values:weeks.map(w=>w.ig?.reach??null)}],valueFormat:formatCompactNumber,ariaLabel:'Dosah Facebook a Instagram po týždňoch'}),'Facebook + Instagram, rôzni ľudia za týždeň.'),
   chartCard('Návštevy fitka',weeks.some(w=>w.visits!==null)?columnChart({labels,series:[{name:'Návštevy',color:SOCIAL_COLORS.visits,values:weeks.map(w=>w.visits)}],ariaLabel:'Návštevy fitka po týždňoch'}):unavailable('Návštevy za tieto týždne ešte nie sú v reportingu.'),'Z týždenného reportingu. Súvis v čase, nie príčina.'),
   chartCard('Interakcie po týždňoch',columnChart({labels,stacked:true,series:[{name:'Facebook',color:SOCIAL_COLORS.facebook,values:weeks.map(w=>w.fb?.interactions??null)},{name:'Instagram',color:SOCIAL_COLORS.instagram,values:weeks.map(w=>w.ig?.interactions??null)}],valueFormat:formatCompactNumber,ariaLabel:'Interakcie po týždňoch'})),
+  chartCard('Miera zapojenia po týždňoch',weeks.length>1?lineChart({labels,series:[{name:'Facebook',color:SOCIAL_COLORS.facebook,values:engagement.facebook},{name:'Instagram',color:SOCIAL_COLORS.instagram,values:engagement.instagram}],format:pctText,axisFormat:v=>String(v).replace('.',',')+' %',ariaLabel:'Miera zapojenia po týždňoch'}):unavailable('Na graf treba aspoň dva uložené týždne.'),'Interakcie ÷ dosah. Ukazuje, ako veľmi obsah ľudí zaujal, nie len koľkým sa zobrazil.'),
+  chartCard('Najlepšie príspevky podľa dosahu',best.length?rankingChart({rows:best,format:formatCount,legend:[{name:'Facebook',color:SOCIAL_COLORS.facebook},{name:'Instagram',color:SOCIAL_COLORS.instagram}],ariaLabel:'Najlepšie príspevky za posledné štyri týždne podľa dosahu'}):unavailable('V posledných týždňoch nie sú príspevky s nameraným dosahom.'),'Posledné 4 uložené týždne, najvyšší dosah hore. Celý zoznam je v tabuľke nižšie.'),
   chartCard('Noví sledovatelia po týždňoch',columnChart({labels,series:[{name:'Facebook',color:SOCIAL_COLORS.facebook,values:weeks.map(w=>w.fb?.new_followers??null)},{name:'Instagram',color:SOCIAL_COLORS.instagram,values:weeks.map(w=>w.ig?.new_followers??null)}],ariaLabel:'Noví sledovatelia po týždňoch'}),'Iba počty. Mená sledovateľov Meta neposkytuje; pozri ich ručne v Meta Business Suite → Publikum.')
  );
  wrap.append(charts);
