@@ -225,17 +225,49 @@ export function columnChart({labels,shortLabels,series,stacked=false,format=form
  return wrap;
 }
 
-export function rankingChart({rows,format=formatEuro,color=SERIES_COLORS.sales,ariaLabel}){
+// Line chart for rates over time. series: [{name,color,values:[number|null]}]. A null value breaks the line (never drawn as zero).
+export function lineChart({labels,series,format=formatCount,axisFormat,valueFormat,ariaLabel}){
+ const wrap=node('div',undefined,'crm-chart'),H=270,vf=valueFormat??format;
+ const legend=node('ul',undefined,'crm-legend');for(const s of series){const li=node('li');const sw=node('i');sw.style.background=s.color;li.append(sw,s.name);legend.append(li);}
+ const all=series.flatMap(s=>s.values.filter(finite));
+ const scale=niceScale(all.length?Math.min(...all):0,Math.max(1,...all)),min=scale.min,span=(scale.max-scale.min)||1;
+ const ticks=[];for(let t=scale.min;t<=scale.max+scale.step/2;t+=scale.step)ticks.push(Math.round(t*100)/100);
+ const tickText=ticks.map(t=>(axisFormat??format)(t)),padL=Math.max(30,Math.max(...tickText.map(t=>t.length))*CHAR_W+12),padR=14,padT=24,padB=28,innerH=H-padT-padB,y=t=>padT+innerH-((t-min)/span)*innerH;
+ const draw=W=>{
+  const innerW=W-padL-padR,svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
+  ticks.forEach((t,i)=>{const yy=y(t);svg.append(svgNode('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'crm-chart-grid'}),svgNode('text',{x:padL-6,y:yy+4,'text-anchor':'end',class:'crm-chart-axis'},tickText[i]));});
+  const slot=innerW/Math.max(labels.length,1),labelW=Math.max(...labels.map(l=>String(l).length))*LABEL_CHAR_W+8,every=Math.max(1,Math.ceil(labelW/slot)),x=i=>padL+slot*i+slot/2;
+  labels.forEach((label,i)=>{if(i%every===0)svg.append(svgNode('text',{x:x(i),y:H-8,'text-anchor':'middle',class:'crm-chart-axis'},label));});
+  for(const s of series){
+   let run=[];const flush=()=>{if(run.length>1)svg.append(svgNode('polyline',{points:run.map(p=>p[0]+','+p[1]).join(' '),fill:'none',stroke:s.color,'stroke-width':2.5,'stroke-linejoin':'round','stroke-linecap':'round'}));run=[];};
+   s.values.forEach((v,i)=>{if(finite(v))run.push([x(i),y(v)]);else flush();});flush();
+  }
+  series.forEach((s,k)=>s.values.forEach((v,i)=>{
+   if(!finite(v))return;
+   const dot=svgNode('circle',{cx:x(i),cy:y(v),r:4,fill:s.color});dot.append(svgNode('title',{},labels[i]+' · '+s.name+': '+format(v)));svg.append(dot);
+   // The higher value of the week is labelled above its point, the others below, so two lines do not write over each other.
+   const others=series.filter((o,j)=>j!==k&&finite(o.values[i])),higher=others.every(o=>v>=o.values[i]),text=vf(v);
+   if(text.length*CHAR_W+2<=slot)svg.append(svgNode('text',{x:x(i),y:higher?y(v)-9:y(v)+17,'text-anchor':'middle',class:'crm-chart-value'},text));
+  }));
+  wrap.replaceChildren(...(series.length>1?[legend]:[]),svg);
+ };
+ responsive(wrap,600,draw);
+ return wrap;
+}
+
+// rows: [{label,value,color?}]; a row colour overrides `color`; `legend` ([{name,color}]) explains row colours.
+export function rankingChart({rows,format=formatEuro,color=SERIES_COLORS.sales,legend:legendItems,ariaLabel}){
  const wrap=node('div',undefined,'crm-chart'),rowH=32,H=Math.max(rows.length,1)*rowH+8,max=Math.max(1,...rows.map(r=>r.value)),valueW=Math.max(...rows.map(r=>format(r.value).length),1)*CHAR_W+12;
+ const legend=node('ul',undefined,'crm-legend');for(const s of legendItems??[]){const li=node('li');const sw=node('i');sw.style.background=s.color;li.append(sw,s.name);legend.append(li);}
  const draw=W=>{
   const padL=Math.min(210,Math.max(110,Math.round(W*0.34))),chars=Math.floor((padL-12)/CHAR_W),svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,role:'img','aria-label':ariaLabel,class:'crm-chart-svg'});
   rows.forEach((r,i)=>{
    const yy=4+i*rowH,w=Math.max(2,(W-padL-valueW)*r.value/max),label=r.label.length>chars?r.label.slice(0,chars-1)+'…':r.label;
    svg.append(svgNode('text',{x:padL-8,y:yy+rowH/2+4,'text-anchor':'end',class:'crm-chart-axis'},label));
-   const rect=svgNode('rect',{x:padL,y:yy+5,width:w,height:rowH-12,rx:3,fill:color});rect.append(svgNode('title',{},r.label+': '+format(r.value)));svg.append(rect);
+   const rect=svgNode('rect',{x:padL,y:yy+5,width:w,height:rowH-12,rx:3,fill:r.color??color});rect.append(svgNode('title',{},(r.title??r.label)+': '+format(r.value)));svg.append(rect);
    svg.append(svgNode('text',{x:padL+w+6,y:yy+rowH/2+4,class:'crm-chart-value-end'},format(r.value)));
   });
-  wrap.replaceChildren(svg);
+  wrap.replaceChildren(...((legendItems??[]).length?[legend]:[]),svg);
  };
  responsive(wrap,560,draw);
  return wrap;

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {socialWeeks,sumWeeks,postsInRange,engagementRate,sortPosts,validateSocialReport,halves,halvesChange,weeklyAverage,periodLabel,isoWeek} from '../web/crm-social.mjs';
+import {socialWeeks,sumWeeks,postsInRange,engagementRate,sortPosts,validateSocialReport,halves,halvesChange,weeklyAverage,periodLabel,isoWeek,engagementSeries,topPosts} from '../web/crm-social.mjs';
 
 const w=(platform,week,start,end,o)=>({platform,week,period_start:start,period_end:end,revision:1,reach:null,media_views:null,interactions:null,new_followers:null,unfollows:null,profile_views:null,...o});
 const social={accounts:{facebook:{followers_total:2392,following_total:null,posts_total:null}},covered_through:'2026-11-15',weekly:[
@@ -48,4 +48,24 @@ test('CW is the ISO week in Prague time',()=>{
  assert.equal(isoWeek('2026-11-15T23:30:00.000Z'),47); // already Monday 16 Nov in Prague
  assert.equal(isoWeek('2026-11-15T22:59:00.000Z'),46);
  assert.equal(isoWeek('2027-01-01T12:00:00.000Z'),53);
+});
+
+test('engagement series is interactions over reach per platform and never a fake 0 %',()=>{
+ const weeks=socialWeeks(social,visits),e=engagementSeries(weeks);
+ assert.deepEqual(e.facebook,[11.3,9.9]);assert.deepEqual(e.instagram,[16,4.6]);
+ const none=engagementSeries([{fb:{reach:0,interactions:5},ig:null},{fb:{reach:100,interactions:null},ig:{reach:50,interactions:0}}]);
+ assert.deepEqual(none.facebook,[null,null]);assert.deepEqual(none.instagram,[null,0]);
+});
+test('top posts: last four stored weeks, highest reach first, no empty reach, reels marked',()=>{
+ const weeks=socialWeeks(social,visits);
+ const posts=[...social.posts,{platform:'instagram',post_id:'3',published_at:'2026-11-12T10:00:00.000Z',media_type:'REELS',reach:900,interactions:50,text:'Reel text'}];
+ const top=topPosts(posts,weeks);
+ assert.deepEqual(top.map(p=>p.value),[6995,900,116]);          // '1_2' has reach 0 and is left out
+ assert.match(top[0].label,/FB · Domáce úlohy/);assert.match(top[1].label,/IG reel · Reel text/);
+ assert.match(top[0].title,/^4\. 11\. · FB · /);assert.doesNotMatch(top[0].label,/^\d/);   // date only in the tooltip
+ assert.equal(top[0].platform,'facebook');assert.equal(top[1].platform,'instagram');
+ assert.equal(topPosts(posts,weeks,{limit:1}).length,1);
+ assert.deepEqual(topPosts(posts,[]),[]);
+ // window counts from the newest stored week, not from today: spanWeeks=1 keeps only W46 posts
+ assert.deepEqual(topPosts(posts,weeks,{spanWeeks:1}).map(p=>p.value),[900,116]);
 });
