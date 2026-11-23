@@ -27,7 +27,8 @@ export function normalizeFacts(snapshot){
  return facts.every(ok)?facts.map(f=>({period_start:f.period_start,dimension:f.dimension,key:f.key,label:f.label,units:f.units??null,value_eur:f.value_eur??null,cost_eur:f.cost_eur??null})):[];
 }
 export function weekModel(rows){
- return [...rows].sort((a,b)=>a.period_start<b.period_start?-1:1).map(r=>({week:r.week,label:'W'+r.week,period_start:r.period_start,period_end:r.period_end,visits:r.visits??null,membership:r.membership??null,single:r.single??null,multisport:r.multisport??null,sales:r.recorded_sales??null,multisportValue:r.multisport_receivable??null,total:r.report_value??null,cost:r.product_cost??null,profit:r.product_profit??null,productUnits:r.product_units??null,passUnits:r.pass_units??null,trainingUnits:r.training_units??null}));
+ const dm=d=>Number(d.slice(8,10))+'. '+Number(d.slice(5,7))+'.';
+ return [...rows].sort((a,b)=>a.period_start<b.period_start?-1:1).map(r=>({week:r.week,label:'W'+r.week+(r.partial?' · '+dm(r.from)+'–'+dm(r.to):''),partial:Boolean(r.partial),from:r.from??r.period_start,to:r.to??r.period_end,period_start:r.period_start,period_end:r.period_end,visits:r.visits??null,membership:r.membership??null,single:r.single??null,multisport:r.multisport??null,sales:r.recorded_sales??null,multisportValue:r.multisport_receivable??null,total:r.report_value??null,cost:r.product_cost??null,profit:r.product_profit??null,productUnits:r.product_units??null,passUnits:r.pass_units??null,trainingUnits:r.training_units??null}));
 }
 export function sumKnown(weeks,key){return weeks.length&&weeks.every(w=>finite(w[key]))?weeks.reduce((n,w)=>n+w[key],0):null;}
 // Changes use the whole history, not only the selected weeks, so a single selected week still has something to compare to:
@@ -40,17 +41,17 @@ export function changes(weeks,key,allWeeks=weeks){
 }
 const weekdayIndex=date=>(new Date(date+'T00:00:00Z').getUTCDay()+6)%7;
 export function dailySeries(facts,weeks){
- const starts=new Set(weeks.map(w=>w.period_start));
- return facts.filter(f=>f.dimension==='DAY'&&starts.has(f.period_start)).sort((a,b)=>a.key<b.key?-1:1).map(f=>({date:f.key,label:f.label,value:f.units,weekend:weekdayIndex(f.key)>=5}));
+ const win=new Map(weeks.map(w=>[w.period_start,w]));
+ return facts.filter(f=>f.dimension==='DAY'&&win.has(f.period_start)&&(!win.get(f.period_start).partial||(f.key>=win.get(f.period_start).from&&f.key<=win.get(f.period_start).to))).sort((a,b)=>a.key<b.key?-1:1).map(f=>({date:f.key,label:f.label,value:f.units,weekend:weekdayIndex(f.key)>=5}));
 }
 // Entry mix per day (key "YYYY-MM-DD:CODE"). A missing type stays null; it is never treated as zero.
 const MIX_CODES={ENTITLEMENT:'membership',SINGLE_ENTRY:'single',MULTISPORT:'multisport'};
 export function dailyMix(facts,weeks){
- const starts=new Set(weeks.map(w=>w.period_start)),byDate=new Map();
+ const win=new Map(weeks.map(w=>[w.period_start,w])),byDate=new Map();
  for(const f of facts){
-  if(f.dimension!=='DAY_ADMISSION'||!starts.has(f.period_start))continue;
-  const [date,code]=f.key.split(':'),field=MIX_CODES[code];
-  if(!field||!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+  if(f.dimension!=='DAY_ADMISSION'||!win.has(f.period_start))continue;
+  const [date,code]=f.key.split(':'),field=MIX_CODES[code],w=win.get(f.period_start);
+  if(!field||!/^\d{4}-\d{2}-\d{2}$/.test(date)||(w.partial&&(date<w.from||date>w.to)))continue;
   const row=byDate.get(date)??{date,membership:null,single:null,multisport:null};row[field]=f.units;byDate.set(date,row);
  }
  return [...byDate.values()].sort((a,b)=>a.date<b.date?-1:1);
