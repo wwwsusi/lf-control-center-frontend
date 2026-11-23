@@ -57,3 +57,17 @@ test('historical snapshot rejects personal fields, duplicate weeks and unsafe nu
 test('reporting accepts W45 without duplicating or discarding the original five weeks',async()=>{
  const {historyFixture}=await import('./fixtures/report-history.mjs');const s=historyFixture();const before=structuredClone(s.weekly);s.weekly.push({...s.weekly[4],week:45,period_start:'2026-11-02',period_end:'2026-11-08'});s.snapshot_period.weeks.push(45);assert.equal(validateHistoricalSnapshot(s),s);assert.deepEqual(s.weekly.slice(0,5),before);assert.throws(()=>validateHistoricalSnapshot({...s,snapshot_period:{weeks:[40,41,42,43,44]}}));
 });
+
+test('overview reach: weekly Facebook/Instagram reach is joined by week start and stays null without a social record',async()=>{
+ const {withSocialReach}=await import('../web/crm-reporting.mjs');
+ const weeks=[{week:46,period_start:'2026-11-09'},{week:47,period_start:'2026-11-16'},{week:48,period_start:'2026-11-23'}];
+ const social={weekly:[
+  {platform:'facebook',week:46,period_start:'2026-11-09',period_end:'2026-11-15',revision:1,reach:4187},
+  {platform:'instagram',week:46,period_start:'2026-11-09',period_end:'2026-11-15',revision:1,reach:153},
+  {platform:'facebook',week:47,period_start:'2026-11-16',period_end:'2026-11-22',revision:1,reach:11453}
+ ],accounts:{},posts:[]};
+ const out=withSocialReach(weeks,social);
+ assert.deepEqual(out.map(w=>[w.reach,w.igReach]),[[4187,153],[11453,null],[null,null]]);
+ assert.deepEqual(withSocialReach(weeks,null).map(w=>[w.reach,w.igReach]),[[null,null],[null,null],[null,null]]);
+ assert.equal(weeks[0].reach,undefined,'input weeks are not mutated');
+});
