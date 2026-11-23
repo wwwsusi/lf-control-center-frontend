@@ -49,10 +49,10 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
   return api('/api/crm/operations',{body:{request_id,operation_type:{create:'CREATE_SALE',confirm:'CONFIRM_SALE',visit:'CHECK_IN'}[stage],payload},signal});
  }
  async function drive(verify=false){
-  if(!live||busy||!ctx)return;busy=true;ctx.unverified=false;notice=null;render();
+  if(!live||busy||!ctx)return;busy=true;ctx.unverified=false;notice=null;render();let verifying=false;
   try{
    while(ctx.stage!=='done'){
-    const data=await stageResult(ctx.stage,verify);if(!live||!data)return;verify=false;
+    verifying=verify;const data=await stageResult(ctx.stage,verify);verifying=false;if(!live||!data)return;verify=false;
     if(data.operation?.state==='REJECTED')throw Object.assign(Error('REJECTED'),{code:'BUSINESS_REJECTED'});
     if(data.operation?.state!=='COMPLETED')throw Error('UNVERIFIED');
     if(ctx.stage==='create'){if(typeof data.projection?.id!=='string')throw Error('UNVERIFIED');ctx.saleId=data.projection.id;ctx.stage='confirm';}
@@ -63,7 +63,8 @@ export function mountSingleEntry({root,api,onAuthFailure,onDone=()=>{},bannerMs=
   }catch(error){
    if(!live||error.name==='AbortError')return;
    if(AUTH.includes(error.code)){onAuthFailure(error.code);return;}
-   if(DEFINITIVE.includes(error.code)||error.code==='BUSINESS_REJECTED'){say('error','Vstup sa nepodarilo zapísať. Skontroluj pravidlá a skús znova.');ctx=null;}
+   if(verifying&&error.code==='BUSINESS_REJECTED'){say('error',ctx?.saleId?'Vstup nie je dokončený. Dokonči ho v časti Kúpený, ale nezapísaný vstup.':'Zápis sa na serveri nenašiel. Nič sa nezapísalo, vstup môžeš zopakovať.');ctx=null;}
+   else if(DEFINITIVE.includes(error.code)||error.code==='BUSINESS_REJECTED'){say('error','Vstup sa nepodarilo zapísať. Skontroluj pravidlá a skús znova.');ctx=null;}
    else{ctx.unverified=true;say('error','Výsledok nie je potvrdený. Over ho, nezapisuj vstup znova.');}
   }finally{
    busy=false;
