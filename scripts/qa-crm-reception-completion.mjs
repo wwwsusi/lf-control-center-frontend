@@ -6,7 +6,7 @@ const web=new URL('../web/',import.meta.url),id=n=>'80000000-0000-4000-8000-'+St
 const browser=await (process.env.LF_UX_BROWSER==='webkit'?webkit:chromium).launch();
 try{
  for(const width of [1440,820,375]){
-  const page=await browser.newPage({viewport:{width,height:1000}}),errors=[],writes=[],operations=new Map();
+  const page=await browser.newPage({viewport:{width,height:1000}}),errors=[],writes=[],operations=new Map();let dropNext=false;
   let client={id:id(1),name:'Synthetic client',phone:null,email:null,status:'ACTIVE',revision:'1'},sale=null,payment=null,entitlement=null,paid=false,consumed=0,lostCorrection=true;
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{for(const name of ['setItem','removeItem','clear'])Storage.prototype[name]=()=>{throw Error('Browser storage write forbidden');};});
@@ -19,7 +19,7 @@ try{
     try{return route.fulfill({contentType:file.endsWith('.mjs')?'text/javascript':file.endsWith('.css')?'text/css':'image/png',body:await readFile(new URL(file,web))});}catch{return route.fulfill({status:404,body:''});}
    }
    if(url.pathname==='/api/crm/session')return json({active:true,actor_id:id(2),role:'OWNER_ADMIN',expires_at:new Date(Date.now()+300000).toISOString(),workspace_enabled:true,csrf_token:'synthetic',owner_tasks_enabled:true});
-   if(url.pathname==='/api/crm/readback'){assert.ok(operations.has(url.searchParams.get('request_id')));return json(operations.get(url.searchParams.get('request_id')));}
+   if(url.pathname==='/api/crm/readback'){if(!operations.has(url.searchParams.get('request_id')))return json({code:'BUSINESS_REJECTED'},422);return json(operations.get(url.searchParams.get('request_id')));}
    const body=request.postDataJSON();assert.equal(request.headers()['x-csrf-token'],'synthetic');
    if(url.pathname==='/api/crm/read'){
     if(body.view==='SESSION_ACTIVITY')return json({read_only:true,expires_at:new Date(Date.now()+300000).toISOString()});
@@ -32,7 +32,7 @@ try{
     if(body.view==='TODAY')return json({date:'2026-11-15',day:{opening_status:'OPEN'},items:[],next:null});
     throw Error('Unexpected read '+body.view);
    }
-   assert.equal(url.pathname,'/api/crm/operations');writes.push(body);
+   assert.equal(url.pathname,'/api/crm/operations');if(dropNext){dropNext=false;return route.abort('failed');}writes.push(body);
    assert.equal(new Set(writes.map(w=>w.request_id)).size,writes.length,'No new mutation during recovery');
    let target,projection;
    if(body.operation_type==='UPDATE_CUSTOMER'){
@@ -67,6 +67,11 @@ try{
   await expect(page.getByRole('button',{name:'Prišla cvičiť',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Prišla nakupovať',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Prišla nakupovať',exact:true}).click();
   await page.getByRole('button',{name:'Služby',exact:true}).click();await page.getByRole('button',{name:/Pridať · Synthetic 10 vstupov/}).click();
+  await expect(page.getByRole('region',{name:'Košík'})).toContainText('10,00');
+  // request never reaches the server: verifying must say nothing was recorded (not blame the rules), and the cart stays
+  dropNext=true;await page.getByRole('button',{name:'Zapísať nákup',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Overiť výsledok',exact:true})).toBeVisible();await page.getByRole('button',{name:'Overiť výsledok',exact:true}).click();
+  await expect(page.getByText('Zápis sa na serveri nenašiel. Nič sa nezapísalo, nákup môžeš zopakovať.',{exact:true})).toBeVisible();assert.equal(writes.length,1);
   await expect(page.getByRole('region',{name:'Košík'})).toContainText('10,00');
   await page.getByRole('button',{name:'Zapísať nákup',exact:true}).click();
   await expect(page.getByRole('status').filter({hasText:'Nákup bol zaznamenaný.'})).toBeVisible();

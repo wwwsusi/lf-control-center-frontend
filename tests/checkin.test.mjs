@@ -73,3 +73,9 @@ test('confirmed business rejection releases pending intent without claiming a sa
 });
 
 test('confirmed purchase entitlement needs no payment evidence',()=>{for(const payment_confirmed of [false,undefined,null])assert.equal(visitPayload({...admission,code:'ENTITLEMENT'},customer,{...entitlement,payment_confirmed}).entitlement_id,entitlement.id);});
+test('verify of a request the server never received reports "not recorded" and allows a fresh submit',async()=>{
+ const errors=[];let calls=0;const writer=createVisitWriter(async(path)=>{calls++;if(calls===1)throw Error('offline');if(path.startsWith('/api/crm/readback'))throw Object.assign(Error(),{code:'BUSINESS_REJECTED'});return result;},{newId:()=>id(8),onError:e=>errors.push(e)});
+ await writer.submit(visitPayload(admission));await writer.verify();
+ assert.equal(errors.at(-1).notRecorded,true);assert.equal(calls,2);
+ await writer.submit(visitPayload(admission));assert.equal(calls,3);
+});

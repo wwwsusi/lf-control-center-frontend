@@ -49,7 +49,7 @@ export function createVisitWriter(api,{signal,onChange=()=>{},onSuccess=()=>{},o
    if(data.operation?.state==='REJECTED'){pending=null;onError({code:data.operation.result_code||'BUSINESS_REJECTED',rejected:true});return;}
    if(data.operation?.state!=='COMPLETED'||data.operation.target_type!=='visit'||!uuid(data.projection?.id)||data.projection.status!=='POSTED')throw Error('UNVERIFIED');
    pending=null;done=true;onSuccess(data.projection);
-  }catch(error){if(live&&error.name!=='AbortError')onError(error);}
+  }catch(error){if(live&&error.name!=='AbortError'){if(readback&&error.code==='BUSINESS_REJECTED'){pending=null;onError({code:'NOT_RECORDED',notRecorded:true});}else onError(error);}}
   finally{busy=false;notify();}
  }
  return {submit(payload){if(!live||busy||pending||done)return;pending={request_id:newId(),operation_type:'CHECK_IN',payload:structuredClone(payload)};return send();},verify:()=>send(true),retry:()=>send(),dispose(){live=false;pending=null;}};
@@ -58,7 +58,7 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
  let doneTimer=0,toast=null;const backNow=()=>{clearTimeout(doneTimer);doneTimer=0;onBack();};let live=true,generation=0,admissions=[],entitlements=[],loading=true,message='',entryPurchases=new Map(),state={busy:false,pending:false,done:false};const controller=new AbortController();
  const el=(tag,value)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);return x;};
  const button=(label,action)=>{const x=el('button',label);x.type='button';x.disabled=state.busy;x.addEventListener('click',action);return x;};
- const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';try{onVisitConfirmed();}catch{}if(onDone)toast=showToast({text:message,ms:3000,onClose:()=>{toast=null;if(live)onDone();}});},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
+ const writer=createVisitWriter(api,{signal:controller.signal,onChange:s=>{state=s;render();},onSuccess:()=>{message='Návšteva bola uložená a overená.';try{onVisitConfirmed();}catch{}if(onDone)toast=showToast({text:message,ms:3000,onClose:()=>{toast=null;if(live)onDone();}});},onError:error=>{if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}message=error.notRecorded?'Zápis sa na serveri nenašiel. Nič sa nezapísalo, vstup môžeš zopakovať.':error.rejected?'Návšteva nebola uložená. Skontroluj platnosť permanentky, zostávajúce vstupy a pravidlá vstupu.':error.code==='POLICY_BLOCKED'?'Vstup nie je povolený aktuálnymi pravidlami.':'Výsledok nie je potvrdený. Over tú istú operáciu; nevytváraj nový vstup.';}});
  function render(){
   if(!live)return;root.replaceChildren(...(quick?[]:[el('h2',title??(customer?'Vstup · '+customer.name:'Vstup bez identifikovanej klientky'))]));
   if(message&&!(onDone&&state.done)){const p=el('p',message);p.setAttribute('role','status');root.append(p);}

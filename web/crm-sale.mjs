@@ -37,10 +37,10 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
   return api('/api/crm/operations',{body:{request_id,operation_type:stage==='create'?'CREATE_SALE':'CONFIRM_SALE',payload},signal});
  }
  async function drive(verify=false){
-  if(!live||busy||!ctx)return;busy=true;ctx.unverified=false;notice=null;render();
+  if(!live||busy||!ctx)return;busy=true;ctx.unverified=false;notice=null;render();let verifying=false;
   try{
    while(ctx.stage!=='done'){
-    const data=await stageResult(ctx.stage,verify);if(!live||!data)return;verify=false;
+    verifying=verify;const data=await stageResult(ctx.stage,verify);verifying=false;if(!live||!data)return;verify=false;
     if(data.operation?.state==='REJECTED')throw Object.assign(Error('REJECTED'),{code:'BUSINESS_REJECTED'});
     if(data.operation?.state!=='COMPLETED')throw Error('UNVERIFIED');
     if(ctx.stage==='create'){if(typeof data.projection?.id!=='string')throw Error('UNVERIFIED');ctx.saleId=data.projection.id;ctx.stage='confirm';}
@@ -50,7 +50,8 @@ export function mountSale({root,api,customer=null,cart=false,kinds=['products'],
   }catch(error){
    if(!live||error.name==='AbortError')return;
    if(AUTH.includes(error.code)){onAuthFailure(error.code);return;}
-   if(DEFINITIVE.includes(error.code)){say('error',ctx?.saleId?'Nákup sa nepodarilo dokončiť. Nájdeš ho v Rozpracovaných predajoch.':'Nákup sa nepodarilo zapísať. Skontroluj pravidlá a skús znova.');ctx=null;}
+   if(verifying&&error.code==='BUSINESS_REJECTED'){say('error',ctx?.saleId?'Nákup nie je dokončený. Nájdeš ho v Rozpracovaných predajoch.':'Zápis sa na serveri nenašiel. Nič sa nezapísalo, nákup môžeš zopakovať.');ctx=null;}
+   else if(DEFINITIVE.includes(error.code)){say('error',ctx?.saleId?'Nákup sa nepodarilo dokončiť. Nájdeš ho v Rozpracovaných predajoch.':'Nákup sa nepodarilo zapísať. Skontroluj pravidlá a skús znova.');ctx=null;}
    else{ctx.unverified=true;say('error','Výsledok nie je potvrdený. Over ho, nezapisuj nákup znova.');}
   }finally{busy=false;if(live)render();}
  }
