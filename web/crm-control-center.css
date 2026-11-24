@@ -350,3 +350,6 @@
 .crm-main .crm-mini-chart{min-height:212px;display:flex;flex-direction:column;justify-content:flex-end}
 .crm-main .crm-kpi-grid[data-n] .crm-kpi{min-height:204px}
 .crm-main .crm-chart-grid[data-n]>.crm-chart-card{min-height:376px}
+
+.crm-main .crm-context-table{min-width:900px}.crm-main .crm-context-table td.num,.crm-main .crm-context-table th{white-space:nowrap}.crm-main .crm-context-table td:nth-child(7){white-space:normal;min-width:200px}.crm-main .crm-context-table tr[data-holiday] th,.crm-main .crm-context-table tr[data-holiday] td{background:rgba(255,196,87,.10)}
+.crm-main .crm-context-table th:nth-child(7),.crm-main .crm-context-table td:nth-child(7){text-align:left}

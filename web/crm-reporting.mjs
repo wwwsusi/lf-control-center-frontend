@@ -1,9 +1,11 @@
+import {weekContextRows,fetchWeather,RAIN_DAY_MM} from './crm-report-context.mjs';
 import {kpiCard,sumKnown,columnChart,rankingChart,chartCard,unavailable,segmentControl,tableMetricsFor,dailyMix,weekdayChartData,formatOneDecimal,tableModel,reportTable,weekModel,normalizeFacts,changes,dailySeries,weekdayAverages,productRanking,salesSplitSeries,visitsSeries,mixSeries,formatCount,formatEuro,formatEuroShort,formatCompactNumber,SERIES_COLORS} from './crm-report-view.mjs';
 import {selectHistoricalPeriods,liveReportingRanges,mergeLiveReports,historicalPeriods,partialVisitRows} from './crm-report-history.mjs';
 import {renderSocial,validateSocialReport,socialWeeks,SOCIAL_COLORS} from './crm-social.mjs';
 // Owner-only live CRM reporting. The backend independently enforces OWNER_ADMIN and UAT denial.
 const node=(tag,text,className)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);if(className)el.className=className;return el;};
 const button=(label,fn)=>{const el=node('button',label);el.type='button';el.addEventListener('click',fn);return el;};
+const weatherByRange=new Map();
 let range=null,monthSel=null,socialData=null,socialLoading=false,socialFailed=false,socialState={selected:null,platform:'all',sort:'date'},selectedSection='overview',productMetric='sales',productKind='all',salesGrain='week',timeGrain='week',tableMetric='visits';
 const historicalKeys=['week','period_start','period_end','visits','membership','single','multisport','new_visitors','pass_units','product_units','training_units','zumba_hours','recorded_sales','report_value','sheet_price_value','product_cost','product_profit','multisport_receivable','change_pct'];
 function currentMonth(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return {from:v.year+'-'+v.month+'-01',to:v.year+'-'+v.month+'-'+v.day};}
@@ -196,6 +198,28 @@ export function mountReporting({root,api,onAuthFailure,onBack}){
   }
   charts.dataset.n=String(charts.children.length);if(charts.children.length&&section!=='catalogue')root.append(charts);
   if(overviewTable)root.append(overviewTable);
+  if(section==='overview'&&visitWeeks.length){
+   // Visits next to Slovak public holidays and Humenné weather, one row per week. Holidays are computed; weather comes from Open-Meteo.
+   const wFrom=visitWeeks[0].from??visitWeeks[0].period_start,wTo=visitWeeks.at(-1).to??visitWeeks.at(-1).period_end,wKey=wFrom+'|'+wTo,entry=weatherByRange.get(wKey);
+   if(!entry){weatherByRange.set(wKey,{state:'loading'});fetchWeather(wFrom,wTo).then(map=>{weatherByRange.set(wKey,{state:'ok',map});if(live&&selectedSection==='overview')draw();}).catch(()=>{weatherByRange.set(wKey,{state:'failed'});if(live&&selectedSection==='overview')draw();});}
+   const ctxRows=weekContextRows(visitWeeks,entry?.state==='ok'?entry.map:null,w=>w.partial?null:{training:(()=>{const f=facts.find(x=>x.dimension==='SERVICE'&&x.key==='LF-SVC-015'&&x.period_start===w.period_start);return f&&Number.isFinite(f.units)?f.units:w.trainingUnits;})(),sales:w.sales}),oneDec=v=>new Intl.NumberFormat('sk-SK',{maximumFractionDigits:1}).format(v),shortD=d=>Number(d.slice(8,10))+'. '+Number(d.slice(5,7))+'.';
+   const wrap=node('div',undefined,'crm-table-scroll crm-data-table'),table=node('table',undefined,'crm-report-table crm-context-table');table.setAttribute('aria-label','Návštevnosť, sviatky a počasie po týždňoch');
+   const head=node('thead'),htr=node('tr');for(const label of ['Týždeň','Návštevy','Na deň','Os. tréningy','Tržby','Tržby na deň','Sviatky a obdobia','Daždivé dni','Zrážky','Teplota max/min']){const th=node('th',label);th.scope='col';htr.append(th);}head.append(htr);
+   const body=node('tbody');
+   for(const r of ctxRows){
+    const tr=node('tr'),th=node('th',r.label);th.scope='row';tr.append(th,node('td',r.visits===null?'N/A':count(r.visits),'num'),node('td',r.perDay===null?'N/A':oneDec(r.perDay),'num'),node('td',r.training===null?'N/A':count(r.training),'num'),node('td',r.sales===null?'N/A':euro(r.sales.toFixed(2)),'num'),node('td',r.salesPerDay===null?'N/A':euro(r.salesPerDay.toFixed(2)),'num'));
+    const tags=[...r.holidays.map(h=>shortD(h.date)+' '+h.name),...r.other.map(h=>shortD(h.date)+' '+h.name),...(r.summer?['letné prázdniny']:[])];
+    const tdH=node('td',tags.length?tags.join(' · '):'—');if(r.holidays.length)tr.dataset.holiday='1';tr.append(tdH);
+    const w=r.weather,part=w&&w.known<r.days?' ('+w.known+'/'+r.days+' dní)':'';
+    if(w&&w.known){tr.append(node('td',w.rainyDays+' z '+w.known+(part&&w.known<r.days?' dní':''),'num'),node('td',w.rainMm===null?'N/A':oneDec(w.rainMm)+' mm','num'),node('td',(w.tmax===null?'N/A':Math.round(w.tmax))+' / '+(w.tmin===null?'N/A':Math.round(w.tmin))+' °C','num'));}
+    else tr.append(...[1,2,3].map(()=>node('td',entry?.state==='loading'||!entry?'…':'—','num')));
+    body.append(tr);
+   }
+   table.append(head,body);wrap.append(table);
+   const note=entry?.state==='failed'?'Počasie sa nepodarilo načítať, tabuľka ukazuje len sviatky. ':entry?.state==='ok'?'':'Načítavam počasie… ';
+   const card=chartCard('Návštevnosť, sviatky a počasie',wrap,note+'Sviatky: štátne sviatky SR, Silvester a letné prázdniny (júl, august). Počasie: Humenné, denné údaje z Open-Meteo.com; daždivý deň = aspoň '+RAIN_DAY_MM+' mm zrážok. Na deň = návštevy delené počtom dní v týždni. Os. tréningy = počet osobných tréningov, Tržby = predané služby a produkty bez MultiSport; obe máme len za celé týždne, pri skrátenom týždni je N/A. Týždne so štátnym sviatkom sú zvýraznené. Z niekoľkých týždňov sa nedá spoľahlivo určiť, čo návštevnosť ovplyvnilo.');
+   card.classList.add('crm-table-card');root.append(card);
+  }
   if(section==='sales')root.append(node('p','Priame náklady a zisk zatiaľ nie sú vypočítané pre CRM transakcie. '+(hasLive?'':'Potvrdené CRM platby zatiaľ nie sú evidované. ')+multisportReportingMessage(),'crm-note'));
   if(section==='catalogue'){
    const split=salesSplitSeries(facts,weeks,salesGrain),sGrains=[{key:'day',label:'Dni'},{key:'week',label:'Týždne'},{key:'month',label:'Mesiace'}],sForms={day:'dňoch',week:'týždňoch',month:'mesiacoch'},gForm=sForms[salesGrain];
