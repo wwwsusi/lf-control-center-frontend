@@ -124,10 +124,9 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
  const cards=node('div',undefined,'crm-kpi-grid crm-social-kpis');
  cards.append(
   kpiCard({title:all?'Dosah (súčet týždňov)':'Dosah',value:formatCount(cur.total.reach),note:split('reach'),hint:all?'Súčet týždenných dosahov. Ten istý človek oslovený v rôznych týždňoch je započítaný viackrát, takže počet rôznych ľudí je nižší.':'Rôzni ľudia, ktorí videli obsah. FB a IG sa sčítavajú, ten istý človek môže byť v oboch.',change:change('reach')}),
-  kpiCard({title:'Videnia',value:formatCount(cur.total.media_views),note:split('media_views'),hint:'Koľkokrát sa obsah zobrazil, aj opakovane tomu istému človeku.',change:change('media_views')}),
+  kpiCard({title:'Videnia',value:formatCount(cur.total.media_views),note:split('media_views')+(cur.total.profile_views!==null&&cur.total.profile_views!==undefined?' · návštevy profilu '+formatCount(cur.total.profile_views):''),hint:'Koľkokrát sa obsah zobrazil, aj opakovane tomu istému človeku. Návštevy profilu sú návštevy FB stránky a IG profilu.',change:change('media_views')}),
   kpiCard({title:'Interakcie',value:formatCount(cur.total.interactions),note:split('interactions'),hint:'Reakcie, kliknutia, uloženia a zdieľania podľa Meta.',change:change('interactions')}),
-  kpiCard({title:'Noví sledovatelia',value:formatCount(cur.total.new_followers),note:split('new_followers')+(cur.ig?.unfollows!==null&&cur.ig?.unfollows!==undefined?` (IG odišli ${formatCount(cur.ig.unfollows)})`:''),hint:'Iba počty. Meta neposkytuje mená sledovateľov.',change:change('new_followers')}),
-  kpiCard({title:'Návštevy profilu',value:formatCount(cur.total.profile_views),note:split('profile_views'),hint:'Návštevy FB stránky a IG profilu.',change:change('profile_views')})
+  kpiCard({title:'Noví sledovatelia',value:formatCount(cur.total.new_followers),note:split('new_followers')+(cur.ig?.unfollows!==null&&cur.ig?.unfollows!==undefined?` (IG odišli ${formatCount(cur.ig.unfollows)})`:''),hint:'Iba počty. Meta neposkytuje mená sledovateľov.',change:change('new_followers')})
  );
  cards.dataset.n=String(cards.children.length);wrap.append(cards);
 

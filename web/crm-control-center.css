@@ -331,9 +331,13 @@
 .crm-main .crm-kpi-grid[data-n="1"]{--rep-cols:1}.crm-main .crm-kpi-grid[data-n="2"]{--rep-cols:2}.crm-main .crm-kpi-grid[data-n="3"]{--rep-cols:3}
 .crm-main .crm-kpi-grid[data-n="4"]{--rep-cols:4}.crm-main .crm-kpi-grid[data-n="5"]{--rep-cols:5}.crm-main .crm-kpi-grid[data-n="6"]{--rep-cols:3}
 .crm-main .crm-kpi-grid[data-n="7"],.crm-main .crm-kpi-grid[data-n="8"]{--rep-cols:4}
+.crm-main .crm-chart-grid[data-n]{grid-auto-rows:1fr}
 .crm-main .crm-chart-grid[data-n]{grid-template-columns:repeat(var(--rep-ccols,3),minmax(0,1fr))}
 .crm-main .crm-chart-grid[data-n="1"]{--rep-ccols:1}.crm-main .crm-chart-grid[data-n="2"]{--rep-ccols:2}.crm-main .crm-chart-grid[data-n="3"]{--rep-ccols:3}
 .crm-main .crm-chart-grid[data-n="4"]{--rep-ccols:2}.crm-main .crm-chart-grid[data-n="5"],.crm-main .crm-chart-grid[data-n="6"],.crm-main .crm-chart-grid[data-n="7"],.crm-main .crm-chart-grid[data-n="8"]{--rep-ccols:3}
+.crm-main .crm-chart-grid.crm-chart-grid-row4[data-n]{--rep-ccols:4}
+.crm-main .crm-chart-grid.crm-chart-grid-row4[data-n]>.crm-chart-card{min-height:0}
+.crm-main .crm-part-head{flex-wrap:wrap;gap:10px}
 @media(max-width:1180px){
  .crm-main .crm-kpi-grid[data-n]{--rep-cols:2}.crm-main .crm-chart-grid[data-n]{--rep-ccols:2}
  .crm-main .crm-kpi-grid[data-n]>:last-child:nth-child(odd),.crm-main .crm-chart-grid[data-n]>:last-child:nth-child(odd){grid-column:1/-1}

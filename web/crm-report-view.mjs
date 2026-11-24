@@ -139,15 +139,16 @@ export function productRanking(facts,weeks,metric,kind='all'){
 export function salesSplitSeries(facts,weeks,grain){
  if(grain==='day')return null;
  const sumFor=(week,dimension)=>{const rows=facts.filter(f=>f.dimension===dimension&&f.period_start===week.period_start);return rows.length&&rows.every(r=>finite(r.value_eur))?rows.reduce((n,r)=>n+r.value_eur,0):null;};
- const perWeek=weeks.map(w=>({...w,services:sumFor(w,'SERVICE'),products:sumFor(w,'PRODUCT')}));
+ const unitsFor=(week,dimension)=>{const rows=facts.filter(f=>f.dimension===dimension&&f.period_start===week.period_start);return rows.length&&rows.every(r=>finite(r.units))?rows.reduce((n,r)=>n+r.units,0):null;};
+ const perWeek=weeks.map(w=>({...w,services:sumFor(w,'SERVICE'),products:sumFor(w,'PRODUCT'),profitValue:finite(w.profit)?w.profit:null,productUnitsValue:unitsFor(w,'PRODUCT'),serviceUnitsValue:unitsFor(w,'SERVICE')}));
  if(!perWeek.some(w=>w.services!==null||w.products!==null))return null;
  if(grain==='month'){
   const groups=new Map();for(const w of perWeek){const key=monthKeyOfWeek(w.period_start);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(w);}
   const sum=(rows,k)=>rows.every(r=>finite(r[k]))?rows.reduce((n,r)=>n+r[k],0):null;
   const months=[...groups.entries()].sort(([a],[b])=>a<b?-1:1);
-  return {labels:months.map(([k])=>monthLabel(k)),services:months.map(([,r])=>sum(r,'services')),products:months.map(([,r])=>sum(r,'products'))};
+  return {labels:months.map(([k])=>monthLabel(k)),services:months.map(([,r])=>sum(r,'services')),products:months.map(([,r])=>sum(r,'products')),profit:months.map(([,r])=>sum(r,'profitValue')),productUnits:months.map(([,r])=>sum(r,'productUnitsValue')),serviceUnits:months.map(([,r])=>sum(r,'serviceUnitsValue'))};
  }
- return {labels:perWeek.map(w=>w.label),services:perWeek.map(w=>w.services),products:perWeek.map(w=>w.products)};
+ return {labels:perWeek.map(w=>w.label),services:perWeek.map(w=>w.services),products:perWeek.map(w=>w.products),profit:perWeek.map(w=>w.profitValue),productUnits:perWeek.map(w=>w.productUnitsValue),serviceUnits:perWeek.map(w=>w.serviceUnitsValue)};
 }
 // Axis with round tick values (1, 2, 2.5, 5 x 10^n) so labels are readable.
 export function niceScale(min,max,ticks=4){
