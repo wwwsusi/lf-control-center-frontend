@@ -13,6 +13,8 @@ export function holidaysSk(year){
  const easter=easterSunday(year);
  return [...FIXED.map(([m,d,name])=>({date:iso(year,m,d),name,kind:'holiday'})),{date:addDays(easter,-2),name:'Veľký piatok',kind:'holiday'},{date:addDays(easter,1),name:'Veľkonočný pondelok',kind:'holiday'},{date:iso(year,12,31),name:'Silvester (nie štátny sviatok)',kind:'other'}].sort((a,b)=>a.date<b.date?-1:1);
 }
+const WEEKDAYS=['nedeľa','pondelok','utorok','streda','štvrtok','piatok','sobota'];
+export const weekdayName=date=>WEEKDAYS[new Date(date+'T00:00:00Z').getUTCDay()];
 export function daysBetween(from,to){const out=[];for(let d=from;d<=to&&out.length<400;d=addDays(d,1))out.push(d);return out;}
 const isSummerBreak=date=>{const m=Number(date.slice(5,7));return m===7||m===8;};
 // Calendar facts for one date window: statutory holidays, other notable days and whether it falls in the summer school break.
@@ -46,7 +48,7 @@ export function weekContextRows(weeks,weather=null,extra=null){
   const known=weather?cal.days.map(d=>weather.get(d)).filter(Boolean):[];
   const rains=known.map(d=>d.rain).filter(v=>v!==null),maxes=known.map(d=>d.tmax).filter(v=>v!==null),mins=known.map(d=>d.tmin).filter(v=>v!==null);
   const x=extra?extra(w)??{}:{};
-  return {label:w.label,from,to,days:n,training:Number.isFinite(x.training)?x.training:null,sales:Number.isFinite(x.sales)?x.sales:null,salesPerDay:Number.isFinite(x.sales)&&n?x.sales/n:null,visits:Number.isFinite(w.visits)?w.visits:null,perDay:Number.isFinite(w.visits)&&n?w.visits/n:null,holidays:cal.holidays,other:cal.other,summer:cal.summer,
+  return {label:w.label,from,to,days:n,training:Number.isFinite(x.training)?x.training:null,sales:Number.isFinite(x.sales)?x.sales:null,salesPerDay:Number.isFinite(x.sales)&&n?x.sales/n:null,prevSales:Number.isFinite(x.prevSales)?x.prevSales:null,visits:Number.isFinite(w.visits)?w.visits:null,perDay:Number.isFinite(w.visits)&&n?w.visits/n:null,holidays:cal.holidays,other:cal.other,summer:cal.summer,
    weather:weather?{known:known.length,rainyDays:rains.filter(v=>v>=RAIN_DAY_MM).length,rainMm:rains.length?rains.reduce((s,v)=>s+v,0):null,tmax:avg(maxes),tmin:avg(mins)}:null};
  });
 }
