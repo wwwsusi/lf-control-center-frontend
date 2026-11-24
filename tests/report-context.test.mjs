@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {holidaysSk,calendarFor,fetchWeather,weekContextRows} from '../web/crm-report-context.mjs';
+import {weekdayName,holidaysSk,calendarFor,fetchWeather,weekContextRows} from '../web/crm-report-context.mjs';
 
 test('Slovak holidays include moving Easter days and fixed ones',()=>{
  const d=new Map(holidaysSk(2026).map(h=>[h.date,h.name]));
@@ -28,3 +28,5 @@ test('weather failure surfaces as an error and an empty range as an empty map',a
  assert.equal((await fetchWeather('2999-01-01','2999-01-02',{fetchImpl:async()=>{throw Error('no call');}})).size,0);
  assert.equal(weekContextRows([{label:'W1',from:'2026-11-16',to:'2026-11-22',visits:null}])[0].weather,null);
 });
+
+test('weekday names are Slovak',()=>{assert.equal(weekdayName('2026-11-17'),'utorok');assert.equal(weekdayName('2026-11-16'),'pondelok');assert.equal(weekdayName('2026-11-22'),'nedeľa');});
