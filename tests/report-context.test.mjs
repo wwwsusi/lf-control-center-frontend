@@ -21,7 +21,7 @@ test('weather keeps missing days out and never turns them into zero',async()=>{
  const map=await fetchWeather('2026-11-16','2026-11-18',{fetchImpl});
  assert.equal(map.size,2);assert.equal(map.has('2026-11-18'),false);
  const [row]=weekContextRows([{label:'W47',from:'2026-11-16',to:'2026-11-22',visits:275}],map);
- assert.equal(row.days,7);assert.equal(row.weather.known,2);assert.equal(row.weather.rainyDays,1);assert.equal(row.weather.rainMm,8.2);assert.equal(row.holidays[0].date,'2026-11-17');assert.equal(Math.round(row.perDay*10),393);
+ assert.equal(row.days,7);assert.equal(row.weather.known,2);assert.equal(row.weather.rainyDays,1);assert.equal(row.weather.rainMm,8.2);assert.equal(row.holidays[0].date,'2026-11-17');assert.equal(Math.round(row.perDay*10),393);assert.equal(row.training,null);
 });
 test('weather failure surfaces as an error and an empty range as an empty map',async()=>{
  await assert.rejects(fetchWeather('2026-11-16','2026-11-18',{fetchImpl:async()=>({ok:false,status:500})}));

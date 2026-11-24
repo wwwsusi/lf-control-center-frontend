@@ -40,12 +40,13 @@ export async function fetchWeather(from,to,{fetchImpl=globalThis.fetch,signal}={
 export const RAIN_DAY_MM=1;
 const avg=values=>values.length?values.reduce((n,v)=>n+v,0)/values.length:null;
 // One row per week: visits (total and per day), holidays and weather. Weather values use only the days we have; `known` says how many.
-export function weekContextRows(weeks,weather=null){
+export function weekContextRows(weeks,weather=null,extra=null){
  return weeks.map(w=>{
   const from=w.from??w.period_start,to=w.to??w.period_end,cal=calendarFor(from,to),n=cal.days.length;
   const known=weather?cal.days.map(d=>weather.get(d)).filter(Boolean):[];
   const rains=known.map(d=>d.rain).filter(v=>v!==null),maxes=known.map(d=>d.tmax).filter(v=>v!==null),mins=known.map(d=>d.tmin).filter(v=>v!==null);
-  return {label:w.label,from,to,days:n,visits:Number.isFinite(w.visits)?w.visits:null,perDay:Number.isFinite(w.visits)&&n?w.visits/n:null,holidays:cal.holidays,other:cal.other,summer:cal.summer,
+  const x=extra?extra(w)??{}:{};
+  return {label:w.label,from,to,days:n,training:Number.isFinite(x.training)?x.training:null,sales:Number.isFinite(x.sales)?x.sales:null,salesPerDay:Number.isFinite(x.sales)&&n?x.sales/n:null,visits:Number.isFinite(w.visits)?w.visits:null,perDay:Number.isFinite(w.visits)&&n?w.visits/n:null,holidays:cal.holidays,other:cal.other,summer:cal.summer,
    weather:weather?{known:known.length,rainyDays:rains.filter(v=>v>=RAIN_DAY_MM).length,rainMm:rains.length?rains.reduce((s,v)=>s+v,0):null,tmax:avg(maxes),tmin:avg(mins)}:null};
  });
 }
