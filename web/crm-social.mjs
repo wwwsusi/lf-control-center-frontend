@@ -129,7 +129,7 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
   kpiCard({title:'Noví sledovatelia',value:formatCount(cur.total.new_followers),note:split('new_followers')+(cur.ig?.unfollows!==null&&cur.ig?.unfollows!==undefined?` (IG odišli ${formatCount(cur.ig.unfollows)})`:''),hint:'Iba počty. Meta neposkytuje mená sledovateľov.',change:change('new_followers')}),
   kpiCard({title:'Návštevy profilu',value:formatCount(cur.total.profile_views),note:split('profile_views'),hint:'Návštevy FB stránky a IG profilu.',change:change('profile_views')})
  );
- wrap.append(cards);
+ cards.dataset.n=String(cards.children.length);wrap.append(cards);
 
  // Charts over all weeks
  const labels=weeks.map(w=>'W'+w.week),charts=node('div',undefined,'crm-chart-grid');
@@ -142,7 +142,7 @@ export function renderSocial(root,{social,visitRows,state,onChange}){
   chartCard('Najlepšie príspevky podľa dosahu',best.length?rankingChart({rows:best,format:formatCount,legend:[{name:'Facebook',color:SOCIAL_COLORS.facebook},{name:'Instagram',color:SOCIAL_COLORS.instagram}],ariaLabel:'Najlepšie príspevky za posledné štyri týždne podľa dosahu'}):unavailable('V posledných týždňoch nie sú príspevky s nameraným dosahom.'),'Posledné 4 uložené týždne, najvyšší dosah hore. Celý zoznam je v tabuľke nižšie.'),
   chartCard('Noví sledovatelia po týždňoch',columnChart({labels,series:[{name:'Facebook',color:SOCIAL_COLORS.facebook,values:weeks.map(w=>w.fb?.new_followers??null)},{name:'Instagram',color:SOCIAL_COLORS.instagram,values:weeks.map(w=>w.ig?.new_followers??null)}],ariaLabel:'Noví sledovatelia po týždňoch'}),'Iba počty. Mená sledovateľov Meta neposkytuje; pozri ich ručne v Meta Business Suite → Publikum.')
  );
- wrap.append(charts);
+ charts.dataset.n=String(charts.children.length);wrap.append(charts);
 
  // Followers per week table
  const ft=node('table',undefined,'crm-report-table');const fh=node('tr');for(const h of ['Týždeň','FB noví','IG noví','IG odišli'])fh.append(node('th',h));const fhead=node('thead');fhead.append(fh);const fb=node('tbody');
