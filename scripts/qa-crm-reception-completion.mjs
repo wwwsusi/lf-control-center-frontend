@@ -76,6 +76,11 @@ try{
   // connection loss: the purchase waits in memory and the same request is replayed by itself when the network is back
   dropNext=true;await page.getByRole('button',{name:'Zapísať nákup',exact:true}).click();
   await expect(page.getByText('Bez spojenia. Zápis čaká a odošle sa sám po obnovení spojenia. Zostaň na tejto obrazovke.',{exact:true})).toBeVisible();assert.equal(writes.length,1);
+  // the browser's offline and hidden events must not discard the waiting write; hidden data stays invisible until return
+  const setHidden=value=>page.evaluate(v=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>v});document.dispatchEvent(new Event('visibilitychange'));},value);
+  await page.evaluate(()=>window.dispatchEvent(new Event('offline')));await expect(page.locator('#crm-workspace')).toBeVisible();
+  await setHidden(true);await expect(page.locator('#crm-workspace')).toBeHidden();
+  await setHidden(false);await expect(page.locator('#crm-workspace')).toBeVisible();
   await expect(page.getByRole('status').filter({hasText:'Nákup bol zaznamenaný.'})).toBeVisible({timeout:25000});
   assert.equal(writes.filter(w=>w.operation_type==='CREATE_SALE').length,1);assert.equal(writes.filter(w=>w.operation_type==='CONFIRM_SALE').length,1);
   assert.equal(writes.some(w=>w.operation_type.includes('PAYMENT')),false);
@@ -88,6 +93,8 @@ try{
   await expect(page.getByRole('heading',{name:'Recepcia',exact:true})).toBeVisible({timeout:8000});
   await openProfile();await expect(page.getByText('9 z 10 vstupov',{exact:true})).toBeVisible();
   assert.deepEqual(writes.map(w=>w.operation_type),['UPDATE_CUSTOMER','CREATE_SALE','CONFIRM_SALE','CHECK_IN']);
+  // with nothing pending the offline event still hides everything
+  await page.evaluate(()=>window.dispatchEvent(new Event('offline')));await expect(page.locator('#crm-workspace')).toBeHidden();assert.equal(await page.locator('#crm-content').textContent(),'');
   assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.close();
  }
