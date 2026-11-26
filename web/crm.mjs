@@ -135,7 +135,9 @@ function choice(label,title,hint,action,tone){const b=button('',action);b.classN
 let visitFlow=false,cartFlow=false;
 // R1 (owner approval LF-CRM-R1-2026-11) has no permanentky: the entry is hidden until R2 enables entitlements.
 const PERMANENTKY_ENABLED=false;
-function admissions(){visitFlow=false;cartFlow=false;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis, nákup.';return;}purchase?.dispose();purchase=null;heading('Ako vstupuje?');const grid=node('div',undefined,'crm-choice-grid crm-choice-grid-'+(PERMANENTKY_ENABLED?3:2));if(PERMANENTKY_ENABLED)grid.append(choice('Má permanentku','Má permanentku','Nájdi ju v zozname a zapíš vstup.',()=>{visitFlow=true;customerSearch();},'pink'));grid.append(choice('Jednorazový vstup','Jednorazový vstup','Platba na pokladni. Bez zápisu mena.',openSingleEntry,'cyan'),choice('MultiSport','MultiSport','Zapíš vstup cez MultiSport.',openMultisport,'amber'));content.append(grid);}
+function admissions(){visitFlow=false;cartFlow=false;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis, nákup.';return;}purchase?.dispose();purchase=null;heading('Ako vstupuje?');const grid=node('div',undefined,'crm-choice-grid crm-choice-grid-'+(PERMANENTKY_ENABLED?3:2));if(PERMANENTKY_ENABLED)grid.append(choice('Má permanentku','Má permanentku','Nájdi ju v zozname a zapíš vstup.',()=>{visitFlow=true;customerSearch();},'pink'));grid.append(choice('Jednorazový vstup','Jednorazový vstup','Platba na pokladni. Bez zápisu mena.',openSingleEntry,'cyan'),choice('MultiSport','MultiSport','Zapíš vstup cez MultiSport.',openMultisport,'amber'));content.append(grid);if(!PERMANENTKY_ENABLED)content.append(passBanner());}
+// A client with a pass is recorded by name: both buttons lead straight to the check-in of the chosen client.
+function passBanner(){const box=node('section',undefined,'crm-card crm-pass-banner'),actions=node('div',undefined,'crm-pass-banner-actions');actions.append(button('Skenovať kartu',()=>scanScreen(true)),button('Vyhľadať klientku',()=>{visitFlow=true;cartFlow=false;customerSearch();}));box.append(node('h3','Má klientka permanentku?'),node('p','Pre zápis vstupu naskenuj jej QR kartu alebo ju vyhľadaj podľa mena.'),actions);return box;}
 const ENTRY_LEAD='Vyber vstup. Jedno kliknutie ho zapíše bez mena.',ENTRY_LEAD_CLIENT='Vyber vstup. Jedno kliknutie ho zapíše.';
 function entryScreen(title,{lead=ENTRY_LEAD,sub=null,extra=[],back=admissions,backLabel='Späť na výber',action=null}={}){content.classList.add('crm-big');content.dataset.mode='accent';content.replaceChildren();const box=node('section',undefined,'crm-card'),root=node('div',undefined,'crm-mode-box');if(action){const head=node('div',undefined,'crm-screen-head');head.append(node('h2',title),action);box.append(head);}else box.append(node('h2',title));if(sub)box.append(node('p',sub,'crm-sub'));box.append(node('p',lead,'crm-lead'),root);content.append(box,...extra,button(backLabel,back));return root;}
 function clientVisit(data,{back=customerSearch,backLabel='Späť na hľadanie'}={}){
@@ -204,8 +206,9 @@ function openBody(data){
  purchase?.dispose();epoch++;controller?.abort();
  purchase=mountBodyMeasurements({root:content,api,customer:data.customer,onAuthFailure:code=>wipe(labels[code]),onBack:()=>{purchase?.dispose();purchase=null;customer(data.customer.id);}});
 }
-function scanScreen(){
- if(!active)return;visitFlow=false;cartFlow=false;
+// forVisit is true only when opened from the check-in screen; click events passed by other buttons do not count.
+function scanScreen(forVisit){
+ if(!active)return;visitFlow=forVisit===true;cartFlow=false;
  if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}
  purchase?.dispose();purchase=null;epoch++;controller?.abort();heading('Skenovať kartu');
  const root=node('div');content.append(root);
