@@ -28,7 +28,7 @@ export function entitlementView(e,today){
  return named;
 }
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'];
-export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure,onAddPass=null,onEditPass=null,onCard=null}){
+export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure,onAddPass=null,onEditPass=null,onCard=null,onBody=null}){
  let live=true;const controller=new AbortController(),c=data.customer;
  const button=(label,fn,cls)=>{const b=el('button',label,cls);b.type='button';b.addEventListener('click',fn);return b;};
  const kv=(label,value)=>{const r=el('div',undefined,'crm-kv crm-kv-stack');r.append(el('span',label),el('strong',value||'—'));return r;};
@@ -45,6 +45,7 @@ export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onE
  const headActions=el('div',undefined,'crm-profile-head-actions');
  if(onEdit)headActions.append(button('Opraviť osobné údaje',onEdit,'crm-profile-edit'));
  if(onCard)headActions.append(button('Karta s QR kódom',onCard,'crm-profile-edit'));
+ if(onBody)headActions.append(button('Meranie tela',onBody,'crm-profile-edit'));
  if(headActions.children.length)who.append(headActions);
  head.append(who,ents);root.append(head);
  // actions in their own box below the details

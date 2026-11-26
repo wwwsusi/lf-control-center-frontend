@@ -1,0 +1,108 @@
+/* Body composition: measurement screens in the CRM and the A4 client report. The report is always light because it is printed. */
+.crm-body{display:grid;gap:14px}
+.crm-body-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 14px}
+.crm-body-grid.crm-body-seg{grid-template-columns:repeat(2,minmax(0,1fr))}
+.crm-body label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.crm-body input[type=text],.crm-body input[type=date]{width:100%;min-width:0;box-sizing:border-box}
+.crm-body input[aria-invalid=true]{outline:2px solid #ff6b81}
+.crm-body .crm-body-check{flex-direction:row;align-items:flex-start;gap:10px}
+.crm-body .crm-body-check input{margin-top:4px;flex:none}
+.crm-body-errors{margin:0;padding-left:18px;color:#ff8fa0}
+.crm-body-errors:empty{display:none}
+.crm-body-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.crm-body-row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:10px 14px}
+.crm-body-actions{display:flex;flex-wrap:wrap;gap:10px}
+.crm-main .crm-card.crm-body .crm-body-actions button{width:auto;min-height:52px;flex:0 1 auto}
+.crm-main .crm-card.crm-body input[type=checkbox]{width:22px;height:22px;min-height:0;padding:0}
+.crm-body .crm-body-actions[hidden]{display:none}
+.crm-body-stage{position:relative;width:100%;max-width:794px;overflow:hidden}
+.crm-body-stage>.crm-body-sheet{position:absolute;left:0;top:0;transform-origin:top left}
+.crm-body-sheet{width:794px;height:1123px}
+.crm-body-printroot{display:none}
+@media print{
+ html:has(body.crm-body-print),body.crm-body-print{margin:0!important;padding:0!important;min-height:0!important;height:auto!important;background:#fff!important}
+ body.crm-body-print>:not(.crm-body-printroot){display:none!important}
+ body.crm-body-print>.crm-body-printroot{display:block}
+ body.crm-body-print .crm-body-printroot,body.crm-body-print .crm-body-printroot *{visibility:visible;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+.lf-report{width:794px;height:1123px;position:relative;overflow:hidden;background:linear-gradient(180deg,#ffffff 0%,#fdf3f6 100%);color:#2b2327;
+  font-family:Inter,system-ui,sans-serif;font-size:11.5px;line-height:1.35;padding:26px 30px 20px;
+  display:grid;grid-template-rows:108px 48px 226px 192px 272px 1fr;row-gap:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
+.lf-report *{box-sizing:border-box}
+.lf-report .hd{position:relative;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:16px;align-items:start}
+.lf-report .hd .tx{padding-top:2px}
+.lf-report .kicker{font-size:10.5px;font-weight:700;letter-spacing:.2em;color:#b8426f}
+.lf-report .ttl{font-size:30px;font-weight:700;letter-spacing:.01em;line-height:1.15;white-space:nowrap;margin-top:2px}
+.lf-report .logoimg{height:80px;width:auto;display:block}
+.lf-report .tag{grid-column:1 / span 2;text-align:center;font-style:italic;font-weight:500;font-size:19px;color:#b8426f;margin-top:-14px;line-height:1.2}
+.lf-report .info{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #e6d3db;border-bottom:1px solid #e6d3db;align-items:center}
+.lf-report .info div{padding:0 12px;border-left:1px solid #eadbe1}
+.lf-report .info div:first-child{border-left:0;padding-left:0}
+.lf-report .info small{display:block;font-size:9.5px;color:#6f6169}
+.lf-report .info b{font-size:14px;font-weight:600}
+.lf-report .main{display:grid;grid-template-columns:206px 1fr 206px;column-gap:14px;position:relative}
+.lf-report h3{margin:0 0 8px;font-size:12.5px;letter-spacing:.14em;font-weight:700;text-transform:uppercase}
+.lf-report .donut{position:relative;width:196px;height:196px;margin:6px auto 0}
+.lf-report .donut svg{position:absolute;inset:0}
+.lf-report .donut .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.lf-report .donut .c span{font-size:12px}
+.lf-report .donut .c b{font-size:30px;font-weight:700;line-height:1.1}
+.lf-report .donut .c b small{font-size:17px;font-weight:600}
+.lf-report .donut .cap{font-size:9px;color:#6f6169;margin-top:2px}
+.lf-report .pill{display:inline-block;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:600;white-space:nowrap}
+.lf-report .pill.good{background:#dff0cf;color:#2f5a1c}
+.lf-report .pill.warn{background:#fbe3c9;color:#7a4510}
+.lf-report .pill.neu{background:#eee5e9;color:#5b4b53}
+.lf-report .pill.bw{background:#fbe0e7;color:#8a2a52}
+.lf-report .comp{display:flex;flex-direction:column;gap:7px}
+.lf-report .crow{display:grid;grid-template-columns:1fr auto 58px;align-items:center;gap:8px;background:#f8e9ee;border-radius:9px;padding:0 10px;height:42px}
+.lf-report .crow span{font-size:12px}
+.lf-report .crow b{font-size:15px;font-weight:600;text-align:right;white-space:nowrap}
+.lf-report .crow .pill{justify-self:end}
+.lf-report .more{border-left:1px solid #e6d3db;padding-left:14px}
+.lf-report .mrow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid #eadbe1;height:36px;font-size:11.5px}
+.lf-report .mrow b{font-weight:600;font-size:12px;white-space:nowrap}
+.lf-report .mrow span{white-space:nowrap;font-size:10.5px}
+.lf-report .seg{display:grid;grid-template-columns:430px 1fr;column-gap:16px;border-top:1px solid #e6d3db;padding-top:10px;min-height:0}
+.lf-report .segw{min-height:220px;display:grid;grid-template-columns:132px 1fr 132px;column-gap:8px}
+.lf-report .segcol{display:flex;flex-direction:column;justify-content:space-between;padding:2px 0 6px}
+.lf-report .sc{background:#fff;border:1px solid #eadbe1;border-radius:8px;padding:6px 8px;box-shadow:0 1px 3px rgba(120,60,90,.06)}
+.lf-report .sc b{display:block;font-size:11px;margin-bottom:3px}
+.lf-report .sl{display:grid;grid-template-columns:46px 1fr;align-items:center;gap:6px;font-size:10.5px;height:16px}
+.lf-report .bar{height:6px;border-radius:3px;background:#ebe4e7;overflow:hidden}
+.lf-report .bar i{display:block;height:100%;border-radius:3px}
+.lf-report .bar i.m{background:#b0406f}.lf-report .bar i.f{background:#f3b8cc}
+.lf-report .sil{display:flex;justify-content:center}
+.lf-report .legend{font-size:9px;color:#6f6169;display:flex;gap:10px;margin:-2px 0 6px}
+.lf-report .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.lf-report .cmp .cr{display:grid;grid-template-columns:1fr auto;align-items:center;border-bottom:1px solid #eadbe1;height:38px;font-size:12px}
+.lf-report .eval{display:grid;grid-template-columns:1.05fr 1fr;column-gap:0;border-top:1px solid #e6d3db;padding-top:10px}
+.lf-report .evl{padding-right:18px}
+.lf-report .evr{background:linear-gradient(135deg,#fdf6f8,#f7e6ed);border-radius:10px;padding:12px 16px}
+.lf-report .evr h3{font-size:13.5px}
+.lf-report .rec{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:start;margin-bottom:7px;font-size:11.5px}
+.lf-report .rec i{width:18px;height:18px;border-radius:50%;background:#c9477b;color:#fff;font-style:normal;font-size:11px;text-align:center;line-height:18px}
+.lf-report .ranges{border-top:1px solid #e6d3db;padding-top:10px}
+.lf-report .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 30px}
+.lf-report .rgh{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.lf-report .rgh b{font-size:11.5px}
+.lf-report .rgh span{font-size:9px;color:#8a7b83}
+.lf-report .rgh em{margin-left:auto;font-style:normal;font-weight:700;font-size:12.5px;color:#b0406f}
+.lf-report .rgbar{display:grid;position:relative;margin-top:11px}
+.lf-report .rgbar div{padding:4px 0;text-align:center;font-size:9.5px;color:#4a3b43}
+.lf-report .rgbar div:first-of-type{border-radius:12px 0 0 12px}.lf-report .rgbar div:last-of-type{border-radius:0 12px 12px 0}
+.lf-report .rgn{display:grid;font-size:9.5px;color:#6f6169;text-align:center;margin-top:2px}
+.lf-report .rgn .on{color:#b0406f;font-weight:700}
+.lf-report .mk{position:absolute;top:-10px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid #b0406f;transform:translateX(-6px)}
+.lf-report .mrow.tall{height:auto;padding:6px 0;flex-wrap:wrap}
+.lf-report .mnote{flex-basis:100%;font-size:9.5px;color:#6f6169;margin-top:-2px}
+.lf-report .sum{display:grid;grid-template-columns:30px 1fr;gap:8px;background:#f9e8ee;border-radius:10px;padding:10px 12px;margin-top:6px;font-size:11.5px;line-height:1.4}
+.lf-report .sum i{width:26px;height:26px;border-radius:50%;background:#c9477b;color:#fff;font-style:normal;text-align:center;line-height:26px}
+.lf-report .disc{position:absolute;left:30px;bottom:6px;font-size:8px;color:#8a7b83}
+.lf-report .cmp-first{font-size:11.5px;color:#5b4b53;margin:8px 0 0;line-height:1.55}
+.lf-report h3,.lf-report b,.lf-report p{color:inherit}
+.lf-report .cmp-first{color:#5b4b53}
+/* The CRM heading styles must not reach into the report: screen preview and printed copy have to look the same. */
+:is(#lf-none,html) .lf-report h3{font:700 12.5px/1.35 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;margin:0 0 8px;padding:0;color:inherit}
+:is(#lf-none,html) .lf-report .evr h3{font-size:13.5px}
+:is(#lf-none,html) .lf-report small{line-height:inherit}

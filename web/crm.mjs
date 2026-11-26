@@ -15,6 +15,7 @@ import {skDate,membershipView,mountClientProfile,detectSearchMode} from './crm-c
 import {mountClientTable} from './crm-client-table.mjs';
 import {mountScanner,attachReader,parseCardCode} from './crm-scan.mjs';
 import {mountCard} from './crm-card.mjs';
+import {mountBodyMeasurements} from './crm-body.mjs';
 import {mountControlCenter} from './crm-control-center.mjs?v=20261108-integrated-views';
 import {idleRemaining,isTrustedUserActivity,formatIdleRemaining,idleState,logoutRemaining} from './crm-session-idle.mjs?v=20261109-session-bar';
 // CRM data stays transient: no browser storage, URL contacts, dashboard imports or analytics.
@@ -107,6 +108,7 @@ function customer(id){
    onEdit:data.can_edit===true?()=>openCustomerForm(data.customer):null,
    onAddPass:data.can_manage_passes===true&&active?()=>openPassForm(data):null,onEditPass:data.can_manage_passes===true?e=>openPassForm(data,e):null,
    onCard:data.card_codes_enabled===true?()=>openCard(data):null,
+   onBody:data.body_measurements_enabled===true?()=>openBody(data):null,
    onVisit:active?()=>{visitFlow=true;clientVisit(data,{back:toProfile,backLabel:'Späť na klientku'});}:null,
    onShop:active?()=>clientCart(data,{back:toProfile}):null});
  });
@@ -193,6 +195,11 @@ function openCard(data){
  purchase?.dispose();epoch++;controller?.abort();
  purchase=mountCard({root:content,api,customer:data.customer,card:data.card,onAuthFailure:code=>wipe(labels[code]),onBack:()=>customer(data.customer.id),
   onIssued:()=>{purchase?.dispose();purchase=null;read({view:'CUSTOMER',customer_id:data.customer.id},fresh=>openCard(fresh));}});
+}
+function openBody(data){
+ if(!active)return;if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný zápis.';return;}
+ purchase?.dispose();epoch++;controller?.abort();
+ purchase=mountBodyMeasurements({root:content,api,customer:data.customer,onAuthFailure:code=>wipe(labels[code]),onBack:()=>{purchase?.dispose();purchase=null;customer(data.customer.id);}});
 }
 function scanScreen(){
  if(!active)return;visitFlow=false;cartFlow=false;
