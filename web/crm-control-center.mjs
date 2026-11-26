@@ -1,15 +1,16 @@
+import {renderGoogleCalendar} from './crm-google-calendar.mjs';
 import {renderOperational} from './operational.mjs?v=20261011-legends-controls';
 import {renderUX} from './ux.mjs?v=20261011-legends-controls';
 import {pragueToday} from './ux-model.mjs?v=20261011-legends-controls';
 import {registryStatus,statusLabel,statusDomain,renderStatusLegend} from './status-model.mjs?v=20261011-legends-controls';
 import {enhanceTable,statusTone} from './reporting.mjs?v=20261011-legends-controls';
 
-const views=[['overview','Prehľad'],['tasks','Úlohy'],['calendar','Kalendár'],['campaigns','Kampane'],['sources','Kvalita']];
+const views=[['overview','Prehľad'],['tasks','Úlohy'],['gcal','Kalendár'],['calendar','Termíny úloh'],['campaigns','Kampane'],['sources','Kvalita']];
 const make=(tag,text,parent,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=String(text);if(className)el.className=className;parent?.append(el);return el;};
 const action=(label,fn,parent)=>{const el=make('button',label,parent);el.type='button';el.addEventListener('click',fn);return el;};
 
 export function mountControlCenter({root,api,onAuthFailure,onBack}){
- let live=true,loading=false,data=null,section='overview',calendarMonth=pragueToday().slice(0,7),requestController=null;
+ let live=true,loading=false,data=null,section='overview',calendarMonth=pragueToday().slice(0,7),requestController=null;let gcalMode='WEEK';
  const memory=new Map(),storage={getItem:key=>memory.get(key)??null,setItem:(key,value)=>{memory.set(key,String(value));},removeItem:key=>memory.delete(key)};
  const disposeRequest=()=>{requestController?.abort();requestController=null;};
 
@@ -42,6 +43,7 @@ export function mountControlCenter({root,api,onAuthFailure,onBack}){
   const renderLegend=(target)=>renderStatusLegend({data,section,parent:target,make,statusBadge});
   const tableShell=(title,columns,parent,note='',controls=true)=>{const box=make('section',undefined,parent,'dash-group');box.dataset.title=title;make('h3',title,box);if(note)make('p',note,box,'section-note');const wrap=make('div',undefined,box,'table-scroll'),table=make('table',undefined,wrap,'report-table');table.setAttribute('aria-label',title);const head=make('thead',undefined,table),body=make('tbody',undefined,table);if(controls)enhanceTable({table,head,body,columns,box,make,action});else{const row=make('tr',undefined,head);for(const label of columns)make('th',label,row).scope='col';}renderLegend(box);return {box,body};};
   const sectionKey=section;
+  if(sectionKey==='gcal'){renderGoogleCalendar({parent:host,make,action,mode:gcalMode,onMode:m=>{gcalMode=m;render();}});return;}
   if(sectionKey==='sources'){renderOperational({data,section:sectionKey,parent:host,make,action,detail,statusBadge,tableShell});return;}
   renderUX({data,section:sectionKey,parent:host,make,action,detail,statusBadge,tableShell,renderLegend,calendarMonth,onCalendarMonth:next=>{calendarMonth=next;render();},storage});
  }
