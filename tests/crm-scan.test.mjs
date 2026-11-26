@@ -20,5 +20,12 @@ test('reader picks up a fast burst ending with Enter and ignores slow typing and
 });
 test('the reception home offers a scan tile that opens the scanner screen',async()=>{
  const {readFileSync}=await import('node:fs');const src=readFileSync(new URL('../web/crm.mjs',import.meta.url),'utf8');
- assert(src.includes("['Skenovať kartu',")&&src.includes('function scanScreen()')&&src.includes("'Skenovať kartu':['grid','cyan']"));
+ assert(src.includes("['Skenovať kartu',")&&src.includes('function scanScreen(forVisit){')&&src.includes("'Skenovať kartu':['grid','cyan']"));
+});
+test('the check-in screen points pass holders to scan or search, both leading to check-in',async()=>{
+ const {readFileSync}=await import('node:fs');const src=readFileSync(new URL('../web/crm.mjs',import.meta.url),'utf8');
+ assert(src.includes('Má klientka permanentku?')&&src.includes('content.append(grid);if(!PERMANENTKY_ENABLED)content.append(passBanner());'));
+ assert(src.includes("button('Skenovať kartu',()=>scanScreen(true))")&&src.includes("button('Vyhľadať klientku',()=>{visitFlow=true;cartFlow=false;customerSearch();})"));
+ // other buttons pass a click event to scanScreen, which must not switch on the check-in flow
+ assert(src.includes('visitFlow=forVisit===true;'));
 });
