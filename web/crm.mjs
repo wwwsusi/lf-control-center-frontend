@@ -72,15 +72,15 @@ function customerSearch(){
  if(purchase?.hasPending?.()){status.textContent='Najprv over rozpracovaný nákup.';return;}purchase?.dispose();purchase=null;
  content.classList.add('crm-big');delete content.dataset.mode;content.replaceChildren();
  const owner=role==='OWNER_ADMIN';if(!owner)clientView='cards';
- const head=node('div',undefined,'crm-screen-head');head.append(node('h2','Zoznam klientov'));
+ const head=node('div',undefined,'crm-screen-head crm-list-head');head.append(node('h2','Zoznam klientov'));
  const views=node('div',undefined,'crm-segment crm-view-switch');views.setAttribute('aria-label','Zobrazenie zoznamu');
- if(owner){for(const [key,label] of [['cards','Karty'],['table','Tabuľka']]){const b=button(label,()=>{clientView=key;for(const x of views.children)x.setAttribute('aria-pressed',String(x.dataset.view===clientView));draw();});b.dataset.view=key;b.setAttribute('aria-pressed',String(clientView===key));views.append(b);}head.append(views);}
+ if(owner){for(const [key,label] of [['cards','Karty'],['table','Tabuľka']]){const b=button(label,()=>{clientView=key;for(const x of views.children)x.setAttribute('aria-pressed',String(x.dataset.view===clientView));draw();});b.dataset.view=key;b.setAttribute('aria-pressed',String(clientView===key));views.append(b);}}
  const scanRoot=node('div');let scanning=null;
  const openScan=()=>{if(scanning?.isActive())return;scanning=mountScanner({root:scanRoot,onCode:token=>{scanning=null;openByCard(token);},onClose:()=>{scanning=null;}});};
  head.append(button('Skenovať kartu',openScan),button('Založiť novú klientku',()=>openCustomerForm()));content.append(head,scanRoot);
  detachReader?.();detachReader=attachReader({onCode:token=>{scanning?.dispose();scanning=null;openByCard(token);}});
  const form=node('form',undefined,'crm-search'),label=node('label','Meno alebo kontakt'),input=node('input');input.minLength=2;input.maxLength=200;input.autocomplete='off';input.placeholder='meno, telefón alebo e-mail';label.append(input);
- const submit=node('button','Vyhľadať');submit.type='submit';form.append(label,submit);content.append(form);
+ const submit=node('button','Vyhľadať');submit.type='submit';form.append(label);if(owner){form.classList.add('crm-search-views');form.append(views);}form.append(submit);content.append(form);
  const grid=node('div',undefined,'crm-client-grid'),tableRoot=node('div'),more=node('div');content.append(grid,tableRoot,more);
  const state={items:[],next:null,query:'',mode:'NAME',empty:false,tstate:{}};let token=0,table=null;
  const openItem=i=>customer(i.id);
