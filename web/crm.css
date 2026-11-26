@@ -394,7 +394,7 @@
 .crm-main .crm-profile-head .crm-profile-ents{margin:0;padding:0 0 0 28px;border-top:0;border-left:1px solid var(--line,#304056)}
 .crm-main .crm-profile-head .crm-contact{grid-template-columns:1fr;gap:6px}
 .crm-ent-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.crm-ent-title{font:700 26px/1.25 Inter,system-ui,sans-serif;color:#64d8df}
+.crm-ent-title{font:700 26px/1.25 Inter,system-ui,sans-serif;color:var(--pink,#ed0d5b)}
 .crm-ent-top .crm-chip-status{font-size:22px;font-weight:700;padding:6px 18px;border-radius:999px}
 .crm-ent-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 24px}
 .crm-ent-row{display:flex;flex-direction:column;gap:1px}
