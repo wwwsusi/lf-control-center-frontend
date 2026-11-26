@@ -18,6 +18,9 @@ import {mountCard} from './crm-card.mjs';
 import {mountBodyMeasurements} from './crm-body.mjs';
 import {mountControlCenter} from './crm-control-center.mjs?v=20261108-integrated-views';
 import {idleRemaining,isTrustedUserActivity,formatIdleRemaining,idleState,logoutRemaining} from './crm-session-idle.mjs?v=20261109-session-bar';
+// Dark/light switch. The choice lives only in this page: the CRM stores nothing in the browser, so a reload starts dark again.
+const themeButton=document.getElementById('crm-theme');
+if(themeButton)themeButton.onclick=()=>{const light=document.documentElement.dataset.theme!=='light';if(light)document.documentElement.dataset.theme='light';else delete document.documentElement.dataset.theme;themeButton.textContent=light?'☾ Tmavý režim':'☀ Svetlý režim';themeButton.setAttribute('aria-pressed',String(light));document.querySelector('meta[name="color-scheme"]')?.setAttribute('content',light?'light':'dark');};
 // CRM data stays transient: no browser storage, URL contacts, dashboard imports or analytics.
 const byId=id=>document.getElementById(id),workspace=byId('crm-workspace'),content=byId('crm-content'),status=byId('crm-status');
 let purchase=null,access=null,dayPrompt=null,workspaceEnabled=true,priceListEnabled=false,reportSummaryEnabled=false,ownerTasksEnabled=false;
