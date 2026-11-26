@@ -1,16 +1,21 @@
-import {renderGoogleCalendar} from './crm-google-calendar.mjs';
+import {renderUnifiedCalendar,visibleRange} from './crm-google-calendar.mjs';
 import {renderOperational} from './operational.mjs?v=20261011-legends-controls';
 import {renderUX} from './ux.mjs?v=20261011-legends-controls';
 import {pragueToday} from './ux-model.mjs?v=20261011-legends-controls';
 import {registryStatus,statusLabel,statusDomain,renderStatusLegend} from './status-model.mjs?v=20261011-legends-controls';
 import {enhanceTable,statusTone} from './reporting.mjs?v=20261011-legends-controls';
 
-const views=[['overview','Prehľad'],['tasks','Úlohy'],['gcal','Kalendár'],['calendar','Termíny úloh'],['campaigns','Kampane'],['sources','Kvalita']];
+const views=[['overview','Prehľad'],['tasks','Úlohy'],['calendar','Kalendár'],['campaigns','Kampane'],['sources','Kvalita']];
 const make=(tag,text,parent,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=String(text);if(className)el.className=className;parent?.append(el);return el;};
 const action=(label,fn,parent)=>{const el=make('button',label,parent);el.type='button';el.addEventListener('click',fn);return el;};
 
 export function mountControlCenter({root,api,onAuthFailure,onBack}){
- let live=true,loading=false,data=null,section='overview',calendarMonth=pragueToday().slice(0,7),requestController=null;let gcalMode='WEEK';
+ let live=true,loading=false,data=null,section='overview',calendarMonth=pragueToday().slice(0,7),requestController=null;let calState={mode:'WEEK',anchor:pragueToday(),filters:{google:true,task:true,campaign:true,offer:true}},gcal={key:null,status:'loading',calendar:null},gcalController=null;
+ function loadGoogle(range,force=false){
+  const key=range.from+'|'+range.to;if(!force&&gcal.key===key)return;
+  gcalController?.abort();gcalController=new AbortController();gcal={key,status:'loading',calendar:null};
+  api('/api/crm/read',{body:{view:'GOOGLE_CALENDAR',date_from:range.from,date_to:range.to},signal:gcalController.signal}).then(r=>{if(!live||gcal.key!==key)return;gcal={key,status:'ok',calendar:r.calendar};if(section==='calendar')render();}).catch(error=>{if(!live||error?.name==='AbortError'||gcal.key!==key)return;if(['AUTH_REQUIRED','FORBIDDEN'].includes(error?.code)){onAuthFailure(error.code);return;}gcal={key,status:error?.code==='CALENDAR_NOT_CONFIGURED'?'not_configured':'error',calendar:null};if(section==='calendar')render();});
+ }
  const memory=new Map(),storage={getItem:key=>memory.get(key)??null,setItem:(key,value)=>{memory.set(key,String(value));},removeItem:key=>memory.delete(key)};
  const disposeRequest=()=>{requestController?.abort();requestController=null;};
 
@@ -43,17 +48,17 @@ export function mountControlCenter({root,api,onAuthFailure,onBack}){
   const renderLegend=(target)=>renderStatusLegend({data,section,parent:target,make,statusBadge});
   const tableShell=(title,columns,parent,note='',controls=true)=>{const box=make('section',undefined,parent,'dash-group');box.dataset.title=title;make('h3',title,box);if(note)make('p',note,box,'section-note');const wrap=make('div',undefined,box,'table-scroll'),table=make('table',undefined,wrap,'report-table');table.setAttribute('aria-label',title);const head=make('thead',undefined,table),body=make('tbody',undefined,table);if(controls)enhanceTable({table,head,body,columns,box,make,action});else{const row=make('tr',undefined,head);for(const label of columns)make('th',label,row).scope='col';}renderLegend(box);return {box,body};};
   const sectionKey=section;
-  if(sectionKey==='gcal'){renderGoogleCalendar({parent:host,make,action,mode:gcalMode,onMode:m=>{gcalMode=m;render();}});return;}
+  if(sectionKey==='calendar'){const range=visibleRange(calState.mode,calState.anchor);if(calState.filters.google)loadGoogle(range);renderUnifiedCalendar({parent:host,make,action,data,state:calState,google:gcal,onState:patch=>{calState={...calState,...patch};render();},onDetail:detail,onRetryGoogle:()=>{loadGoogle(range,true);render();}});return;}
   if(sectionKey==='sources'){renderOperational({data,section:sectionKey,parent:host,make,action,detail,statusBadge,tableShell});return;}
   renderUX({data,section:sectionKey,parent:host,make,action,detail,statusBadge,tableShell,renderLegend,calendarMonth,onCalendarMonth:next=>{calendarMonth=next;render();},storage});
  }
 
  async function load(){
-  if(!live||loading)return;loading=true;disposeRequest();requestController=new AbortController();
+  if(!live||loading)return;loading=true;disposeRequest();gcal={...gcal,key:null};requestController=new AbortController();
   if(!data)root.replaceChildren(make('h2','Úlohy'),make('p','Načítavam existujúce pohľady Control Center…',null,'crm-note'));
   try{const result=await api('/api/crm/read',{body:{view:'OWNER_CONTROL_CENTER'},signal:requestController.signal});if(!live)return;if(result?.dashboard?.origin!=='supabase'||!Array.isArray(result.dashboard.items)||!result.dashboard.status_catalog){throw new Error('PROJECTION_INVALID');}data=result.dashboard;render();}
   catch(error){if(!live||error.name==='AbortError')return;if(['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'].includes(error.code)){onAuthFailure(error.code);return;}root.replaceChildren(make('h2','Úlohy'),make('p','Pohľady Control Center nie sú dostupné. Existujúci register a záznamy zostali nezmenené.',null,'crm-error'),action('Skúsiť znova',load));}
   finally{loading=false;}
  }
- load();return {dispose(){live=false;disposeRequest();root.replaceChildren();}};
+ load();return {dispose(){live=false;disposeRequest();gcalController?.abort();root.replaceChildren();}};
 }
