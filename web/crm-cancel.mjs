@@ -6,6 +6,7 @@ const HIDDEN_CODES=['FORBIDDEN','POLICY_BLOCKED','CRM_NOT_ACTIVE'];
 const DEFINITE=['VALIDATION_ERROR','FORBIDDEN','POLICY_BLOCKED','BUSINESS_REJECTED','REVISION_CONFLICT'];
 const ERROR_TEXT={REVISION_CONFLICT:'Záznam sa medzitým zmenil. Zoznam sa obnoví, skús to znova.',BUSINESS_REJECTED:'Tento záznam sa už nedá stornovať (je stornovaný alebo z iného dňa).',POLICY_BLOCKED:'Storno nie je povolené.',FORBIDDEN:'Na storno nemáš oprávnenie.',VALIDATION_ERROR:'Skontroluj výber dôvodu.'};
 export const errorText=code=>ERROR_TEXT[code]||'Storno sa nepodarilo. Skús to znova.';
+export const NOT_RECORDED_TEXT='Storno sa na serveri nenašlo. Nič sa nestornovalo, môžeš ho zopakovať.';
 export const reasonLabel=code=>CANCEL_REASON_LABELS[code]||'Dôvod nie je uvedený';
 export function cancellationRequest(item,date,reason,requestId){
  if(!CANCEL_REASON_LABELS[reason])throw Error('REASON');
@@ -74,11 +75,13 @@ export function mountCancellation({root,api,role,date,onAuthFailure=()=>{},onCha
    if(!live)return;
    if(data.operation?.state==='REJECTED'){const code=data.operation.result_code==='REJECTED'?'BUSINESS_REJECTED':data.operation.result_code;pending={message:errorText(code),error:true};render();return;}
    if(data.operation?.state!=='COMPLETED'||data.projection?.status!=='CANCELLED')throw Error('UNVERIFIED');
-   pending=null;selected=null;reason='';showToast({text:'Záznam bol stornovaný'});onChanged();await load();
+   pending=null;selected=null;reason='';showToast({text:'Záznam bol stornovaný'});if(section.isConnected)onChanged();await load();
   }catch(error){
    if(!live||error?.name==='AbortError')return;
    if(error?.code==='AUTH_REQUIRED'){onAuthFailure(error.code);return;}
-   if(DEFINITE.includes(error?.code))pending={message:errorText(error.code),error:true};
+   // Verifying a request the server never received answers BUSINESS_REJECTED: say that nothing was cancelled.
+   if(readback&&error?.code==='BUSINESS_REJECTED')pending={message:NOT_RECORDED_TEXT,error:true};
+   else if(DEFINITE.includes(error?.code))pending={message:errorText(error.code),error:true};
    else pending={...pending,message:'Výsledok nie je potvrdený. Over ho, nezapisuj storno znova.',unknown:true};
    render();
   }finally{busy=false;}
