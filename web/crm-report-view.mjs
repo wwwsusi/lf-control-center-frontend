@@ -302,3 +302,19 @@ export function reportTable(model,{rowHeader}){
  }
  table.append(head,body);wrap.append(table);return wrap;
 }
+
+// "Dnešné záznamy": turns the server's day summary (counts only) into the boxes the screen shows. Null when there is no summary.
+export function todaySummaryModel(s){
+ if(!s||!Number.isFinite(s.people))return null;
+ const rows=list=>(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.name==='string'&&Number.isFinite(x.count)&&x.count>0).map(x=>[x.name,x.count]);
+ return {
+  tiles:[['Ľudia dnes vo fitku',s.people],['Predané služby',s.services_total??0],['Predané produkty',s.products_total??0]],
+  note:s.visits>s.people?'Vstupov spolu: '+s.visits+' (jedna klientka môže prísť viackrát).':'',
+  sections:[
+   {title:'Jednorazové vstupy',rows:[['Jednorazové vstupy',s.single_entry??0],['MultiSport vstupy',s.multisport??0]],empty:''},
+   {title:'Cvičili na permanentku',rows:rows(s.passes),empty:'Dnes zatiaľ nikto na permanentku.'},
+   {title:'Predané produkty',rows:rows(s.products),empty:'Dnes sa zatiaľ nepredal žiadny produkt.'},
+   {title:'Predané služby',rows:rows(s.services),empty:'Dnes sa zatiaľ nepredala žiadna služba.'}
+  ]
+ };
+}
