@@ -28,19 +28,18 @@ test('the today screen renders the summary above the day controls',async()=>{
  assert.ok(js.indexOf('showTodaySummary(data.summary)')<js.indexOf("mode:'day',day,date:data.date"),'summary comes before the day controls');
 });
 
-test('records table: one row per record with Prague time, client, amount, payment and state',()=>{
- assert.equal(TODAY_COLUMNS.length,7);
+test('records table: one row per record with Prague time, client, amount and state; no payment column',()=>{
+ assert.deepEqual(TODAY_COLUMNS,['Čas','Typ','Klientka','Záznam','Suma','Stav']);
  const rows=todayRows([
-  {type:'VISIT',time:'2026-11-27T07:05:00Z',status:'POSTED',client:'Anna Nováková',known:true,detail:'10-vstupová permanentka',total:null,paid:null,methods:[]},
-  {type:'VISIT',time:'2026-11-27T07:10:00Z',status:'POSTED',client:null,known:false,detail:'MultiSport',total:null,paid:null,methods:[]},
-  {type:'SALE',time:'2026-11-27T08:00:00Z',status:'CONFIRMED',client:null,known:true,detail:'Uterák',total:'3.50',paid:'3.50',methods:['CASH']},
-  {type:'SALE',time:'2026-11-27T08:30:00Z',status:'CONFIRMED',client:null,known:false,detail:'PRO8',total:'57.00',paid:null,methods:[]},
-  {type:'SALE',time:'2026-11-27T09:00:00Z',status:'CANCELLED',client:null,known:false,detail:'Tyčinky',total:'1.00',paid:null,methods:[]}]);
+  {type:'VISIT',time:'2026-11-27T07:05:00Z',status:'POSTED',client:'Anna Nováková',known:true,detail:'10-vstupová permanentka',total:null},
+  {type:'VISIT',time:'2026-11-27T07:10:00Z',status:'POSTED',client:null,known:false,detail:'MultiSport',total:null},
+  {type:'SALE',time:'2026-11-27T08:00:00Z',status:'CONFIRMED',client:null,known:true,detail:'Uterák',total:'3.50'},
+  {type:'SALE',time:'2026-11-27T09:00:00Z',status:'CANCELLED',client:null,known:false,detail:'Tyčinky',total:'1.00'}]);
  assert.deepEqual(rows[0].cells.slice(0,4),['08:05','Vstup','Anna Nováková','10-vstupová permanentka']);
+ assert.ok(rows.every(r=>r.cells.length===6));
  assert.equal(rows[1].cells[2],'Bez mena');
  assert.equal(rows[2].cells[2],'Klientka');
- assert.match(rows[2].cells[4],/3,50/);assert.equal(rows[2].cells[5],'Hotovosť');
- assert.equal(rows[3].cells[5],'Nezaplatené');
- assert.equal(rows[4].cells[6],'Zrušený');assert.equal(rows[4].cancelled,true);assert.equal(rows[4].cells[5],'—');
+ assert.match(rows[2].cells[4],/3,50/);
+ assert.equal(rows[3].cells[5],'Zrušený');assert.equal(rows[3].cancelled,true);
  assert.equal(todayRows(undefined),null);
 });
