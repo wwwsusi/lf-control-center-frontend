@@ -72,7 +72,11 @@ export function mountBodyMeasurements({root,api,customer,onBack,onAuthFailure}){
    list.append(row);
   });
   const nodes=[state];
-  if(active)nodes.push(actions(button('Nové meranie',()=>{if(!busy&&!pending){notice.textContent='';form();}},'crm-profile-go')));
+  // measurement_credit is sent only when measurements must be bought (e.g. START); without it nothing is limited.
+  const credit=data.measurement_credit,locked=Number.isInteger(credit)&&credit<=0;
+  if(active&&Number.isInteger(credit)&&credit>0)nodes.push(el('p','Nevyužité merania: '+credit+'.','crm-note'));
+  if(active&&locked)nodes.push(el('p','Nové meranie sa sprístupní po kúpe služby, ktorá ho obsahuje (napríklad Lady Fitness START). Staršie merania môžeš prezerať a tlačiť.','crm-note'));
+  else if(active)nodes.push(actions(button('Nové meranie',()=>{if(!busy&&!pending){notice.textContent='';form();}},'crm-profile-go')));
   else nodes.push(el('p','Klientka nie je aktívna. Nové meranie sa nezapíše.','crm-note'));
   nodes.push(data.items.length?list:el('p','Zatiaľ nie je zapísané žiadne meranie.','crm-note'));
   if(data.truncated)nodes.push(el('p','Zobrazených je posledných '+data.items.length+' meraní.','crm-note'));
