@@ -308,6 +308,7 @@ export function todaySummaryModel(s){
  if(!s||!Number.isFinite(s.people))return null;
  const rows=list=>(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.name==='string'&&Number.isFinite(x.count)&&x.count>0).map(x=>[x.name,x.count]);
  return {
+  table:todayRows(s.records),truncated:s.records_truncated===true,
   tiles:[['Ľudia dnes vo fitku',s.people],['Predané služby',s.services_total??0],['Predané produkty',s.products_total??0]],
   note:s.visits>s.people?'Vstupov spolu: '+s.visits+' (jedna klientka môže prísť viackrát).':'',
   sections:[
@@ -317,4 +318,19 @@ export function todaySummaryModel(s){
    {title:'Predané služby',rows:rows(s.services),empty:'Dnes sa zatiaľ nepredala žiadna služba.'}
   ]
  };
+}
+
+// One table row per visit or sale: [time, type, client, what, amount, payment, state]. Null when the server sends no rows list.
+export const TODAY_COLUMNS=['Čas','Typ','Klientka','Záznam','Suma','Platba','Stav'];
+const PAY_LABEL={CASH:'Hotovosť',CARD:'Karta',BANK_TRANSFER:'Prevod'};
+const STATE_LABEL={POSTED:'Platný',CONFIRMED:'Platný',CANCELLED:'Zrušený',DRAFT:'Rozpracovaný'};
+const clock=new Intl.DateTimeFormat('sk-SK',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Prague'});
+const eur=new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'});
+export function todayRows(records){
+ if(!Array.isArray(records))return null;
+ return records.map(r=>{
+  const at=new Date(r.time),sale=r.type==='SALE',total=r.total===null||r.total===undefined?null:Number(r.total),paid=r.paid===null||r.paid===undefined?0:Number(r.paid);
+  const payment=!sale||r.status!=='CONFIRMED'?'—':(r.methods??[]).length?r.methods.map(m=>PAY_LABEL[m]??m).join(', ')+(total!==null&&paid<total?' (čiastočne)':''):(total===0?'—':'Nezaplatené');
+  return {cancelled:r.status==='CANCELLED',cells:[Number.isFinite(at.getTime())?clock.format(at):'—',sale?'Predaj':'Vstup',r.client||(r.known?'Klientka':'Bez mena'),r.detail||'—',sale&&total!==null?eur.format(total):'—',payment,STATE_LABEL[r.status]??r.status]};
+ });
 }
