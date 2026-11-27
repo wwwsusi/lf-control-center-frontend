@@ -25,8 +25,6 @@
 .crm-pack-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .crm-pack-field{display:grid;gap:4px}
 .crm-pack-field span{color:var(--muted);font-size:.9rem}
-.crm-pack-capacity{margin:0;color:var(--muted)}
-.crm-pack-capacity[data-tight=true]{color:var(--pink);font-weight:600}
 .crm-pack-catalogue summary{cursor:pointer;font-weight:600}
 .crm-pack-catalogue>.crm-pack-field{max-width:320px;margin:12px 0}
 .crm-pack-scroll{overflow-x:auto}

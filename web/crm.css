@@ -852,8 +852,6 @@ html[data-theme=light] .crm-pack-totals{border:1px solid #6d7b9259}
 html[data-theme=light] .crm-pack-totals dt{color:var(--muted)}
 html[data-theme=light] .crm-pack-totals .crm-pack-price dd{color:var(--pink)}
 html[data-theme=light] .crm-pack-field span{color:var(--muted)}
-html[data-theme=light] .crm-pack-capacity{color:var(--muted)}
-html[data-theme=light] .crm-pack-capacity[data-tight=true]{color:var(--pink)}
 html[data-theme=light] .crm-pack-table th{color:var(--muted)}
 html[data-theme=light] .crm-pack-table th,html[data-theme=light] .crm-pack-table td{border-bottom:1px solid #6d7b9259}
 html[data-theme=light] .crm-pack-pilot{border:1px solid var(--pink)}
