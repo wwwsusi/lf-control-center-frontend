@@ -27,3 +27,11 @@ test('body screens keep nothing in the browser and never parse markup',()=>{
  assert(!/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|indexedDB|fonts\.googleapis|cdnjs/.test(src));
  for(const type of ['RECORD_BODY_CONSENT','WITHDRAW_BODY_CONSENT','RECORD_BODY_MEASUREMENT','VOID_BODY_MEASUREMENT'])assert(src.includes("'"+type+"'"),type);
 });
+
+test('a new measurement is offered only with an unused one when the server limits measurements',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const src=await readFile(new URL('../web/crm-body.mjs',import.meta.url),'utf8');
+ assert.match(src,/const credit=data\.measurement_credit,locked=Number\.isInteger\(credit\)&&credit<=0;/);
+ assert.match(src,/if\(active&&locked\)nodes\.push\(el\('p','Nové meranie sa sprístupní po kúpe/);
+ assert.match(src,/else if\(active\)nodes\.push\(actions\(button\('Nové meranie'/);
+});
