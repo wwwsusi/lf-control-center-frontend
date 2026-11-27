@@ -1,6 +1,6 @@
 // Package calculator screen (owner only). Reads the live services once, then works entirely in memory; the owner keeps a
 // model by saving it to a file. The draft survives moving between screens and is dropped on logout.
-import {MAX_QTY,MAX_ITEMS,byId,num,calc,pctFromPrice,priceEndingInNine,perWeek,defaultDraft,exportDraft,importDraft,eur,percent,summaryText} from './crm-packages-model.mjs';
+import {MAX_QTY,MAX_ITEMS,byId,num,calc,pctFromPrice,priceEndingInNine,defaultDraft,exportDraft,importDraft,eur,percent,summaryText} from './crm-packages-model.mjs';
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'];
 let kept=null;
 export function clearPackageDraft(){kept=null;}
@@ -75,19 +75,15 @@ export function mountPackages({root,api,actor,onAuthFailure,onBack=null}){
   const pct=numberInput(0,{step:'0.1',max:'100',label:'Zľava v percentách'}),price=numberInput(0,{label:'Cena po zľave v eurách'});
   const labelled=(text,input)=>{const l=el('label',undefined,'crm-pack-field');l.append(el('span',text),input);return l;};
   controls.append(labelled('Zľava (%)',pct),labelled('Cena po zľave (€)',price));
-  const capacity=el('p',undefined,'crm-pack-capacity');
   const refresh=(skip)=>{
    const r=calc(pack,map,draft.minutes);
    sumValue.textContent=eur(r.sum);savingValue.textContent=eur(r.saving)+' ('+percent(pack.pct)+')';priceValue.textContent=eur(r.price);
    if(skip!==pct)pct.value=String(Math.round(pack.pct*10)/10);if(skip!==price)price.value=String(Math.round(r.price*100)/100);
-   const per=perWeek(draft.capHours,r.owner);
-   capacity.dataset.tight=String(per!==null&&per<3);
-   capacity.textContent=per===null?'Bez času majiteľky, kapacita nie je obmedzená.':'Čas majiteľky na 1 balíček: '+r.owner+' min. Pri '+draft.capHours+' h týždenne stihneš najviac '+per+' ks za týždeň.'+(per<3?' Pozor: čas majiteľky je tu úzke hrdlo.':'');
   };
   pct.addEventListener('input',()=>{pack.pct=Math.min(100,Math.max(0,num(pct.value)));refresh(pct);});
   price.addEventListener('input',()=>{const r=calc(pack,map,draft.minutes);if(r.sum<=0)return;pack.pct=pctFromPrice(r.sum,Math.max(0,num(price.value)));refresh(price);});
-  const nine=button('Cena na 9',()=>{const r=calc(pack,map,draft.minutes),k=priceEndingInNine(r.sum,r.price);if(k===null)return;pack.pct=pctFromPrice(r.sum,k);refresh();});
-  col.append(name,list,select,totals,controls,nine,capacity);refresh();return col;
+  const nine=button('Cena zaokrúhlená na 9 Euro',()=>{const r=calc(pack,map,draft.minutes),k=priceEndingInNine(r.sum,r.price);if(k===null)return;pack.pct=pctFromPrice(r.sum,k);refresh();});
+  col.append(name,list,select,totals,controls,nine);refresh();return col;
  }
  function renderGrid(){grid.replaceChildren(...draft.packages.map(column));}
  function save(){
