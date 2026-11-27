@@ -10,7 +10,7 @@ const contrast=(a,b)=>{const [x,y]=[lum(a),lum(b)].sort((p,q)=>q-p);return (x+0.
 test('the generated light block in crm.css is up to date',async()=>{
  const css=await read('web/crm.css'),a=css.indexOf(BEGIN),b=css.indexOf(END);
  assert.ok(a>0&&b>a,'markers present');
- const sources={};for(const f of ['web/home.css','web/crm.css','web/crm-control-center.css','web/crm-body.css'])sources[f]=await read(f);
+ const sources={};for(const f of ['web/home.css','web/crm.css','web/crm-control-center.css','web/crm-body.css','web/crm-packages.css'])sources[f]=await read(f);
  assert.equal(css.slice(a,b+END.length),generate(f=>sources[f]),'run: node scripts/gen-crm-light.mjs');
 });
 

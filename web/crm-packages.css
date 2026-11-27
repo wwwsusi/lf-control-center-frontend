@@ -1,0 +1,45 @@
+/* Package calculator. Colours come from the CRM theme tokens or are neutral, so both themes work. */
+.crm-calc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.crm-calc-card{display:grid;gap:10px;align-content:start}
+.crm-calc-card h3,.crm-calc-card p{margin:0}
+.crm-calc-card p{color:var(--muted)}
+.crm-packages{display:grid;gap:14px}
+.crm-packages h2{margin:0}
+.crm-pack-bar{display:flex;flex-wrap:wrap;gap:10px}
+.crm-pack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.crm-pack-col{display:grid;gap:12px;align-content:start;min-width:0}
+.crm-main .crm-packages input,.crm-main .crm-packages select{width:100%;min-width:0;box-sizing:border-box}
+.crm-main .crm-packages .crm-pack-name{font-weight:700;font-size:1.25rem}
+.crm-pack-lines{list-style:none;margin:0;padding:0}
+.crm-pack-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(128,140,160,.35)}
+.crm-pack-text strong{display:block;overflow-wrap:anywhere}
+.crm-pack-text span{color:var(--muted);font-size:.9rem}
+.crm-pack-qty{display:flex;align-items:center;gap:6px}
+.crm-pack-qty output{min-width:2ch;text-align:center}
+.crm-main .crm-card .crm-pack-qty button{width:44px;min-height:44px;padding:0}
+.crm-pack-totals{margin:0;border:1px solid rgba(128,140,160,.35);border-radius:12px;padding:10px 14px}
+.crm-pack-totals div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:3px 0}
+.crm-pack-totals dt{color:var(--muted)}
+.crm-pack-totals dd{margin:0;font-variant-numeric:tabular-nums}
+.crm-pack-totals .crm-pack-price dd{font-size:1.8rem;font-weight:800;color:var(--pink)}
+.crm-pack-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.crm-pack-field{display:grid;gap:4px}
+.crm-pack-field span{color:var(--muted);font-size:.9rem}
+.crm-pack-capacity{margin:0;color:var(--muted)}
+.crm-pack-capacity[data-tight=true]{color:var(--pink);font-weight:600}
+.crm-pack-catalogue summary{cursor:pointer;font-weight:600}
+.crm-pack-catalogue>.crm-pack-field{max-width:320px;margin:12px 0}
+.crm-pack-scroll{overflow-x:auto}
+.crm-pack-table{width:100%;border-collapse:collapse;min-width:520px}
+.crm-pack-table th{text-align:left;color:var(--muted);font-weight:500}
+.crm-pack-table th,.crm-pack-table td{padding:4px 8px;border-bottom:1px solid rgba(128,140,160,.35)}
+.crm-pack-table td:last-child{width:150px}
+.crm-pack-pilot{border:1px solid var(--pink);border-radius:999px;padding:0 8px;font-size:.75rem}
+.crm-pack-printroot{display:none}
+@media print{
+ body.crm-pack-print{background:#fff!important;color:#000!important}
+ body.crm-pack-print>:not(.crm-pack-printroot){display:none!important}
+ body.crm-pack-print>.crm-pack-printroot{display:block;color:#000;font-family:Inter,sans-serif}
+ body.crm-pack-print .crm-pack-printroot,body.crm-pack-print .crm-pack-printroot *{visibility:visible;color:#000}
+ .crm-pack-printroot pre{font:14px/1.6 Inter,sans-serif;white-space:pre-wrap}
+}
