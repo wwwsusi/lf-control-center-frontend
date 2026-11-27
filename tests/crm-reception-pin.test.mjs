@@ -28,3 +28,15 @@ test('the Today view offers the day-opening button to owner and reception only i
  // the other owner modes stay owner-only
  assert.ok(js.includes("function openOwner(mode){if(!active||role!=='OWNER_ADMIN')return;"));
 });
+
+test('the PIN can be typed on a computer keyboard: digits, delete and cancel only',async()=>{
+ const {pinKeyFor}=await import('../web/crm-scan.mjs');
+ const press=(key,extra={})=>pinKeyFor({key,target:{tagName:'BODY'},...extra});
+ for(const d of '0123456789')assert.equal(press(d),d);
+ assert.equal(press('Backspace'),'⌫');assert.equal(press('Escape'),'Zrušiť');assert.equal(press('Delete'),'Zrušiť');
+ for(const other of ['a','Enter',' ','Tab','F5','-','e','.'])assert.equal(press(other),null,other);
+ for(const flag of ['ctrlKey','metaKey','altKey','repeat'])assert.equal(press('1',{[flag]:true}),null,flag);
+ assert.equal(pinKeyFor({key:'1',target:{tagName:'INPUT'}}),null,'typing into a field is left alone');
+ assert.ok(js.includes("if(byId('crm-login-reception').hidden)return;const key=pinKeyFor(event);"),'only while the PIN screen is shown');
+});
+

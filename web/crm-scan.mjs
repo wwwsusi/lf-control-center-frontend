@@ -71,3 +71,13 @@ export function mountScanner({root,onCode,onClose}){
  start();
  return {dispose,isActive:()=>live};
 }
+
+// Reception PIN on a computer keyboard: maps a key press to the keypad key it stands for, or null when the press must be left alone
+// (shortcuts, held keys, typing into a form field, any other key).
+export function pinKeyFor(e){
+ if(!e||e.ctrlKey||e.metaKey||e.altKey||e.repeat||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return null;
+ if(/^[0-9]$/.test(e.key))return e.key;
+ if(e.key==='Backspace')return '⌫';
+ if(e.key==='Escape'||e.key==='Delete')return 'Zrušiť';
+ return null;
+}
