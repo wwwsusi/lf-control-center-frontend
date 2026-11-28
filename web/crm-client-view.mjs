@@ -25,7 +25,10 @@ export function entitlementView(e,today){
  const view=membershipView({type:e.type_at_purchase,activated_on:e.activated_on,expires_on:e.expires_on,included_units:e.included_units_at_purchase,consumed},today);
  const named=e.service_name?{...view,rows:[[e.service_name+(e.origin==='OPENING_BALANCE'?' · prevzatá':''),null],...view.rows.slice(1)]}:view;
  if(e.status&&e.status!=='ENABLED')return {...named,tone:'neutral',chip:'Zrušená'};
- return named;
+ if(!e.package)return named;
+ const packaged={...named,rows:[...named.rows,['Z balíčka',e.package.name]]};
+ if(e.package.not_yet_usable)return {...packaged,tone:'neutral',chip:'Využitie od '+skDate(e.package.usable_from)};
+ return e.package.start_expired?{...packaged,tone:'danger',chip:'Nezačatá do '+skDate(e.package.start_by)}:packaged;
 }
 const AUTH=['AUTH_REQUIRED','FORBIDDEN','CRM_NOT_ACTIVE'];
 export function mountClientProfile({root,api,data,owner=false,onVisit,onShop,onEdit,onBack,onAuthFailure,onAddPass=null,onEditPass=null,onCard=null,onBody=null}){
