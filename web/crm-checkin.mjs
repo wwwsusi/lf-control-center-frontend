@@ -12,6 +12,13 @@ export function membershipValidityLabel(e){
 }
 // The pass name comes from the catalogue; a time pass can run 1, 2, 3, 6 or 12 months, so no length is assumed.
 export const passName=e=>e.service_name||(e.type_at_purchase==='TIME_ACCESS'?'Časová permanentka':'Permanentka na vstupy');
+const packageDay=value=>{const [y,m,d]=String(value).split('-');return Number(d)+'. '+Number(m)+'. '+y;};
+// Why an entitlement bought in a package cannot be used today, or null. The database enforces the same rule.
+export function packageBlock(e){
+ if(!e.package)return null;
+ if(e.package.not_yet_usable)return 'Využitie od '+packageDay(e.package.usable_from);
+ return e.package.start_expired?'Nezačaté do '+packageDay(e.package.start_by):null;
+}
 export function entryMembershipLabel(e){
  const count='Použiť permanentku · čerpané '+e.consumed+' / '+(e.included_units_at_purchase??'neurčené');
  if(e.validity_value_at_purchase===6&&e.validity_unit_at_purchase==='MONTH')return count+' · '+(!e.activated_on?'Platnosť 6 mesiacov od prvého vstupu':membershipValidityLabel(e));
@@ -87,7 +94,7 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
    for(const a of admissions){
     if(a.code==='MULTISPORT')grid.append(entryTile({name:'MultiSport',label:'Zapísať MultiSport vstup',disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer))}));
     else if(a.code==='ENTITLEMENT'&&customer){
-     for(const e of entitlements.filter(x=>x.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(x.type_at_purchase)))grid.append(entryTile({name:passName(e),...entitlementDetail(e),label:'Zapísať vstup · '+(e.type_at_purchase==='TIME_ACCESS'?passName(e):'permanentka na vstupy'),disabled:state.busy,onClick:()=>writer.submit(visitPayload(a,customer,e))}));
+     for(const e of entitlements.filter(x=>x.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(x.type_at_purchase))){const blocked=packageBlock(e),shown=entitlementDetail(e);grid.append(entryTile({name:passName(e),...shown,...(blocked?{note:blocked,action:'Zatiaľ nedostupné'}:{}),label:'Zapísať vstup · '+(e.type_at_purchase==='TIME_ACCESS'?passName(e):'permanentka na vstupy'),disabled:state.busy||blocked!==null,onClick:()=>writer.submit(visitPayload(a,customer,e))}));}
     }
    }
    if(grid.children.length)root.append(grid);
@@ -98,7 +105,7 @@ export function mountCheckin({root,api,customer=null,onBack,onAuthFailure,onVisi
    else if(a.code==='ENTITLEMENT'){
     if(!customer)card.append(el('p','Najprv vyber klientku v zozname klientov.'));
     const eligible=entitlements.filter(e=>e.status==='ENABLED'&&['VISIT_COUNT','TIME_ACCESS'].includes(e.type_at_purchase));
-    for(const e of eligible)card.append(button(e.type_at_purchase==='TIME_ACCESS'?'Použiť · '+passName(e)+' · '+membershipValidityLabel(e):entryMembershipLabel(e),()=>writer.submit(visitPayload(a,customer,e))));
+    for(const e of eligible){const blocked=packageBlock(e),use=button((e.type_at_purchase==='TIME_ACCESS'?'Použiť · '+passName(e)+' · '+membershipValidityLabel(e):entryMembershipLabel(e))+(blocked?' · '+blocked:''),()=>writer.submit(visitPayload(a,customer,e)));if(blocked){use.disabled=true;use.dataset.blocked='true';}card.append(use);}
     if(customer&&!eligible.length)card.append(el('p','Klientka nemá platnú permanentku. Ak chce pokračovať, kúp novú v kroku 1.'));
    }else if(a.code==='SINGLE_ENTRY'){
     const page=entryPurchases.get(a.id);
