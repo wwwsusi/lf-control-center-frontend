@@ -16,3 +16,11 @@ test('entitlement view marks valid, soon, exhausted, expired and cancelled right
  assert.equal(entitlementView(e({type_at_purchase:'TIME_ACCESS',included_units_at_purchase:null}),today).rows.at(-1)[1],'Bez limitu vstupov');
  assert.equal(skDate('not a date'),'—');assert.equal(membershipView(undefined).rows.length,0);
 });
+
+test('time passes are never labelled with a fixed length',async()=>{
+ const {passName}=await import('../web/crm-checkin.mjs');
+ assert.equal(passName({type_at_purchase:'TIME_ACCESS',service_name:'3-mesačná permanentka'}),'3-mesačná permanentka');
+ assert.equal(passName({type_at_purchase:'TIME_ACCESS'}),'Časová permanentka');
+ assert.equal(passName({type_at_purchase:'VISIT_COUNT'}),'Permanentka na vstupy');
+ assert.equal(membershipView({type:'TIME_ACCESS',activated_on:null}).rows[0][0],'Časová permanentka');
+});

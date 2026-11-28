@@ -11,7 +11,7 @@ export function membershipView(m,today=new Date().toISOString().slice(0,10)){
  const soon=!expired&&typeof m.expires_on==='string'&&Date.parse(m.expires_on)-Date.parse(today)<=7*86400000;
  const exhausted=!time&&Number.isFinite(left)&&left<=0,low=!time&&Number.isFinite(left)&&left>0&&left<=2;
  const tone=expired||exhausted?'danger':soon||low?'warning':'success';
- return {tone,chip:expired?'Neplatná · vypršala':exhausted?'Neplatná · vyčerpaná':soon||low?'Platná · končí čoskoro':'Platná',rows:[[time?'Mesačná permanentka':'Permanentka na vstupy',null],['Od',m.activated_on?skDate(m.activated_on):'Aktivuje sa prvým vstupom'],['Do',m.expires_on?skDate(lastValidDay(m.expires_on)):'—'],['Zostáva',time?'Bez limitu vstupov':Number.isFinite(left)?Math.max(left,0)+' z '+total+' vstupov':'—']]};
+ return {tone,chip:expired?'Neplatná · vypršala':exhausted?'Neplatná · vyčerpaná':soon||low?'Platná · končí čoskoro':'Platná',rows:[[time?'Časová permanentka':'Permanentka na vstupy',null],['Od',m.activated_on?skDate(m.activated_on):'Aktivuje sa prvým vstupom'],['Do',m.expires_on?skDate(lastValidDay(m.expires_on)):'—'],['Zostáva',time?'Bez limitu vstupov':Number.isFinite(left)?Math.max(left,0)+' z '+total+' vstupov':'—']]};
 }
 
 const el=(tag,value,cls)=>{const x=document.createElement(tag);if(value!==undefined)x.textContent=String(value);if(cls)x.className=cls;return x;};
