@@ -55,3 +55,10 @@ test('remaining entries use correct Slovak inflection',()=>{
  for(const n of [2,3,4])assert.equal(remainingLabel(n),'Zostávajú '+n+' vstupy');
  for(const n of [5,6,10,30])assert.equal(remainingLabel(n),'Zostáva '+n+' vstupov');
 });
+
+test('single-use service: no expiry, no used entries, labelled as one-time',()=>{
+ const rule={type:'VISIT_COUNT',months:null,included:1};
+ assert.equal(passRuleLabel(rule),'Jednorazová služba · bez konca platnosti');
+ assert.equal(validThrough('2026-11-01',null),null);
+ assert.deepEqual(buildPayload({customer:{id:'c1',revision:'4'},rule,serviceId:'s3',start:'2026-11-01',used:0}),{customer_id:'c1',expected_revision:'4',service_id:'s3',start_date:'2026-11-01',used_units:'0'});
+});
